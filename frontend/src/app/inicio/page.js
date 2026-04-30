@@ -99,7 +99,7 @@ export default function Home() {
           <header className="flex h-16 items-center justify-between border-b bg-background/80 backdrop-blur px-6">
             <div className="flex items-center gap-4">
               <SidebarTrigger />
-              <h2 className="font-semibold">Dashboard</h2>
+              <h2 className="font-semibold">Home</h2>
             </div>
 
             <DropdownMenu>

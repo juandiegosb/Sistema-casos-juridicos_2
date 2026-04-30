@@ -124,7 +124,7 @@ public class UsuariosInternosDataInitializer {
             AdministrativoDTO administrativo = new AdministrativoDTO();
             administrativo.setNombre("Ana Maria Gomez");
             administrativo.setTipoDocumentoId(cc.getId());
-            administrativo.setDocumento("1098001124");
+            administrativo.setDocumento("0");
             administrativo.setEmail("admin@example.com");
             administrativo.setTelefono("3001234569");
             administrativo.setUsuario("agomez");
