@@ -5,7 +5,7 @@ import { FormInput } from "./parts/FormInput";
 import { FormSelect } from "./parts/FormSelect";
 import { Button } from "@/components/ui/button";
 
-export default function TemaForm() {
+export function TemaForm() {
   const {
     register,
     handleSubmit,

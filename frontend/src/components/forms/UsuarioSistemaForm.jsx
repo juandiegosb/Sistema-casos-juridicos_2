@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
+import { toast } from "sonner";
 
 import { FormInput } from "./parts/FormInput";
 import { FormSelect } from "./parts/FormSelect";
@@ -8,16 +9,20 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 
 export function UsuarioSistemaForm() {
-  const { register, handleSubmit, watch, formState: { errors } } = useForm();
+  const { register, handleSubmit, watch, reset, formState: { errors } } = useForm();
 
-  const tipo = watch("tipo");
+  const personaSeleccionada = watch("personaId");
+  const nuevoRol = watch("nuevoRol");
 
   const API_URL = "http://localhost:8080/api";
   const REQUIRED = "Campo obligatorio";
 
+  const [personas, setPersonas] = useState([]);
   const [asesores, setAsesores] = useState([]);
   const [areas, setAreas] = useState([]);
   const [sedes, setSedes] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [personaActual, setPersonaActual] = useState(null);
 
   const fetchData = async (url) => {
     const res = await fetch(url);
@@ -25,20 +30,32 @@ export function UsuarioSistemaForm() {
     return await res.json();
   };
 
+  // Cargar personas disponibles al montar el componente
   useEffect(() => {
-
-    const cargarDatos = async () => {
+    const cargarPersonas = async () => {
       try {
-
-        const sedesData = await fetchData(`${API_URL}/sedes`);
-        setSedes(
-          sedesData.map(s => ({
-            value: s.id,
-            label: s.nombre
+        const personasData = await fetchData(`${API_URL}/personas`);
+        setPersonas(
+          personasData.map(p => ({
+            value: p.id,
+            label: `${p.nombres} ${p.apellidos} - ${p.numeroDocumento}`
           }))
         );
+      } catch (error) {
+        console.error("Error cargando personas:", error);
+        toast.error("Error al cargar personas");
+      }
+    };
 
-        if (tipo === "estudiantes") {
+    cargarPersonas();
+  }, []);
+
+  // Cargar datos específicos según el nuevo rol seleccionado
+  useEffect(() => {
+    const cargarDatosRol = async () => {
+      if (!nuevoRol) return;
+      try {
+        if (nuevoRol === "estudiantes") {
           const asesoresData = await fetchData(`${API_URL}/asesores`);
           setAsesores(
             asesoresData.map(a => ({
@@ -48,7 +65,7 @@ export function UsuarioSistemaForm() {
           );
         }
 
-        if (tipo === "asesores") {
+        if (nuevoRol === "asesores") {
           const areasData = await fetchData(`${API_URL}/areas`);
           setAreas(
             areasData.map(a => ({
@@ -58,16 +75,20 @@ export function UsuarioSistemaForm() {
           );
         }
 
+        const sedesData = await fetchData(`${API_URL}/sedes`);
+        setSedes(
+          sedesData.map(s => ({
+            value: s.id,
+            label: s.nombre
+          }))
+        );
       } catch (error) {
         console.error("Error cargando datos:", error);
       }
     };
 
-    if (tipo) {
-      cargarDatos();
-    }
-
-  }, [tipo]);
+    cargarDatosRol();
+  }, [nuevoRol]);
 
   const tipoOptions = [
     { value: "estudiantes", label: "Estudiante" },
@@ -77,75 +98,68 @@ export function UsuarioSistemaForm() {
     { value: "conciliadores", label: "Conciliador" },
   ];
 
-  const tipoDocumentoOptions = [
-    { value: 1, label: "Cédula de Ciudadanía" },
-    { value: 2, label: "Tarjeta de Identidad" },
-    { value: 3, label: "Cédula de Extranjería" },
-  ];
-
   const handleSubmitForm = async (data) => {
+    if (!personaSeleccionada || !nuevoRol) {
+      toast.error("Debe seleccionar una persona y un rol");
+      return;
+    }
+
+    setLoading(true);
     try {
-      const res = await fetch(`${API_URL}/${tipo}`, {
-        method: "POST",
+      const updateData = {
+        personaId: personaSeleccionada,
+        nuevoRol: nuevoRol,
+        datosEspecificos: {}
+      };
+
+      // Agregar datos específicos según el rol
+      if (nuevoRol === "estudiantes" && data.asesorId) {
+        updateData.datosEspecificos.asesorId = data.asesorId;
+        updateData.datosEspecificos.conciliacion = data.conciliacion || false;
+      }
+
+      if (nuevoRol === "asesores" && data.areaId) {
+        updateData.datosEspecificos.areaId = data.areaId;
+      }
+
+      if (nuevoRol === "administrativos") {
+        updateData.datosEspecificos.directora = data.directora || false;
+      }
+
+      if (nuevoRol === "conciliadores" && data.tipoConciliador) {
+        updateData.datosEspecificos.tipoConciliador = data.tipoConciliador;
+      }
+
+      const res = await fetch(`${API_URL}/personas/${personaSeleccionada}/cambiar-rol`, {
+        method: "PUT",
         headers: {
           "Content-Type": "application/json"
         },
-        body: JSON.stringify(data)
+        body: JSON.stringify(updateData)
       });
 
-      if (!res.ok) throw new Error("Error al guardar");
+      if (!res.ok) throw new Error("Error al actualizar");
 
       const result = await res.json();
-      console.log("Guardado:", result);
+      toast.success(`Rol actualizado: ${result.tipoUsuario}`);
+      reset();
+      setPersonaActual(null);
 
     } catch (error) {
       console.error("Error al enviar:", error);
+      toast.error("Error al actualizar el rol");
+    } finally {
+      setLoading(false);
     }
   };
 
-  const camposBase = (
-    <>
-      <FormInput name="nombre" label="Nombre" register={register} errors={errors} rules={{ required: REQUIRED }} />
-
-      <FormSelect
-        name="tipoDocumento.id"
-        label="Tipo Documento"
-        options={tipoDocumentoOptions}
-        register={register}
-        errors={errors}
-        rules={{ required: REQUIRED }}
-      />
-
-      <FormInput name="documento" label="Documento" register={register} errors={errors} rules={{ required: REQUIRED }} />
-
-      <FormInput name="email" label="Email" type="email" register={register} errors={errors} rules={{ required: REQUIRED }} />
-
-      <FormInput name="telefono" label="Teléfono" register={register} errors={errors} rules={{ required: REQUIRED }} />
-
-      <FormInput name="usuario" label="Usuario" register={register} errors={errors} rules={{ required: REQUIRED }} />
-
-      <FormInput name="codigo" label="Código" register={register} errors={errors} rules={{ required: REQUIRED }} />
-
-      <FormSelect
-        name="sede.id"
-        label="Sede"
-        options={sedes}
-        register={register}
-        errors={errors}
-        rules={{ required: REQUIRED }}
-      />
-    </>
-  );
-
-  //  ESPECÍFICOS
   const renderCamposEspecificos = () => {
-    switch (tipo) {
-
+    switch (nuevoRol) {
       case "estudiantes":
         return (
           <>
             <FormSelect
-              name="asesor.id"
+              name="asesorId"
               label="Asesor"
               options={asesores}
               register={register}
@@ -165,7 +179,7 @@ export function UsuarioSistemaForm() {
       case "asesores":
         return (
           <FormSelect
-            name="area.id"
+            name="areaId"
             label="Área"
             options={areas}
             register={register}
@@ -208,41 +222,56 @@ export function UsuarioSistemaForm() {
     <div className="space-y-8 p-6 bg-card rounded-xl shadow border">
 
       <div>
-        <h2 className="text-2xl font-bold">Crear Perfil</h2>
+        <h2 className="text-2xl font-bold">Asignar/Cambiar Rol de Usuario</h2>
         <p className="text-muted-foreground">
-          Complete la información según el tipo seleccionado.
+          Selecciona una persona y asígna o cambia su rol en el sistema.
         </p>
       </div>
 
       <FormSelect
-        name="tipo"
-        label="Tipo de Perfil"
+        name="personaId"
+        label="Seleccionar Persona"
+        options={personas}
+        register={register}
+        errors={errors}
+        rules={{ required: REQUIRED }}
+      />
+
+      <FormSelect
+        name="nuevoRol"
+        label="Nuevo Rol"
         options={tipoOptions}
         register={register}
         errors={errors}
         rules={{ required: REQUIRED }}
       />
 
-      <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {camposBase}
-      </section>
-
       <Separator />
 
-      {tipo && (
+      {nuevoRol && (
         <section className="space-y-4">
-          <h3 className="font-semibold">Información específica</h3>
+          <h3 className="font-semibold">Información específica del rol</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {renderCamposEspecificos()}
           </div>
         </section>
       )}
 
-      <FormCheckbox name="activo" label="Activo" register={register} errors={errors} />
-
-      <div className="flex justify-end">
-        <Button onClick={handleSubmit(handleSubmitForm)}>
-          Crear Perfil
+      <div className="flex justify-end gap-4">
+        <Button
+          variant="outline"
+          onClick={() => {
+            reset();
+            setPersonaActual(null);
+          }}
+        >
+          Limpiar
+        </Button>
+        <Button
+          onClick={handleSubmit(handleSubmitForm)}
+          disabled={loading || !personaSeleccionada || !nuevoRol}
+        >
+          {loading ? "Actualizando..." : "Actualizar Rol"}
         </Button>
       </div>
 

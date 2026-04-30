@@ -170,27 +170,33 @@ export function ConciliadorForm({ onSuccess, initialValues = {} }) {
   // ── Render ───────────────────────────────────────────────────────────────
 
   return (
-    <div className="space-y-8 p-6 bg-card rounded-xl shadow-sm border border-border">
-      {/* Encabezado */}
-      <div>
-        <h2 className="text-2xl font-bold tracking-tight mb-1">
-          Registro de Conciliador
-        </h2>
-        <p className="text-muted-foreground text-sm">
-          Complete la información del conciliador. Los campos marcados con{" "}
-          <span className="text-red-500">*</span> son obligatorios. Si no se
-          tiene algún dato, ingrese <strong>No informa</strong>.
-        </p>
-      </div>
+  <div className="space-y-8">
 
-      {/* ── Sección 1: Información Básica ── */}
-      <section className="space-y-4">
-        <h3 className="text-lg font-semibold border-b pb-2">
+    {/* 🔥 HEADER VISUAL */}
+    <div className="relative overflow-hidden rounded-2xl border bg-gradient-to-r from-blue-600/10 via-indigo-500/10 to-purple-500/10 p-6">
+      <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-600 via-indigo-500 to-purple-600" />
+
+      <h2 className="text-2xl font-bold tracking-tight">
+        Registro de Conciliador
+      </h2>
+
+      <p className="text-muted-foreground text-sm mt-1 max-w-2xl">
+        Complete la información del conciliador. Los campos marcados con{" "}
+        <span className="text-red-500">*</span> son obligatorios.
+      </p>
+    </div>
+
+    {/* 🔥 CONTENEDOR PRINCIPAL */}
+    <div className="space-y-6">
+
+      {/* ───────────── SECCIÓN ───────────── */}
+      <section className="rounded-xl border bg-card p-6 shadow-sm space-y-6">
+        <h3 className="text-lg font-semibold flex items-center gap-2">
           Información Básica
+          <span className="h-1 w-6 bg-blue-600 rounded-full" />
         </h3>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {/* tipoUsuario va fijo como "conciliador", se envía en defaultValues */}
           <input type="hidden" {...register("tipoUsuario")} />
 
           <FormSelect
@@ -673,5 +679,5 @@ export function ConciliadorForm({ onSuccess, initialValues = {} }) {
         </Button>
       </div>
     </div>
-  );
+  </div>);
 }

@@ -7,7 +7,7 @@ import {
 } from "@/components/ui/sidebar"
 import { AppSidebar } from "@/components/app-sidebar"
 import { TooltipProvider } from "@/components/ui/tooltip"
-import { Moon, Sun, FileText } from "lucide-react"
+import { Moon, Sun } from "lucide-react"
 import { useTheme } from "next-themes"
 import { Button } from "@/components/ui/button"
 import { Toaster } from "@/components/ui/sonner"
@@ -17,7 +17,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { ConsultasJuridicasForm } from "@/components/forms/ConsultasJuridicasForm"
+import { UsuarioSistemaForm } from "@/components/forms/UsuarioSistemaForm"
 
 const sections = [
     "Inicio",
@@ -36,7 +36,8 @@ const sections = [
     "Roles",
     "",
   ]
-export default function ConsultasJuridicasPage() {
+
+export default function UsuarioSistemaPage() {
   const { setTheme } = useTheme()
 
   const mainItems = sections.map((item) => ({
@@ -46,27 +47,29 @@ export default function ConsultasJuridicasPage() {
 
   return (
     <TooltipProvider>
-      <SidebarProvider className="min-h-screen">
+      <SidebarProvider>
         <AppSidebar mainItems={mainItems} footerItems={[]} />
 
+        {/* FONDO SUAVE GLOBAL */}
         <SidebarInset className="bg-muted/30 min-h-screen">
 
           {/* HEADER PRO */}
           <header className="flex h-16 items-center justify-between border-b bg-background/80 backdrop-blur px-6">
+
             <div className="flex items-center gap-4">
               <SidebarTrigger />
 
               <div className="flex flex-col leading-tight">
                 <span className="text-sm text-muted-foreground">
-                  Panel / Consultas
+                  Sistema / Usuarios
                 </span>
                 <span className="font-semibold">
-                  Consultas Jurídicas
+                  Crear Usuario del Sistema
                 </span>
               </div>
             </div>
 
-            {/* THEME */}
+            {/* TEMA */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="outline" size="icon">
@@ -92,33 +95,40 @@ export default function ConsultasJuridicasPage() {
           {/* CONTENIDO */}
           <div className="p-6 lg:p-10">
 
-            <div className="max-w-6xl mx-auto space-y-6">
+            <div className="max-w-5xl mx-auto">
 
-              {/* TITULO CON ICONO */}
-              <div className="flex items-center gap-3">
-                <div className="p-3 rounded-xl bg-primary/10">
-                  <FileText className="w-6 h-6 text-primary" />
-                </div>
-
-                <div>
-                  <h1 className="text-3xl font-bold tracking-tight">
-                    Registro de Consulta
-                  </h1>
-                  <p className="text-muted-foreground">
-                    Diligencie la información para registrar una nueva consulta jurídica
-                  </p>
-                </div>
+              {/*TITULO */}
+              <div className="mb-6 space-y-1">
+                <h1 className="text-3xl font-bold tracking-tight">
+                  Crear Usuario
+                </h1>
+                <p className="text-muted-foreground">
+                  Registra un nuevo usuario del sistema y asigna sus credenciales de acceso.
+                </p>
               </div>
 
               {/* CARD PRINCIPAL */}
-              <div className="rounded-2xl border border-border bg-background shadow-sm p-6 lg:p-8">
+              <div className="
+                rounded-2xl
+                border
+                border-border
+                bg-background
+                shadow-sm
+                p-6
+                lg:p-8
+                relative
+                overflow-hidden
+              ">
 
-                <ConsultasJuridicasForm />
+                {/* DETALLE VISUAL SUPERIOR */}
+                <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-600 via-indigo-600 to-indigo-800" />
+
+                <UsuarioSistemaForm />
 
               </div>
-
             </div>
           </div>
+
         </SidebarInset>
 
         <Toaster richColors position="bottom-right" />

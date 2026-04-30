@@ -6,17 +6,20 @@ import { useForm } from "react-hook-form"
 import { useApiForm } from "@/hooks/useApiForm"
 import { FormInput } from "../forms/parts/FormInput"
 import { Button } from "@/components/ui/button"
+import { Scale } from "lucide-react"
 
 export function LoginForm() {
   const router = useRouter()
   const [errorMessage, setErrorMessage] = useState("")
 
-  const { register, handleSubmit, formState: { errors } } = useForm()
-
-  const API_URL_BASE = "http://localhost:8080/api"
+  const {
+    register,
+    handleSubmit,
+    formState: { errors }
+  } = useForm()
 
   const { submit, isSubmitting } = useApiForm({
-    endpoint: `${API_URL_BASE}/auth/login`
+    endpoint: "http://localhost:8080/api/auth/login"
   })
 
   const REQUIRED = "Campo obligatorio"
@@ -30,63 +33,86 @@ export function LoginForm() {
         password: data.password
       })
 
-      if (response) {
-        localStorage.setItem("usuarioId", response.usuarioId)
-        localStorage.setItem("username", response.username)
-        localStorage.setItem("rol", response.rolNombre)
-        localStorage.setItem("perfil", response.tipoPerfil)
-        localStorage.setItem("permisos", JSON.stringify(response.permisos))
-
-        router.push("/inicio")
+      // 🔥 Si el login falló (status 400, 401, etc.)
+      if (!response.success) {
+        // Extraer el mensaje del error del backend
+        const errorMsg = response.error?.mensaje || 
+                         response.error?.message || 
+                         response.error?.error ||
+                         "Usuario o contraseña incorrectos"
+        
+        throw new Error(errorMsg)
       }
 
+      // ✅ éxito → guardar datos
+      const result = response.data
+      localStorage.setItem("usuarioId", result.usuarioId)
+      localStorage.setItem("username", result.username)
+      localStorage.setItem("rol", result.rolNombre)
+      localStorage.setItem("perfil", result.tipoPerfil)
+      localStorage.setItem("permisos", JSON.stringify(result.permisos))
+
+      router.push("/inicio")
+
     } catch (error) {
-      //mensaje error
-      setErrorMessage(
-        error?.response?.data?.message ||
-        error?.message ||
-        "Credenciales inválidas"
-      )
+      setErrorMessage(error.message || "Error al iniciar sesión")
     }
   }
 
   return (
-    <div className="w-full max-w-md rounded-3xl border border-border bg-card p-8 shadow-sm shadow-muted/40">
-      
-      <div className="mb-6 space-y-2">
-        <h1 className="text-3xl font-semibold">Iniciar sesión</h1>
-      </div>
+    <div className="w-full max-w-md">
+      <div className="backdrop-blur-xl bg-card/80 border border-border rounded-2xl shadow-2xl p-8">
 
-      <form onSubmit={handleSubmit(handleSubmitForm)} className="space-y-4">
-
-        <FormInput
-          name="username"
-          label="Correo electrónico"
-          register={register}
-          errors={errors}
-          rules={{ required: REQUIRED }}
-        />
-
-        <FormInput
-          name="password"
-          label="Contraseña"
-          type="password"
-          register={register}
-          errors={errors}
-          rules={{ required: REQUIRED }}
-        />
-
-        {errorMessage && (
-          <div className="text-sm text-destructive">
-            {errorMessage}
+        <div className="mb-6 text-center space-y-2">
+          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-primary/10">
+            <Scale className="h-7 w-7 text-primary" />
           </div>
-        )}
 
-        <Button type="submit" className="w-full" disabled={isSubmitting}>
-          {isSubmitting ? "Ingresando..." : "Acceder"}
-        </Button>
+          <h1 className="text-2xl font-semibold">
+            Consultorio Jurídico
+          </h1>
 
-      </form>
+          <p className="text-sm text-muted-foreground">
+            Accede al sistema
+          </p>
+        </div>
+
+        <form
+          onSubmit={handleSubmit(handleSubmitForm)}
+          className="space-y-4"
+        >
+          <FormInput
+            name="username"
+            label="Correo electrónico"
+            register={register}
+            errors={errors}
+            rules={{ required: REQUIRED }}
+          />
+
+          <FormInput
+            name="password"
+            label="Contraseña"
+            type="password"
+            register={register}
+            errors={errors}
+            rules={{ required: REQUIRED }}
+          />
+
+          {errorMessage && (
+            <div className="text-sm text-destructive">
+              {errorMessage}
+            </div>
+          )}
+
+          <Button
+            type="submit"
+            className="w-full"
+            disabled={isSubmitting}
+          >
+            {isSubmitting ? "Ingresando..." : "Acceder"}
+          </Button>
+        </form>
+      </div>
     </div>
   )
 }

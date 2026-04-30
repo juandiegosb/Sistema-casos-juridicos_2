@@ -1,5 +1,6 @@
 "use client"
 
+import * as React from "react"
 import {
   SidebarProvider,
   SidebarInset,
@@ -7,7 +8,8 @@ import {
 } from "@/components/ui/sidebar"
 import { AppSidebar } from "@/components/app-sidebar"
 import { TooltipProvider } from "@/components/ui/tooltip"
-import { Moon, Sun, FileText } from "lucide-react"
+import { PersonaForm } from "@/components/forms/PersonaForm"
+import { Moon, Sun } from "lucide-react"
 import { useTheme } from "next-themes"
 import { Button } from "@/components/ui/button"
 import { Toaster } from "@/components/ui/sonner"
@@ -17,9 +19,9 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { ConsultasJuridicasForm } from "@/components/forms/ConsultasJuridicasForm"
 
-const sections = [
+export default function Home() {
+  const sections = [
     "Inicio",
     "Tareas💀",
     "Recepcion",
@@ -36,7 +38,8 @@ const sections = [
     "Roles",
     "",
   ]
-export default function ConsultasJuridicasPage() {
+
+
   const { setTheme } = useTheme()
 
   const mainItems = sections.map((item) => ({
@@ -44,29 +47,38 @@ export default function ConsultasJuridicasPage() {
     tooltip: item,
   }))
 
+  const footerItems = [
+    {
+      title: "Configuración",
+      tooltip: "Configuración",
+      path: "/configuracion",
+    },
+  ]
+
   return (
     <TooltipProvider>
-      <SidebarProvider className="min-h-screen">
-        <AppSidebar mainItems={mainItems} footerItems={[]} />
+      <SidebarProvider>
+        <AppSidebar mainItems={mainItems} footerItems={footerItems} />
 
-        <SidebarInset className="bg-muted/30 min-h-screen">
+        <SidebarInset className="bg-muted/30">
 
-          {/* HEADER PRO */}
+        
           <header className="flex h-16 items-center justify-between border-b bg-background/80 backdrop-blur px-6">
+
             <div className="flex items-center gap-4">
               <SidebarTrigger />
 
               <div className="flex flex-col leading-tight">
                 <span className="text-sm text-muted-foreground">
-                  Panel / Consultas
+                  Panel / Personas
                 </span>
                 <span className="font-semibold">
-                  Consultas Jurídicas
+                  Registro de Persona
                 </span>
               </div>
             </div>
 
-            {/* THEME */}
+            {/* 🌗 Tema */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="outline" size="icon">
@@ -89,36 +101,30 @@ export default function ConsultasJuridicasPage() {
             </DropdownMenu>
           </header>
 
-          {/* CONTENIDO */}
+          {/* 🔥 CONTENIDO */}
           <div className="p-6 lg:p-10">
 
-            <div className="max-w-6xl mx-auto space-y-6">
+            {/* contenedor tipo card (clave del diseño) */}
+            <div className="max-w-6xl mx-auto">
 
-              {/* TITULO CON ICONO */}
-              <div className="flex items-center gap-3">
-                <div className="p-3 rounded-xl bg-primary/10">
-                  <FileText className="w-6 h-6 text-primary" />
-                </div>
-
-                <div>
-                  <h1 className="text-3xl font-bold tracking-tight">
-                    Registro de Consulta
-                  </h1>
-                  <p className="text-muted-foreground">
-                    Diligencie la información para registrar una nueva consulta jurídica
-                  </p>
-                </div>
+              <div className="mb-6 space-y-1">
+                <h1 className="text-3xl font-bold tracking-tight">
+                  Registro de Persona
+                </h1>
+                <p className="text-muted-foreground">
+                  Complete la información para registrar un nuevo usuario en el sistema.
+                </p>
               </div>
 
-              {/* CARD PRINCIPAL */}
+              {/* 🔥 CARD PRINCIPAL */}
               <div className="rounded-2xl border border-border bg-background shadow-sm p-6 lg:p-8">
 
-                <ConsultasJuridicasForm />
+                <PersonaForm />
 
               </div>
-
             </div>
           </div>
+
         </SidebarInset>
 
         <Toaster richColors position="bottom-right" />

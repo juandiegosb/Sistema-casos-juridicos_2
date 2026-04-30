@@ -105,15 +105,6 @@ export function PersonaForm({ onSubmit, initialValues = {} }) {
   return (
     <div>
       <div className="space-y-8 p-6 bg-card rounded-xl shadow-sm border border-border">
-        <div>
-          <h2 className="text-2xl font-bold tracking-tight mb-2">
-            Registro de Persona
-          </h2>
-          <p className="text-muted-foreground mb-6">
-            Complete la siguiente información para el sistema de casos
-            jurídicos.
-          </p>
-        </div>
 
         {/* Información Básica */}
         <section className="space-y-4">
