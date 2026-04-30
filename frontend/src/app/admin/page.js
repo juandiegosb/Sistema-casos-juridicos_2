@@ -30,22 +30,22 @@ import { TipoForm } from "@/components/forms/TipoForm"
 import { AreaForm } from "@/components/forms/AreaForm"
 
 const sections = [
-    "Inicio",
-    "Tareas💀",
-    "Recepcion",
-    "Nueva consulta💀",
-    "Consultas juridicas",
-    "Nuevo Proceso💀",
-    "Procesos juridicos💀",
-    "Estudiantes💀",
-    "Asesores y monitores💀",
-    "Estadísticas💀",
-    "Formatos y modelos💀",
-    "Eliminacines💀",
-    "admin",
-    "Roles",
-    "",
-  ]
+  "Inicio",
+  "Tareas💀",
+  "Recepcion",
+  "Nueva consulta💀",
+  "Consultas juridicas",
+  "Nuevo Proceso💀",
+  "Procesos juridicos💀",
+  "Estudiantes",
+  "Asesores y monitores",
+  "Estadísticas💀",
+  "Formatos y modelos💀",
+  "Eliminacines💀",
+  "admin",
+  "Roles",
+  "",
+];
 
 export default function ConfiguracionCatalogos() {
   const { setTheme } = useTheme()

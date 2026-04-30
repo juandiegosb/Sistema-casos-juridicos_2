@@ -20,22 +20,22 @@ import {
 import { UsuarioSistemaForm } from "@/components/forms/UsuarioSistemaForm"
 
 const sections = [
-    "Inicio",
-    "Tareas💀",
-    "Recepcion",
-    "Nueva consulta💀",
-    "Consultas juridicas",
-    "Nuevo Proceso💀",
-    "Procesos juridicos💀",
-    "Estudiantes💀",
-    "Asesores y monitores💀",
-    "Estadísticas💀",
-    "Formatos y modelos💀",
-    "Eliminacines💀",
-    "admin",
-    "Roles",
-    "",
-  ]
+  "Inicio",
+  "Tareas💀",
+  "Recepcion",
+  "Nueva consulta💀",
+  "Consultas juridicas",
+  "Nuevo Proceso💀",
+  "Procesos juridicos💀",
+  "Estudiantes",
+  "Asesores y monitores",
+  "Estadísticas💀",
+  "Formatos y modelos💀",
+  "Eliminacines💀",
+  "admin",
+  "Roles",
+  "",
+];
 
 export default function UsuarioSistemaPage() {
   const { setTheme } = useTheme()

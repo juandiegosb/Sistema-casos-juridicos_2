@@ -22,22 +22,22 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 
 export default function Home() {
   const sections = [
-    "Inicio",
-    "Tareas💀",
-    "Recepcion",
-    "Nueva consulta💀",
-    "Consultas juridicas",
-    "Nuevo Proceso💀",
-    "Procesos juridicos💀",
-    "Estudiantes💀",
-    "Asesores y monitores💀",
-    "Estadísticas💀",
-    "Formatos y modelos💀",
-    "Eliminacines💀",
-    "admin",
-    "Roles",
-    "",
-  ]
+  "Inicio",
+  "Tareas💀",
+  "Recepcion",
+  "Nueva consulta💀",
+  "Consultas juridicas",
+  "Nuevo Proceso💀",
+  "Procesos juridicos💀",
+  "Estudiantes",
+  "Asesores y monitores",
+  "Estadísticas💀",
+  "Formatos y modelos💀",
+  "Eliminacines💀",
+  "admin",
+  "Roles",
+  "",
+];
 
   const { setTheme } = useTheme()
 

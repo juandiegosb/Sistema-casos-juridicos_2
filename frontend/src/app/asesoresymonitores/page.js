@@ -1,23 +1,26 @@
-"use client"
+"use client";
 
 import {
   SidebarProvider,
   SidebarInset,
   SidebarTrigger,
-} from "@/components/ui/sidebar"
-import { AppSidebar } from "@/components/app-sidebar"
-import { TooltipProvider } from "@/components/ui/tooltip"
-import { Moon, Sun, FileText } from "lucide-react"
-import { useTheme } from "next-themes"
-import { Button } from "@/components/ui/button"
-import { Toaster } from "@/components/ui/sonner"
+} from "@/components/ui/sidebar";
+
+import { AppSidebar } from "@/components/app-sidebar";
+import { TooltipProvider } from "@/components/ui/tooltip";
+import { Moon, Sun, Users } from "lucide-react";
+import { useTheme } from "next-themes";
+import { Button } from "@/components/ui/button";
+import { Toaster } from "@/components/ui/sonner";
+
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import { ConsultasJuridicasForm } from "@/components/forms/ConsultasJuridicasForm"
+} from "@/components/ui/dropdown-menu";
+
+import { AsesoresYMonitoresForm } from "@/components/forms/AsesoresYMonitoresForm";
 
 const sections = [
   "Inicio",
@@ -36,13 +39,14 @@ const sections = [
   "Roles",
   "",
 ];
-export default function ConsultasJuridicasPage() {
-  const { setTheme } = useTheme()
+
+export default function AsesoresYMonitoresPage() {
+  const { setTheme } = useTheme();
 
   const mainItems = sections.map((item) => ({
     title: item,
     tooltip: item,
-  }))
+  }));
 
   return (
     <TooltipProvider>
@@ -51,17 +55,17 @@ export default function ConsultasJuridicasPage() {
 
         <SidebarInset className="bg-muted/30 min-h-screen">
 
-          {/* HEADER PRO */}
+          {/* HEADER */}
           <header className="flex h-16 items-center justify-between border-b bg-background/80 backdrop-blur px-6">
             <div className="flex items-center gap-4">
               <SidebarTrigger />
 
               <div className="flex flex-col leading-tight">
                 <span className="text-sm text-muted-foreground">
-                  Panel / Consultas
+                  Panel / Usuarios
                 </span>
                 <span className="font-semibold">
-                  Consultas Jurídicas
+                  Asesores y Monitores
                 </span>
               </div>
             </div>
@@ -70,8 +74,8 @@ export default function ConsultasJuridicasPage() {
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="outline" size="icon">
-                  <Sun className="h-5 w-5 transition-all dark:scale-0 dark:-rotate-90" />
-                  <Moon className="absolute h-5 w-5 scale-0 rotate-90 transition-all dark:scale-100 dark:rotate-0" />
+                  <Sun className="h-5 w-5 dark:scale-0 dark:-rotate-90 transition-all" />
+                  <Moon className="absolute h-5 w-5 scale-0 rotate-90 dark:scale-100 dark:rotate-0 transition-all" />
                 </Button>
               </DropdownMenuTrigger>
 
@@ -91,30 +95,27 @@ export default function ConsultasJuridicasPage() {
 
           {/* CONTENIDO */}
           <div className="p-6 lg:p-10">
-
             <div className="max-w-6xl mx-auto space-y-6">
 
-              {/* TITULO CON ICONO */}
+              {/* TITULO */}
               <div className="flex items-center gap-3">
                 <div className="p-3 rounded-xl bg-primary/10">
-                  <FileText className="w-6 h-6 text-primary" />
+                  <Users className="w-6 h-6 text-primary" />
                 </div>
 
                 <div>
                   <h1 className="text-3xl font-bold tracking-tight">
-                    Registro de Consulta
+                    Asesores y Monitores
                   </h1>
                   <p className="text-muted-foreground">
-                    Diligencie la información para registrar una nueva consulta jurídica
+                    Consulta y búsqueda de usuarios activos
                   </p>
                 </div>
               </div>
 
-              {/* CARD PRINCIPAL */}
+              {/* CARD */}
               <div className="rounded-2xl border border-border bg-background shadow-sm p-6 lg:p-8">
-
-                <ConsultasJuridicasForm />
-
+                <AsesoresYMonitoresForm />
               </div>
 
             </div>
@@ -124,5 +125,5 @@ export default function ConsultasJuridicasPage() {
         <Toaster richColors position="bottom-right" />
       </SidebarProvider>
     </TooltipProvider>
-  )
+  );
 }
