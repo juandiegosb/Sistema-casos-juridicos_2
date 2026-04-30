@@ -10,6 +10,7 @@ import org.springframework.transaction.annotation.Transactional;
 import co.edu.ufps.legal_cases.exception.BusinessException;
 import co.edu.ufps.legal_cases.security.dto.LoginRequestDTO;
 import co.edu.ufps.legal_cases.security.dto.LoginResponseDTO;
+import co.edu.ufps.legal_cases.security.dto.LoginResultDTO;
 import co.edu.ufps.legal_cases.security.model.Permiso;
 import co.edu.ufps.legal_cases.security.model.UsuarioSistema;
 import co.edu.ufps.legal_cases.security.repository.UsuarioSistemaRepository;
@@ -21,16 +22,19 @@ public class AuthService {
 
     private final UsuarioSistemaRepository usuarioSistemaRepository;
     private final PasswordEncoder passwordEncoder;
+    private final JwtService jwtService;
 
     public AuthService(
             UsuarioSistemaRepository usuarioSistemaRepository,
-            PasswordEncoder passwordEncoder) {
+            PasswordEncoder passwordEncoder,
+            JwtService jwtService) {
         this.usuarioSistemaRepository = usuarioSistemaRepository;
         this.passwordEncoder = passwordEncoder;
+        this.jwtService = jwtService;
     }
 
     @Transactional(readOnly = true)
-    public LoginResponseDTO login(LoginRequestDTO dto) {
+    public LoginResultDTO login(LoginRequestDTO dto) {
         String username = normalizarEmail(dto.getUsername());
 
         if (username == null) {
@@ -61,7 +65,7 @@ public class AuthService {
                 .map(Permiso::getNombre)
                 .toList();
 
-        return new LoginResponseDTO(
+        LoginResponseDTO response = new LoginResponseDTO(
                 usuario.getId(),
                 usuario.getUsername(),
                 usuario.getRol().getId(),
@@ -70,6 +74,10 @@ public class AuthService {
                 obtenerTipoPerfil(usuario),
                 permisos
         );
+
+        String token = jwtService.generarToken(usuario.getUsername());
+
+        return new LoginResultDTO(response, token);
     }
 
     private void validarUsuarioActivo(UsuarioSistema usuario) {

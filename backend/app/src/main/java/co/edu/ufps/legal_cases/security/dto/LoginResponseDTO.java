@@ -11,7 +11,9 @@ import lombok.Setter;
 @AllArgsConstructor
 public class LoginResponseDTO {
 
-    //Despues de autenticar es lo que le devuelve al frontend
+    //Despues de autenticar es lo que le devuelve al frontend junto con el token
+    //para esto se usa el dto de login result que contiene este dto y el token
+
     private Long usuarioId;
 
     private String username;
