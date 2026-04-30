@@ -11,8 +11,6 @@ import jakarta.validation.Valid;
 
 @RestController
 @RequestMapping("/api/conciliadores")
-// Modificar despues
-@CrossOrigin(origins = "*")
 public class ConciliadorController {
 
     private final ConciliadorService conciliadorService;

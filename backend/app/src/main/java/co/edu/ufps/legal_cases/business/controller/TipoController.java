@@ -10,8 +10,6 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/tipos")
-//Modificar despues
-@CrossOrigin(origins = "*")
 public class TipoController {
 
     private final TipoService tipoService;

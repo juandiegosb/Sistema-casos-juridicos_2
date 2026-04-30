@@ -11,8 +11,6 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/areas")
-//Modificar despues
-@CrossOrigin(origins = "*")
 public class AreaController {
 
     private final AreaService areaService;

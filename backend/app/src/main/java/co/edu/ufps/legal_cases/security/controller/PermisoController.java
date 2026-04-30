@@ -11,7 +11,6 @@ import jakarta.validation.Valid;
 
 @RestController
 @RequestMapping("/api/permisos")
-@CrossOrigin(origins = "*")
 public class PermisoController {
 
     private final PermisoService permisoService;
