@@ -11,8 +11,6 @@ import jakarta.validation.Valid;
 
 @RestController
 @RequestMapping("/api/tipos-documento")
-//Modificar despues
-@CrossOrigin(origins = "*")
 public class TipoDocumentoController {
 
     //Como tiene activo y desactivo no implemente algo para borrar y si se borra se borra de verdad, lo que hice fue un patch para cambiar el estado del tipo de documento a activo o inactivo, asi no se pierde la informacion de los casos que tengan ese tipo de documento asociado

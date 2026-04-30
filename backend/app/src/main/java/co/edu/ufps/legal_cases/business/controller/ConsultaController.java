@@ -12,8 +12,6 @@ import jakarta.validation.Valid;
 
 @RestController
 @RequestMapping("/consultas")
-// Modificar después con configuración de seguridad apropiada
-@CrossOrigin(origins = "*")
 public class ConsultaController {
 
     private final ConsultaService consultaService;

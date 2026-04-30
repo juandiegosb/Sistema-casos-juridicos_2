@@ -9,7 +9,6 @@ import co.edu.ufps.legal_cases.security.service.UsuarioSistemaService;
 
 @RestController
 @RequestMapping("/api/usuarios-sistema")
-@CrossOrigin(origins = "*")
 public class UsuarioSistemaController {
 
     private final UsuarioSistemaService usuarioSistemaService;

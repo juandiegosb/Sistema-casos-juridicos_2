@@ -11,8 +11,6 @@ import jakarta.validation.Valid;
 
 @RestController
 @RequestMapping("/api/personas")
-//Cambiar despues
-@CrossOrigin(origins = "*")
 public class PersonaController {
 
     private final PersonaService personaService;

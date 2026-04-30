@@ -10,8 +10,6 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/temas")
-//Modificar despues
-@CrossOrigin(origins = "*")
 public class TemaController {
 
     private final TemaService temaService;
