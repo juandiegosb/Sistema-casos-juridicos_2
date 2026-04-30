@@ -10,6 +10,8 @@ import org.springframework.transaction.annotation.Transactional;
 import co.edu.ufps.legal_cases.exception.BusinessException;
 import co.edu.ufps.legal_cases.security.dto.LoginRequestDTO;
 import co.edu.ufps.legal_cases.security.dto.LoginResponseDTO;
+import co.edu.ufps.legal_cases.security.dto.LoginResultDTO;
+import co.edu.ufps.legal_cases.security.dto.UsuarioSistemaDTO;
 import co.edu.ufps.legal_cases.security.model.Permiso;
 import co.edu.ufps.legal_cases.security.model.UsuarioSistema;
 import co.edu.ufps.legal_cases.security.repository.UsuarioSistemaRepository;
@@ -21,16 +23,19 @@ public class AuthService {
 
     private final UsuarioSistemaRepository usuarioSistemaRepository;
     private final PasswordEncoder passwordEncoder;
+    private final JwtService jwtService;
 
     public AuthService(
             UsuarioSistemaRepository usuarioSistemaRepository,
-            PasswordEncoder passwordEncoder) {
+            PasswordEncoder passwordEncoder,
+            JwtService jwtService) {
         this.usuarioSistemaRepository = usuarioSistemaRepository;
         this.passwordEncoder = passwordEncoder;
+        this.jwtService = jwtService;
     }
 
     @Transactional(readOnly = true)
-    public LoginResponseDTO login(LoginRequestDTO dto) {
+    public LoginResultDTO login(LoginRequestDTO dto) {
         String username = normalizarEmail(dto.getUsername());
 
         if (username == null) {
@@ -56,12 +61,12 @@ public class AuthService {
         List<String> permisos = usuario.getRol().getPermisos()
                 .stream()
                 .filter(permiso -> Boolean.TRUE.equals(permiso.getActivo()))
-                //Ordena por los nombres de los permisos
+                // Ordena por los nombres de los permisos
                 .sorted(Comparator.comparing(Permiso::getNombre))
                 .map(Permiso::getNombre)
                 .toList();
 
-        return new LoginResponseDTO(
+        LoginResponseDTO response = new LoginResponseDTO(
                 usuario.getId(),
                 usuario.getUsername(),
                 usuario.getRol().getId(),
@@ -70,6 +75,30 @@ public class AuthService {
                 obtenerTipoPerfil(usuario),
                 permisos
         );
+
+        String token = jwtService.generarToken(usuario.getUsername());
+
+        return new LoginResultDTO(response, token);
+    }
+
+    @Transactional(readOnly = true)
+    public UsuarioSistemaDTO me(String token) {
+        if (token == null || token.isBlank()) {
+            throw new BusinessException("No hay sesión activa");
+        }
+
+        //Si expiro o es invalido, el metodo lanza una excepcion
+        String username = jwtService.obtenerUsername(token);
+
+        UsuarioSistema usuario = usuarioSistemaRepository
+                .findWithRolAndPermisosByUsernameIgnoreCase(username)
+                .orElseThrow(() -> new BusinessException("Usuario no encontrado"));
+
+        validarUsuarioActivo(usuario);
+        validarRolActivo(usuario);
+        validarPerfilActivo(usuario);
+
+        return convertirAUsuarioSistemaDTO(usuario);
     }
 
     private void validarUsuarioActivo(UsuarioSistema usuario) {
@@ -153,5 +182,32 @@ public class AuthService {
         }
 
         return "SIN_PERFIL";
+    }
+
+    private UsuarioSistemaDTO convertirAUsuarioSistemaDTO(UsuarioSistema usuario) {
+        UsuarioSistemaDTO dto = new UsuarioSistemaDTO();
+
+        dto.setId(usuario.getId());
+        dto.setUsername(usuario.getUsername());
+        dto.setActivo(usuario.getActivo());
+
+        if (usuario.getRol() != null) {
+            dto.setRolId(usuario.getRol().getId());
+            dto.setRolNombre(usuario.getRol().getNombre());
+
+            List<String> permisos = usuario.getRol().getPermisos()
+                    .stream()
+                    .filter(permiso -> Boolean.TRUE.equals(permiso.getActivo()))
+                    .sorted(Comparator.comparing(Permiso::getNombre))
+                    .map(Permiso::getNombre)
+                    .toList();
+
+            dto.setPermisos(permisos);
+        }
+
+        dto.setPerfilId(obtenerPerfilId(usuario));
+        dto.setTipoPerfil(obtenerTipoPerfil(usuario));
+
+        return dto;
     }
 }

@@ -58,14 +58,35 @@
 		</dependency>
 
 		<dependency>
-    <groupId>org.mockito</groupId>
-    <artifactId>mockito-core</artifactId>
-    <scope>test</scope>
-</dependency>
+    		<groupId>org.mockito</groupId>
+    		<artifactId>mockito-core</artifactId>
+    		<scope>test</scope>
+		</dependency>
 
 		<dependency>
     		<groupId>org.springframework.security</groupId>
     		<artifactId>spring-security-crypto</artifactId>
+		</dependency>
+
+		<!--Para gestionar tokens de jwt-->
+		<dependency>
+    		<groupId>io.jsonwebtoken</groupId>
+    		<artifactId>jjwt-api</artifactId>
+    		<version>0.12.6</version>
+		</dependency>
+
+		<dependency>
+    		<groupId>io.jsonwebtoken</groupId>
+    		<artifactId>jjwt-impl</artifactId>
+    		<version>0.12.6</version>
+    		<scope>runtime</scope>
+		</dependency>
+
+		<dependency>
+    		<groupId>io.jsonwebtoken</groupId>
+    		<artifactId>jjwt-jackson</artifactId>
+    		<version>0.12.6</version>
+    		<scope>runtime</scope>
 		</dependency>
 
 		<!--Esto es solo para probar mientras se crea la base de datos-->
