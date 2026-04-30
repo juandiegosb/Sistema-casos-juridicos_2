@@ -108,17 +108,7 @@ export default function UsuarioSistemaPage() {
               </div>
 
               {/* CARD PRINCIPAL */}
-              <div className="
-                rounded-2xl
-                border
-                border-border
-                bg-background
-                shadow-sm
-                p-6
-                lg:p-8
-                relative
-                overflow-hidden
-              ">
+              <div className="rounded-2xl border border-border bg-background shadow-sm p-6 lg:p-8 relative overflow-hidden">
 
                 {/* DETALLE VISUAL SUPERIOR */}
                 <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-600 via-indigo-600 to-indigo-800" />

@@ -18,7 +18,7 @@ public class ConciliadorDTO {
     @Size(max = 150, message = "El nombre no puede superar los 150 caracteres")
     private String nombre;
 
-    @NotBlank(message = "El tipo de documento es obligatorio")
+    @NotNull(message = "El tipo de documento es obligatorio")
     private Long tipoDocumentoId;
 
     @NotBlank(message = "El documento es obligatorio")
@@ -38,7 +38,7 @@ public class ConciliadorDTO {
     @Size(max = 50, message = "El usuario no puede superar los 50 caracteres")
     private String usuario;
 
-    @NotBlank(message = "La sede es obligatoria")
+    @NotNull(message = "La sede es obligatoria")
     private Long sedeId;
 
     @NotBlank(message = "El código es obligatorio")

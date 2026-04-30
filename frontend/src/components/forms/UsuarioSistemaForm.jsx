@@ -1,3 +1,6 @@
+
+"use client";
+
 import React, { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -9,152 +12,202 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 
 export function UsuarioSistemaForm() {
-  const { register, handleSubmit, watch, reset, formState: { errors } } = useForm();
+  const {
+    register,
+    handleSubmit,
+    watch,
+    reset,
+    formState: { errors }
+  } = useForm();
 
-  const personaSeleccionada = watch("personaId");
-  const nuevoRol = watch("nuevoRol");
+  const [mounted, setMounted] = useState(false);
+  const [tiposDocumento, setTiposDocumento] = useState([]);
+  const [sedes, setSedes] = useState([]);
+  const [areas, setAreas] = useState([]);
+  const [asesores, setAsesores] = useState([]);
 
   const API_URL = "http://localhost:8080/api";
   const REQUIRED = "Campo obligatorio";
 
-  const [personas, setPersonas] = useState([]);
-  const [asesores, setAsesores] = useState([]);
-  const [areas, setAreas] = useState([]);
-  const [sedes, setSedes] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [personaActual, setPersonaActual] = useState(null);
-
-  const fetchData = async (url) => {
-    const res = await fetch(url);
-    if (!res.ok) throw new Error("Error en la petición");
-    return await res.json();
-  };
-
-  // Cargar personas disponibles al montar el componente
+  // 🔥 Evita hydration error
   useEffect(() => {
-    const cargarPersonas = async () => {
-      try {
-        const personasData = await fetchData(`${API_URL}/personas`);
-        setPersonas(
-          personasData.map(p => ({
-            value: p.id,
-            label: `${p.nombres} ${p.apellidos} - ${p.numeroDocumento}`
-          }))
-        );
-      } catch (error) {
-        console.error("Error cargando personas:", error);
-        toast.error("Error al cargar personas");
-      }
-    };
-
-    cargarPersonas();
+    setMounted(true);
   }, []);
 
-  // Cargar datos específicos según el nuevo rol seleccionado
+  // 🔥 Cargar tipos documento
   useEffect(() => {
-    const cargarDatosRol = async () => {
-      if (!nuevoRol) return;
+    const cargarTipos = async () => {
       try {
-        if (nuevoRol === "estudiantes") {
-          const asesoresData = await fetchData(`${API_URL}/asesores`);
-          setAsesores(
-            asesoresData.map(a => ({
-              value: a.id,
-              label: `${a.nombre} - ${a.documento}`
-            }))
-          );
-        }
+        const res = await fetch(`${API_URL}/tipos-documento`);
+        const data = await res.json();
 
-        if (nuevoRol === "asesores") {
-          const areasData = await fetchData(`${API_URL}/areas`);
-          setAreas(
-            areasData.map(a => ({
-              value: a.id,
-              label: a.nombre
-            }))
-          );
-        }
-
-        const sedesData = await fetchData(`${API_URL}/sedes`);
-        setSedes(
-          sedesData.map(s => ({
-            value: s.id,
-            label: s.nombre
+        setTiposDocumento(
+          data.map(t => ({
+            value: t.id,
+            label: t.displayName
           }))
         );
-      } catch (error) {
-        console.error("Error cargando datos:", error);
+      } catch {
+        toast.error("Error cargando tipos de documento");
       }
     };
 
-    cargarDatosRol();
-  }, [nuevoRol]);
+    cargarTipos();
+  }, []);
 
-  const tipoOptions = [
-    { value: "estudiantes", label: "Estudiante" },
-    { value: "asesores", label: "Asesor" },
-    { value: "monitores", label: "Monitor" },
+  // 🔥 Cargar datos base
+  useEffect(() => {
+    const cargar = async () => {
+      try {
+        const [sedesData, areasData, asesoresData] = await Promise.all([
+          fetch(`${API_URL}/sedes`).then(r => r.json()),
+          fetch(`${API_URL}/areas`).then(r => r.json()),
+          fetch(`${API_URL}/asesores`).then(r => r.json())
+        ]);
+
+        setSedes(sedesData.map(s => ({ value: s.id, label: s.nombre })));
+        setAreas(areasData.map(a => ({ value: a.id, label: a.nombre })));
+        setAsesores(
+          asesoresData.map(a => ({
+            value: a.id,
+            label: `${a.nombre} - ${a.documento}`
+          }))
+        );
+      } catch {
+        toast.error("Error cargando datos");
+      }
+    };
+
+    cargar();
+  }, []);
+
+  if (!mounted) return null;
+
+  const rol = watch("rol") || "";
+
+  const roles = [
     { value: "administrativos", label: "Administrativo" },
+    { value: "asesores", label: "Asesor" },
     { value: "conciliadores", label: "Conciliador" },
+    { value: "estudiantes", label: "Estudiante" },
+    { value: "monitores", label: "Monitor" }
   ];
 
-  const handleSubmitForm = async (data) => {
-    if (!personaSeleccionada || !nuevoRol) {
-      toast.error("Debe seleccionar una persona y un rol");
-      return;
-    }
+  const normalizePayload = (data) => {
+    const payload = {
+      ...data,
+      activo: true,
+      tipoDocumentoId: Number(data.tipoDocumentoId),
+      sedeId: Number(data.sedeId)
+    };
 
-    setLoading(true);
+    if (data.areaId) payload.areaId = Number(data.areaId);
+    if (data.asesorId) payload.asesorId = Number(data.asesorId);
+
+    return payload;
+  };
+
+  // 🔥 Submit
+  const onSubmit = async (data) => {
     try {
-      const updateData = {
-        personaId: personaSeleccionada,
-        nuevoRol: nuevoRol,
-        datosEspecificos: {}
-      };
+      const endpoint = `${API_URL}/${rol}`;
+      const tipoDocumentoSeleccionado = tiposDocumento.find(
+        (tipo) => tipo.value === Number(data.tipoDocumentoId)
+      );
 
-      // Agregar datos específicos según el rol
-      if (nuevoRol === "estudiantes" && data.asesorId) {
-        updateData.datosEspecificos.asesorId = data.asesorId;
-        updateData.datosEspecificos.conciliacion = data.conciliacion || false;
+      if (!tipoDocumentoSeleccionado) {
+        toast.error("Seleccione un tipo de documento válido");
+        return;
       }
 
-      if (nuevoRol === "asesores" && data.areaId) {
-        updateData.datosEspecificos.areaId = data.areaId;
-      }
+      const payload = normalizePayload(data);
 
-      if (nuevoRol === "administrativos") {
-        updateData.datosEspecificos.directora = data.directora || false;
-      }
-
-      if (nuevoRol === "conciliadores" && data.tipoConciliador) {
-        updateData.datosEspecificos.tipoConciliador = data.tipoConciliador;
-      }
-
-      const res = await fetch(`${API_URL}/personas/${personaSeleccionada}/cambiar-rol`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify(updateData)
+      const res = await fetch(endpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
       });
 
-      if (!res.ok) throw new Error("Error al actualizar");
+      if (!res.ok) throw new Error();
 
-      const result = await res.json();
-      toast.success(`Rol actualizado: ${result.tipoUsuario}`);
+      toast.success("Usuario creado correctamente");
       reset();
-      setPersonaActual(null);
-
-    } catch (error) {
-      console.error("Error al enviar:", error);
-      toast.error("Error al actualizar el rol");
-    } finally {
-      setLoading(false);
+    } catch {
+      toast.error("Error al crear usuario");
     }
   };
 
-  const renderCamposEspecificos = () => {
-    switch (nuevoRol) {
+  // 🔹 Campos comunes
+  const camposBase = (
+    <>
+      <FormInput name="nombre" label="Nombre" register={register} errors={errors} rules={{ required: REQUIRED }} />
+
+      {tiposDocumento.length > 0 ? (
+        <div className="flex flex-col gap-1.5 w-full">
+          <label htmlFor="tipoDocumentoId" className="text-sm font-medium leading-none">
+            Tipo de Documento
+          </label>
+          <select
+            id="tipoDocumentoId"
+            defaultValue=""
+            {...register("tipoDocumentoId", {
+              required: REQUIRED,
+              valueAsNumber: true
+            })}
+            className={`flex h-8 w-full rounded-lg border px-2.5 py-1 ${errors?.tipoDocumentoId ? "border-red-500" : ""
+              }`}
+          >
+            <option value="">Seleccione una opción</option>
+            {tiposDocumento.map((opt) => (
+              <option key={opt.value} value={opt.value}>
+                {opt.label}
+              </option>
+            ))}
+          </select>
+          {errors?.tipoDocumentoId && (
+            <p className="text-xs text-red-500">{errors.tipoDocumentoId?.message}</p>
+          )}
+        </div>
+      ) : null}
+
+      <FormInput name="documento" label="Documento" register={register} errors={errors} rules={{ required: REQUIRED }} />
+
+      <FormInput name="email" label="Email" register={register} errors={errors} rules={{ required: REQUIRED }} />
+
+      <FormInput name="telefono" label="Teléfono" register={register} errors={errors} rules={{ required: REQUIRED }} />
+
+      <FormInput name="usuario" label="Usuario" register={register} errors={errors} rules={{ required: REQUIRED }} />
+
+      <FormInput name="codigo" label="Código" register={register} errors={errors} rules={{ required: REQUIRED }} />
+
+      {sedes.length > 0 && (
+        <FormSelect
+          name="sedeId"
+          label="Sede"
+          options={sedes}
+          register={register}
+          errors={errors}
+          rules={{ required: REQUIRED, valueAsNumber: true }}
+        />
+      )}
+    </>
+  );
+
+  // 🔥 Campos por rol
+  const renderCamposRol = () => {
+    switch (rol) {
+      case "asesores":
+        return (
+          <FormSelect
+            name="areaId"
+            label="Área"
+            options={areas}
+            register={register}
+            errors={errors}
+            rules={{ required: REQUIRED, valueAsNumber: true }}
+          />
+        );
+
       case "estudiantes":
         return (
           <>
@@ -164,48 +217,26 @@ export function UsuarioSistemaForm() {
               options={asesores}
               register={register}
               errors={errors}
-              rules={{ required: REQUIRED }}
+              rules={{ required: REQUIRED, valueAsNumber: true }}
             />
 
-            <FormCheckbox
-              name="conciliacion"
-              label="¿Tiene conciliación?"
-              register={register}
-              errors={errors}
-            />
+            <FormCheckbox name="conciliacion" label="¿Conciliación?" register={register} />
           </>
-        );
-
-      case "asesores":
-        return (
-          <FormSelect
-            name="areaId"
-            label="Área"
-            options={areas}
-            register={register}
-            errors={errors}
-            rules={{ required: REQUIRED }}
-          />
         );
 
       case "administrativos":
         return (
-          <FormCheckbox
-            name="directora"
-            label="¿Es directora?"
-            register={register}
-            errors={errors}
-          />
+          <FormCheckbox name="directora" label="¿Directora?" register={register} />
         );
 
       case "conciliadores":
         return (
           <FormSelect
             name="tipoConciliador"
-            label="Tipo de Conciliador"
+            label="Tipo"
             options={[
-              { value: "JUDICIAL", label: "Judicial" },
-              { value: "EXTRAJUDICIAL", label: "Extrajudicial" },
+              { value: "INTERNO", label: "Interno" },
+              { value: "EXTERNO", label: "Externo" }
             ]}
             register={register}
             errors={errors}
@@ -219,62 +250,38 @@ export function UsuarioSistemaForm() {
   };
 
   return (
-    <div className="space-y-8 p-6 bg-card rounded-xl shadow border">
-
-      <div>
-        <h2 className="text-2xl font-bold">Asignar/Cambiar Rol de Usuario</h2>
-        <p className="text-muted-foreground">
-          Selecciona una persona y asígna o cambia su rol en el sistema.
-        </p>
-      </div>
+    <div className="p-6 space-y-6 bg-card rounded-xl border shadow">
+      <h2 className="text-xl font-bold">Crear Usuario</h2>
 
       <FormSelect
-        name="personaId"
-        label="Seleccionar Persona"
-        options={personas}
+        name="rol"
+        label="Tipo de Usuario"
+        options={roles}
         register={register}
         errors={errors}
         rules={{ required: REQUIRED }}
       />
 
-      <FormSelect
-        name="nuevoRol"
-        label="Nuevo Rol"
-        options={tipoOptions}
-        register={register}
-        errors={errors}
-        rules={{ required: REQUIRED }}
-      />
+      {rol && (
+        <>
+          <Separator />
 
-      <Separator />
-
-      {nuevoRol && (
-        <section className="space-y-4">
-          <h3 className="font-semibold">Información específica del rol</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {renderCamposEspecificos()}
+            {camposBase}
+            {renderCamposRol()}
           </div>
-        </section>
+
+          <div className="flex justify-end gap-4">
+            <Button variant="outline" onClick={() => reset()}>
+              Limpiar
+            </Button>
+
+            <Button onClick={handleSubmit(onSubmit)}>
+              Crear Usuario
+            </Button>
+          </div>
+        </>
       )}
-
-      <div className="flex justify-end gap-4">
-        <Button
-          variant="outline"
-          onClick={() => {
-            reset();
-            setPersonaActual(null);
-          }}
-        >
-          Limpiar
-        </Button>
-        <Button
-          onClick={handleSubmit(handleSubmitForm)}
-          disabled={loading || !personaSeleccionada || !nuevoRol}
-        >
-          {loading ? "Actualizando..." : "Actualizar Rol"}
-        </Button>
-      </div>
-
     </div>
   );
 }
