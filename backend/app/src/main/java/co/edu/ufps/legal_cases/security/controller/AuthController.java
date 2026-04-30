@@ -8,6 +8,7 @@ import org.springframework.web.bind.annotation.*;
 import co.edu.ufps.legal_cases.security.dto.LoginRequestDTO;
 import co.edu.ufps.legal_cases.security.dto.LoginResponseDTO;
 import co.edu.ufps.legal_cases.security.dto.LoginResultDTO;
+import co.edu.ufps.legal_cases.security.dto.UsuarioSistemaDTO;
 import co.edu.ufps.legal_cases.security.service.AuthService;
 import jakarta.validation.Valid;
 
@@ -38,5 +39,13 @@ public class AuthController {
         return ResponseEntity.ok()  //Responde con 200 ok
                 .header(HttpHeaders.SET_COOKIE, cookie.toString())  //Envia la cookie al navagador
                 .body(result.getResponse());    //En el cuerpo manda el dto con la info y permisos de usuario
+    }
+
+    // Para el que frontend verifique si el usuario esta logueado y obtener su info cuando se cambia de pagina y demas
+    @GetMapping("/me")
+    public UsuarioSistemaDTO me(
+            // La cookie no es obligatoria porque puede que el usuario no este logueado
+            @CookieValue(name = "access_token", required = false) String token) {
+        return authService.me(token);
     }
 }
