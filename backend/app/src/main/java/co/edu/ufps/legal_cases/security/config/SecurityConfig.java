@@ -12,13 +12,17 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 import co.edu.ufps.legal_cases.security.filter.JwtAuthenticationFilter;
 
 @Configuration
-@EnableMethodSecurity   //Para poder proteger endpoints por @PreAuthorize
+@EnableMethodSecurity // Para poder proteger endpoints por @PreAuthorize
 public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
+    private final SecurityExceptionHandler securityExceptionHandler;
 
-    public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter) {
+    public SecurityConfig(
+            JwtAuthenticationFilter jwtAuthenticationFilter,
+            SecurityExceptionHandler securityExceptionHandler) {
         this.jwtAuthenticationFilter = jwtAuthenticationFilter;
+        this.securityExceptionHandler = securityExceptionHandler;
     }
 
     @Bean
@@ -26,17 +30,24 @@ public class SecurityConfig {
         http
                 .cors(cors -> {}) // Agrega la configuracion de cors que tengo definida
 
-                .csrf(csrf -> csrf.disable()) // Se desabilita porque la seguridad no va a ser por sesion sino por token jwt
+                .csrf(csrf -> csrf.disable()) // Se deshabilita porque la seguridad no va a ser por sesion sino por token jwt
 
                 .sessionManagement(session -> session
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS) // Cada peticion se valida con el token
                 )
 
-                .formLogin(form -> form.disable()) // Desabilita el loging que trae por defecto
-                .httpBasic(basic -> basic.disable())    // Para que no traiga en los headers la autenticacion
+                .formLogin(form -> form.disable()) // Deshabilita el login que trae por defecto
+                .httpBasic(basic -> basic.disable()) // Para que no traiga en los headers la autenticacion basica
+
+                // Configura las respuestas personalizadas cuando el usuario no esta autenticado o no tiene permisos
+                .exceptionHandling(ex -> ex
+                        .authenticationEntryPoint(securityExceptionHandler) // Maneja errores 401: no autenticado
+                        .accessDeniedHandler(securityExceptionHandler) // Maneja errores 403: no autorizado
+                )
 
                 // Aqui le digo que apis son publicas y cuales no
                 .authorizeHttpRequests(auth -> auth
+                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll() // Permite peticiones preflight de CORS
                         .requestMatchers(HttpMethod.POST, "/api/auth/login").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/auth/logout").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/auth/me").authenticated()
