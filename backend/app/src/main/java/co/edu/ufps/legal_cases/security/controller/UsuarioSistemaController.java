@@ -2,6 +2,7 @@ package co.edu.ufps.legal_cases.security.controller;
 
 import java.util.List;
 
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import co.edu.ufps.legal_cases.security.dto.UsuarioSistemaDTO;
@@ -9,6 +10,7 @@ import co.edu.ufps.legal_cases.security.service.UsuarioSistemaService;
 
 @RestController
 @RequestMapping("/api/usuarios-sistema")
+@PreAuthorize("hasAuthority('Gestionar usuarios')")
 public class UsuarioSistemaController {
 
     private final UsuarioSistemaService usuarioSistemaService;

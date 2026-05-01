@@ -6,6 +6,7 @@ import java.util.Map;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -31,7 +32,7 @@ public class GlobalExceptionHandler {
                 return ResponseEntity.badRequest().body(error);
         }
 
-        //Maneja los errores por validaciones en campos de entrada como el @Valid, @Email, etc
+        // Maneja los errores por validaciones en campos de entrada como el @Valid, @Email, etc
         @ExceptionHandler(MethodArgumentNotValidException.class)
         public ResponseEntity<Map<String, Object>> manejarErroresValidacion(
                         MethodArgumentNotValidException ex,
@@ -53,7 +54,23 @@ public class GlobalExceptionHandler {
                 return ResponseEntity.badRequest().body(respuesta);
         }
 
-        //Para otras excepciones no manejadas
+        // Maneja cuando el usuario inicio sesion pero no tiene permisos para acceder al recurso
+        @ExceptionHandler(AccessDeniedException.class)
+        public ResponseEntity<ErrorResponse> manejarAccessDeniedException(
+                        AccessDeniedException ex,
+                        HttpServletRequest request) {
+
+                ErrorResponse error = new ErrorResponse(
+                                LocalDateTime.now(),
+                                HttpStatus.FORBIDDEN.value(),
+                                "No autorizado",
+                                "No tiene permisos para acceder a este recurso",
+                                request.getRequestURI());
+
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
+        }
+
+        // Para otras excepciones no manejadas
         @ExceptionHandler(Exception.class)
         public ResponseEntity<ErrorResponse> manejarExceptionGeneral(
                         Exception ex,
