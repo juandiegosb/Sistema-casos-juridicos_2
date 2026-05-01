@@ -68,6 +68,12 @@
     		<artifactId>spring-security-crypto</artifactId>
 		</dependency>
 
+		<!--Para usar Spring Security-->
+		<dependency>
+    		<groupId>org.springframework.boot</groupId>
+    		<artifactId>spring-boot-starter-security</artifactId>
+		</dependency>
+
 		<!--Para gestionar tokens de jwt-->
 		<dependency>
     		<groupId>io.jsonwebtoken</groupId>
