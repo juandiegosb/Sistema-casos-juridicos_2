@@ -8,6 +8,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import co.edu.ufps.legal_cases.exception.BusinessException;
+import co.edu.ufps.legal_cases.security.dto.CambiarPasswordRequestDTO;
 import co.edu.ufps.legal_cases.security.dto.LoginRequestDTO;
 import co.edu.ufps.legal_cases.security.dto.LoginResponseDTO;
 import co.edu.ufps.legal_cases.security.dto.LoginResultDTO;
@@ -58,14 +59,6 @@ public class AuthService {
             throw new BusinessException("Usuario o contraseña incorrectos");
         }
 
-        List<String> permisos = usuario.getRol().getPermisos()
-                .stream()
-                .filter(permiso -> Boolean.TRUE.equals(permiso.getActivo()))
-                // Ordena por los nombres de los permisos
-                .sorted(Comparator.comparing(Permiso::getNombre))
-                .map(Permiso::getNombre)
-                .toList();
-
         LoginResponseDTO response = new LoginResponseDTO(
                 usuario.getId(),
                 usuario.getUsername(),
@@ -73,8 +66,7 @@ public class AuthService {
                 usuario.getRol().getNombre(),
                 obtenerPerfilId(usuario),
                 obtenerTipoPerfil(usuario),
-                permisos
-        );
+                obtenerPermisosActivos(usuario));
 
         String token = jwtService.generarToken(usuario.getUsername());
 
@@ -83,11 +75,31 @@ public class AuthService {
 
     @Transactional(readOnly = true)
     public UsuarioSistemaDTO me(String token) {
+        UsuarioSistema usuario = obtenerUsuarioAutenticado(token);
+
+        return convertirAUsuarioSistemaDTO(usuario);
+    }
+
+    @Transactional
+    public void cambiarPassword(String token, CambiarPasswordRequestDTO dto) {
+        UsuarioSistema usuario = obtenerUsuarioAutenticado(token); // Con el token esta el usuario
+
+        validarDatosCambioPassword(dto);
+        validarPasswordActual(dto.getPasswordActual(), usuario);
+        validarPasswordNuevaDiferente(dto.getPasswordNueva(), usuario);
+
+        usuario.setPasswordHash(passwordEncoder.encode(dto.getPasswordNueva()));
+        usuarioSistemaRepository.save(usuario);
+    }
+
+    // Obtiene el usuario logueado a partir del token enviado en la cookie.
+    // También valida que el usuario, el rol y el perfil asociado estén activos.
+    private UsuarioSistema obtenerUsuarioAutenticado(String token) {
         if (token == null || token.isBlank()) {
             throw new BusinessException("No hay sesión activa");
         }
 
-        //Si expiro o es invalido, el metodo lanza una excepcion
+        // Si expiro o es invalido, el metodo lanza una excepcion
         String username = jwtService.obtenerUsername(token);
 
         UsuarioSistema usuario = usuarioSistemaRepository
@@ -98,7 +110,41 @@ public class AuthService {
         validarRolActivo(usuario);
         validarPerfilActivo(usuario);
 
-        return convertirAUsuarioSistemaDTO(usuario);
+        return usuario;
+    }
+
+    // Valida que los campos necesarios para cambiar la contraseña sean correctos
+    private void validarDatosCambioPassword(CambiarPasswordRequestDTO dto) {
+        if (dto == null) {
+            throw new BusinessException("Los datos para cambiar la contraseña son obligatorios");
+        }
+
+        if (dto.getPasswordActual() == null || dto.getPasswordActual().isBlank()) {
+            throw new BusinessException("La contraseña actual es obligatoria");
+        }
+
+        if (dto.getPasswordNueva() == null || dto.getPasswordNueva().isBlank()) {
+            throw new BusinessException("La nueva contraseña es obligatoria");
+        }
+
+        if (dto.getPasswordNueva().length() < 8 || dto.getPasswordNueva().length() > 100) {
+            throw new BusinessException("La nueva contraseña debe tener entre 8 y 100 caracteres");
+        }
+    }
+
+    // Verifica que la contraseña actual enviada coincida con la guardada en base de
+    // datos
+    private void validarPasswordActual(String passwordActual, UsuarioSistema usuario) {
+        if (!passwordEncoder.matches(passwordActual, usuario.getPasswordHash())) {
+            throw new BusinessException("La contraseña actual no es correcta");
+        }
+    }
+
+    // Evita que la nueva contraseña sea igual a la contraseña actual
+    private void validarPasswordNuevaDiferente(String passwordNueva, UsuarioSistema usuario) {
+        if (passwordEncoder.matches(passwordNueva, usuario.getPasswordHash())) {
+            throw new BusinessException("La nueva contraseña no puede ser igual a la actual");
+        }
     }
 
     private void validarUsuarioActivo(UsuarioSistema usuario) {
@@ -184,6 +230,17 @@ public class AuthService {
         return "SIN_PERFIL";
     }
 
+    // Obtiene solo los permisos activos del rol y los ordena por nombre
+    private List<String> obtenerPermisosActivos(UsuarioSistema usuario) {
+        return usuario.getRol().getPermisos()
+                .stream()
+                .filter(permiso -> Boolean.TRUE.equals(permiso.getActivo()))
+                // Ordena por los nombres de los permisos
+                .sorted(Comparator.comparing(Permiso::getNombre))
+                .map(Permiso::getNombre)
+                .toList();
+    }
+
     private UsuarioSistemaDTO convertirAUsuarioSistemaDTO(UsuarioSistema usuario) {
         UsuarioSistemaDTO dto = new UsuarioSistemaDTO();
 
@@ -194,15 +251,7 @@ public class AuthService {
         if (usuario.getRol() != null) {
             dto.setRolId(usuario.getRol().getId());
             dto.setRolNombre(usuario.getRol().getNombre());
-
-            List<String> permisos = usuario.getRol().getPermisos()
-                    .stream()
-                    .filter(permiso -> Boolean.TRUE.equals(permiso.getActivo()))
-                    .sorted(Comparator.comparing(Permiso::getNombre))
-                    .map(Permiso::getNombre)
-                    .toList();
-
-            dto.setPermisos(permisos);
+            dto.setPermisos(obtenerPermisosActivos(usuario));
         }
 
         dto.setPerfilId(obtenerPerfilId(usuario));

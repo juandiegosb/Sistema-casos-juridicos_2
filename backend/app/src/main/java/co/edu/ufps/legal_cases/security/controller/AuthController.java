@@ -5,6 +5,7 @@ import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import co.edu.ufps.legal_cases.security.dto.CambiarPasswordRequestDTO;
 import co.edu.ufps.legal_cases.security.dto.LoginRequestDTO;
 import co.edu.ufps.legal_cases.security.dto.LoginResponseDTO;
 import co.edu.ufps.legal_cases.security.dto.LoginResultDTO;
@@ -50,7 +51,7 @@ public class AuthController {
         return authService.me(token);
     }
 
-    //Para borrar la cookie del token jwt y cerrar la sesion del usuario
+    // Para borrar la cookie del token jwt y cerrar la sesion del usuario
     @PostMapping("/logout")
     public ResponseEntity<Void> logout() {
         ResponseCookie cookie = ResponseCookie.from("access_token", "")
@@ -65,4 +66,14 @@ public class AuthController {
                 .header(HttpHeaders.SET_COOKIE, cookie.toString())
                 .build();
     }
+
+    @PatchMapping("/cambiar-password")
+    public ResponseEntity<Void> cambiarPassword(
+            @CookieValue(name = "access_token", required = false) String token,
+            @Valid @RequestBody CambiarPasswordRequestDTO dto) {
+
+        authService.cambiarPassword(token, dto);
+        return ResponseEntity.noContent().build();
+    }
+    
 }
