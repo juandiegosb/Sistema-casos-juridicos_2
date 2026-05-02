@@ -23,8 +23,8 @@ export function NuevaConsultaForm() {
 
   const [form, setForm] = useState(VACIOS);
   const [guardando, setGuardando] = useState(false);
+  const [checking, setChecking] = useState(true); 
 
-  // Catálogos
   const [personas, setPersonas] = useState([]);
   const [sedes, setSedes] = useState([]);
   const [areas, setAreas] = useState([]);
@@ -35,10 +35,36 @@ export function NuevaConsultaForm() {
   const [estudiantes, setEstudiantes] = useState([]);
 
   useEffect(() => {
-    cargarCatalogos();
-  }, []);
+    const verificar = async () => {
+      try {
+        const res = await fetch(`${API}/api/auth/me`, {
+          credentials: "include",
+        });
 
-  // Temas dependen del área seleccionada
+        if (res.status === 401) {
+          router.push("/");
+          return;
+        }
+
+        const user = await res.json();
+
+        if (!user?.permisos?.includes("Gestionar consultas")) {
+          toast.error("No tienes permisos");
+          router.push("/inicio");
+          return;
+        }
+        await cargarCatalogos();
+
+      } catch (error) {
+        router.push("/");
+      } finally {
+        setChecking(false);
+      }
+    };
+
+    verificar();
+  }, [router]);
+
   useEffect(() => {
     if (form.areaId) {
       fetch(`${API}/api/temas/area/${form.areaId}`, { credentials: "include" })
@@ -50,7 +76,6 @@ export function NuevaConsultaForm() {
     }
   }, [form.areaId]);
 
-  // Tipos dependen del tema seleccionado
   useEffect(() => {
     if (form.temaId) {
       fetch(`${API}/api/tipos/tema/${form.temaId}`, { credentials: "include" })
@@ -72,14 +97,17 @@ export function NuevaConsultaForm() {
         fetch(`${API}/api/monitores/activos`, { credentials: "include" }).then(r => r.json()),
         fetch(`${API}/api/estudiantes/activos`, { credentials: "include" }).then(r => r.json()),
       ]);
+
       setPersonas(Array.isArray(pR) ? pR : []);
       setSedes(Array.isArray(sR) ? sR : []);
       setAreas(Array.isArray(aR) ? aR : []);
       setAsesores(Array.isArray(asR) ? asR : []);
       setMonitores(Array.isArray(moR) ? moR : []);
       setEstudiantes(Array.isArray(esR) ? esR : []);
+
     } catch (e) {
       console.error("Error catálogos:", e);
+      toast.error("Error cargando datos");
     }
   }
 
@@ -93,46 +121,66 @@ export function NuevaConsultaForm() {
     setForm(prev => {
       const lista = prev[campo] || [];
       const existe = lista.includes(numId);
-      return { ...prev, [campo]: existe ? lista.filter(x => x !== numId) : [...lista, numId] };
+      return {
+        ...prev,
+        [campo]: existe ? lista.filter(x => x !== numId) : [...lista, numId]
+      };
     });
   }
 
   async function handleGuardar(e) {
     e.preventDefault();
     setGuardando(true);
+
     const payload = {
       ...form,
-      personaId: form.personaId ? Number(form.personaId) : null,
-      sedeId: form.sedeId ? Number(form.sedeId) : null,
-      areaId: form.areaId ? Number(form.areaId) : null,
-      temaId: form.temaId ? Number(form.temaId) : null,
+      personaId: Number(form.personaId),
+      sedeId: Number(form.sedeId),
+      areaId: Number(form.areaId),
+      temaId: Number(form.temaId),
       tipoId: form.tipoId ? Number(form.tipoId) : null,
       asesorId: form.asesorId ? Number(form.asesorId) : null,
       monitorId: form.monitorId ? Number(form.monitorId) : null,
       estudianteId: form.estudianteId ? Number(form.estudianteId) : null,
-      partesIds: form.partesIds,
-      contrapartesIds: form.contrapartesIds,
     };
+
     try {
       const res = await fetch(`${API}/api/consultas`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
         credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+        },
         body: JSON.stringify(payload),
       });
-      if (res.status === 401) { router.push("/"); return; }
+
+      if (res.status === 401) {
+        router.push("/");
+        return;
+      }
+
+      if (res.status === 403) {
+        toast.error("No tienes permisos");
+        return;
+      }
+
       if (res.ok) {
-        toast.success("Consulta creada exitosamente");
+        toast.success("Consulta creada");
         router.push("/consultasjuridicas");
       } else {
         const error = await res.json();
-        toast.error("Error", { description: error.mensaje || error.message || "Error al crear la consulta" });
+        toast.error(error.mensaje || "Error al crear");
       }
+
     } catch {
       toast.error("Error de conexión");
     } finally {
       setGuardando(false);
     }
+  }
+
+  if (checking) {
+    return <p className="p-6">Verificando permisos...</p>;
   }
 
   return (
@@ -261,7 +309,12 @@ export function NuevaConsultaForm() {
 }
 
 function C({ label, children }) {
-  return <div className="flex flex-col gap-1"><label className="text-sm font-medium">{label}</label>{children}</div>;
+  return (
+    <div className="flex flex-col gap-1">
+      <label className="text-sm font-medium">{label}</label>
+      {children}
+    </div>
+  );
 }
 
 const ic = "w-full rounded-md border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-50";

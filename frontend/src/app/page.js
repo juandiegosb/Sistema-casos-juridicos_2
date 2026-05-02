@@ -42,7 +42,7 @@ export default function LoginPage() {
       </div>
 
       {/* LADO IZQUIERDO */}
-      <div className="hidden lg:flex w-1/2 flex-col justify-between p-12 bg-gradient-to-b from-blue-600 via-indigo-600 to-indigo-800 h-full flex flex-col">
+      <div className="hidden lg:flex w-1/2 flex-col justify-between p-12 bg-gradient-to-b from-blue-600 via-indigo-600 to-indigo-800 min-h-screen">
 
         <div className="flex items-center gap-3">
           <Scale className="h-8 w-8" />
