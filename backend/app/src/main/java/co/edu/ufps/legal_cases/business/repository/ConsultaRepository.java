@@ -1,6 +1,7 @@
 package co.edu.ufps.legal_cases.business.repository;
 
 import java.util.List;
+import java.util.Optional;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -12,11 +13,24 @@ import co.edu.ufps.legal_cases.business.model.Consulta;
 @Repository
 public interface ConsultaRepository extends JpaRepository<Consulta, Long> {
 
-    /**
-     * Busca consultas cuya descripción, nombre, apellido o número de documento
-     * de la persona contengan el texto indicado (búsqueda insensible a mayúsculas).
-     * Si el texto está vacío o es null, retorna todas las consultas.
-     */
+    // Hibernate no permite hacer JOIN FETCH de dos colecciones (bags) al mismo tiempo.
+    // Se usan dos queries separadas: una carga partes, la otra contrapartes.
+    // El service las llama en secuencia dentro de una misma transacción.
+
+    @Query("""
+            SELECT DISTINCT c FROM Consulta c
+            LEFT JOIN FETCH c.partes
+            WHERE c.id = :id
+            """)
+    Optional<Consulta> findByIdConPartes(@Param("id") Long id);
+
+    @Query("""
+            SELECT DISTINCT c FROM Consulta c
+            LEFT JOIN FETCH c.contrapartes
+            WHERE c.id = :id
+            """)
+    Optional<Consulta> findByIdConContrapartes(@Param("id") Long id);
+
     @Query("""
             SELECT c FROM Consulta c
             JOIN c.persona p
