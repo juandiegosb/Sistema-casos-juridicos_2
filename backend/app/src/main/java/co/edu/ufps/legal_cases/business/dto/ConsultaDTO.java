@@ -1,6 +1,8 @@
 package co.edu.ufps.legal_cases.business.dto;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -49,6 +51,12 @@ public class ConsultaDTO {
     @NotNull(message = "La persona es obligatoria")
     private Long personaId;
 
+    // IDs de las partes (ManyToMany)
+    private List<Long> partesIds = new ArrayList<>();
+
+    // IDs de las contrapartes (ManyToMany)
+    private List<Long> contrapartesIds = new ArrayList<>();
+
     @NotNull(message = "La sede es obligatoria")
     private Long sedeId;
 
@@ -59,10 +67,7 @@ public class ConsultaDTO {
     private Long temaId;
 
     private Long tipoId;
-
     private Long asesorId;
-
     private Long monitorId;
-
     private Long estudianteId;
 }
