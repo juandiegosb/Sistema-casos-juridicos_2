@@ -95,6 +95,12 @@
     		<scope>runtime</scope>
 		</dependency>
 
+		<!--Para enviar correos electronicos-->
+		<dependency>
+    		<groupId>org.springframework.boot</groupId>
+    		<artifactId>spring-boot-starter-mail</artifactId>
+		</dependency>
+
 		<!--Esto es solo para probar mientras se crea la base de datos-->
 		<dependency>
     		<groupId>com.h2database</groupId>
