@@ -3,32 +3,81 @@
 import React, { useEffect, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
+import { useRouter } from "next/navigation";
 
 export function AsesoresYMonitoresForm() {
+  const router = useRouter();
+
   const [asesores, setAsesores] = useState([]);
   const [monitores, setMonitores] = useState([]);
   const [busqueda, setBusqueda] = useState("");
 
+  const [cargando, setCargando] = useState(true);
+
   const API_URL = "http://localhost:8080/api";
 
-  // Cargar datos
+  // Verificar sesión y permisos
   useEffect(() => {
-    const cargarDatos = async () => {
+    const verificarYcargar = async () => {
       try {
+        const res = await fetch(`${API_URL}/auth/me`, {
+          method: "GET",
+          credentials: "include",
+        });
+
+        if (res.status === 401) {
+          router.push("/");
+          return;
+        }
+
+        const usuario = await res.json();
+
+        // Validar permiso
+        if (!usuario.permisos?.includes("Gestionar usuarios")) {
+          router.push("/inicio");
+          return;
+        }
+
+        // Cargar datos si pasa validación
         const [asesoresRes, monitoresRes] = await Promise.all([
-          fetch(`${API_URL}/asesores/activos`).then(r => r.json()),
-          fetch(`${API_URL}/monitores/activos`).then(r => r.json())
+          fetch(`${API_URL}/asesores/activos`, {
+            credentials: "include",
+          }),
+          fetch(`${API_URL}/monitores/activos`, {
+            credentials: "include",
+          }),
         ]);
 
-        setAsesores(asesoresRes);
-        setMonitores(monitoresRes);
-      } catch {
+        if (asesoresRes.status === 401 || monitoresRes.status === 401) {
+          router.push("/");
+          return;
+        }
+
+        if (asesoresRes.status === 403 || monitoresRes.status === 403) {
+          router.push("/inicio");
+          return;
+        }
+
+        const asesoresData = await asesoresRes.json();
+        const monitoresData = await monitoresRes.json();
+
+        setAsesores(asesoresData);
+        setMonitores(monitoresData);
+
+      } catch (err) {
         toast.error("Error cargando usuarios");
+      } finally {
+        setCargando(false);
       }
     };
 
-    cargarDatos();
-  }, []);
+    verificarYcargar();
+  }, [router]);
+
+  // evitar render mientras valida
+  if (cargando) {
+    return <div className="text-center mt-10">Cargando...</div>;
+  }
 
   // Unificar con rol
   const usuarios = [
@@ -57,7 +106,6 @@ export function AsesoresYMonitoresForm() {
       <div className="overflow-x-auto border rounded-xl">
         <table className="w-full text-sm">
 
-          {/* HEADER */}
           <thead className="bg-muted/50">
             <tr className="text-left">
               <th className="p-3">Nombre</th>
@@ -69,7 +117,6 @@ export function AsesoresYMonitoresForm() {
             </tr>
           </thead>
 
-          {/* BODY */}
           <tbody>
             {filtrados.map((u) => (
               <tr

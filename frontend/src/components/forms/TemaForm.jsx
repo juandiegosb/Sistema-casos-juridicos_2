@@ -4,8 +4,12 @@ import { useForm } from "react-hook-form";
 import { FormInput } from "./parts/FormInput";
 import { FormSelect } from "./parts/FormSelect";
 import { Button } from "@/components/ui/button";
+import { useRouter } from "next/navigation";
 
 export function TemaForm() {
+  const router = useRouter();
+  const [checking, setChecking] = useState(true);
+
   const {
     register,
     handleSubmit,
@@ -19,29 +23,65 @@ export function TemaForm() {
   const { submit, isSubmitting } = useApiForm({ endpoint: `${API_URL_BASE}/temas`})
 
   useEffect(() => {
-      const fetchAreas = async () => {
-        try {
-          const response = await fetch(`${API_URL_BASE}/areas`);
-          if (response.ok) {
-            const areasData = await response.json();
-            const areaOptions = areasData.map(area => ({
-              value: area.id.toString(),
-              label: area.nombre
-            }));
-            setAreas(areaOptions);
-          } else {
-            console.error('Error al cargar áreas');
-          }
-        } catch (error) {
-          console.error('Error de red al cargar áreas:', error);
+    const verificar = async () => {
+      try {
+        const res = await fetch(`${API_URL_BASE}/auth/me`, {
+          method: "GET",
+          credentials: "include",
+        });
+
+        if (res.status === 401) {
+          router.push("/");
+          return;
         }
-      };
-      fetchAreas();
-  }, []);
+
+        const user = await res.json();
+
+        if (!user.permisos?.includes("Gestionar catálogos")) {
+          router.push("/inicio");
+          return;
+        }
+
+        const response = await fetch(`${API_URL_BASE}/areas`, {
+          credentials: "include",
+        });
+
+        if (response.status === 401) {
+          router.push("/");
+          return;
+        }
+
+        if (response.status === 403) {
+          router.push("/inicio");
+          return;
+        }
+
+        if (response.ok) {
+          const areasData = await response.json();
+          const areaOptions = areasData.map(area => ({
+            value: area.id.toString(),
+            label: area.nombre
+          }));
+          setAreas(areaOptions);
+        }
+
+      } catch (error) {
+        router.push("/");
+      } finally {
+        setChecking(false);
+      }
+    };
+
+    verificar();
+  }, [router]);
 
   const onSubmit = async (data) => {
     await submit(data);
   };
+
+  if (checking) {
+    return <div className="text-center mt-10">Cargando...</div>;
+  }
 
   return (
     <div>

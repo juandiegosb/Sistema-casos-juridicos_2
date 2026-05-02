@@ -1,9 +1,8 @@
 "use client"
 
-import React, { useState } from "react"
+import React, { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { useForm } from "react-hook-form"
-import { useApiForm } from "@/hooks/useApiForm"
 import { FormInput } from "../forms/parts/FormInput"
 import { Button } from "@/components/ui/button"
 import { Scale } from "lucide-react"
@@ -11,6 +10,7 @@ import { Scale } from "lucide-react"
 export function LoginForm() {
   const router = useRouter()
   const [errorMessage, setErrorMessage] = useState("")
+  const [checkingSession, setCheckingSession] = useState(true)
 
   const {
     register,
@@ -18,39 +18,63 @@ export function LoginForm() {
     formState: { errors }
   } = useForm()
 
-  const { submit, isSubmitting } = useApiForm({
-    endpoint: "http://localhost:8080/api/auth/login"
-  })
-
   const REQUIRED = "Campo obligatorio"
 
+  // Verificar sesión al cargar
+  useEffect(() => {
+    async function verificarSesion() {
+      try {
+        const res = await fetch("http://localhost:8080/api/auth/me", {
+          method: "GET",
+          credentials: "include"
+        })
+
+        if (res.ok) {
+          router.push("/inicio")
+          return
+        }
+      } catch (err) {
+        // ignorar error
+      } finally {
+        setCheckingSession(false)
+      }
+    }
+
+    verificarSesion()
+  }, [router])
+
+  if (checkingSession) {
+    return <div className="text-center mt-10">Cargando...</div>
+  }
+
+  // Login
   const handleSubmitForm = async (data) => {
     setErrorMessage("")
 
     try {
-      const response = await submit({
-        username: data.username,
-        password: data.password
+      const response = await fetch("http://localhost:8080/api/auth/login", {
+        method: "POST",
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          username: data.username,
+          password: data.password
+        })
       })
 
-      // 🔥 Si el login falló (status 400, 401, etc.)
-      if (!response.success) {
-        // Extraer el mensaje del error del backend
-        const errorMsg = response.error?.mensaje || 
-                         response.error?.message || 
-                         response.error?.error ||
-                         "Usuario o contraseña incorrectos"
-        
+      const result = await response.json()
+
+      if (!response.ok) {
+        const errorMsg =
+          result?.mensaje ||
+          result?.message ||
+          "Usuario o contraseña incorrectos"
+
         throw new Error(errorMsg)
       }
 
-      // ✅ éxito → guardar datos
-      const result = response.data
-      localStorage.setItem("usuarioId", result.usuarioId)
-      localStorage.setItem("username", result.username)
-      localStorage.setItem("rol", result.rolNombre)
-      localStorage.setItem("perfil", result.tipoPerfil)
-      localStorage.setItem("permisos", JSON.stringify(result.permisos))
 
       router.push("/inicio")
 
@@ -107,10 +131,21 @@ export function LoginForm() {
           <Button
             type="submit"
             className="w-full"
-            disabled={isSubmitting}
+            disabled={false}
           >
-            {isSubmitting ? "Ingresando..." : "Acceder"}
+            Acceder
           </Button>
+
+          {/* 🔥 Recuperar contraseña */}
+          <div className="text-center mt-2">
+            <button
+              type="button"
+              onClick={() => router.push("/recuperar-password")}
+              className="text-sm text-primary hover:underline"
+            >
+              ¿Olvidaste tu contraseña?
+            </button>
+          </div>
         </form>
       </div>
     </div>

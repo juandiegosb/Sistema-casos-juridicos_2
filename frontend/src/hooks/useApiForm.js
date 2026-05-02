@@ -1,14 +1,6 @@
 import { useState } from "react";
 import { toast } from "sonner";
 
-
-/**
- * Para enviar los datos del formulario al backend.
- * 
- * @note puede cambiar en el futuro para acoplarlo con react hook form y form provider
- * @param {*} param0 
- * @returns 
- */
 export function useApiForm({ endpoint }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -18,11 +10,30 @@ export function useApiForm({ endpoint }) {
     try {
       const response = await fetch(endpoint, {
         method: "POST",
+        credentials: "include", // 🔥 CLAVE PARA ENVIAR LA COOKIE
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify(data),
       });
+
+      // 🔥 Manejo de sesión
+      if (response.status === 401) {
+        toast.error("Sesión expirada", {
+          description: "Debe iniciar sesión nuevamente",
+        });
+
+        window.location.href = "/login";
+        return { success: false };
+      }
+
+      if (response.status === 403) {
+        toast.error("No autorizado", {
+          description: "No tiene permisos para esta acción",
+        });
+
+        return { success: false };
+      }
 
       if (response.ok) {
         const result = await response.json();
@@ -33,11 +44,10 @@ export function useApiForm({ endpoint }) {
       } else {
         const errorData = await response.json();
 
-        // TODO: Quizás sólo mostrar el mensaje de la respuesta, no todo el content
         let errorMessage = "";
 
-        for(const key in errorData) {
-            errorMessage += `${key}: ${errorData[key]}\n`;
+        for (const key in errorData) {
+          errorMessage += `${key}: ${errorData[key]}\n`;
         }
 
         toast.error("Error en la operación", {

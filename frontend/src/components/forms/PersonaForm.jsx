@@ -6,6 +6,8 @@ import { FormSelect } from "./parts/FormSelect";
 import { FormCheckbox } from "./parts/FormCheckbox";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 
 export function PersonaForm({ onSubmit, initialValues = {} }) {
   const defaultFormValues = {
@@ -17,13 +19,44 @@ export function PersonaForm({ onSubmit, initialValues = {} }) {
     alcantarillado: false,
     ...initialValues,
   };
-
+  const router = useRouter();
+  const [checking, setChecking] = useState(true);
   const {
     register,
     handleSubmit,
     reset,
     formState: { errors },
   } = useForm({ defaultValues: defaultFormValues });
+
+  useEffect(() => {
+  async function verificar() {
+    try {
+      const res = await fetch("http://localhost:8080/api/auth/me", {
+        method: "GET",
+        credentials: "include",
+      });
+
+      if (res.status === 401) {
+        router.push("/");
+        return;
+      }
+
+      const user = await res.json();
+
+      if (!user.permisos?.includes("Gestionar personas")) {
+        router.push("/inicio");
+        return;
+      }
+
+    } catch {
+      router.push("/");
+    } finally {
+      setChecking(false);
+    }
+  }
+
+  verificar();
+}, [router]);
 
   const API_URL_BASE = "http://localhost:8080/api";
 
@@ -101,6 +134,10 @@ export function PersonaForm({ onSubmit, initialValues = {} }) {
   const handleSubmitForm = async (data) => {
     await submit(data);
   };
+
+  if (checking) {
+  return <div className="text-center mt-10">Cargando...</div>;
+  }
 
   return (
     <div>

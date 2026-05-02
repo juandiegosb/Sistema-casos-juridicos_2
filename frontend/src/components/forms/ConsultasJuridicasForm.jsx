@@ -2,13 +2,56 @@
 
 import * as React from "react"
 import { Button } from "@/components/ui/button"
+import { useRouter } from "next/navigation"
 
 export function ConsultasJuridicasForm() {
+  const router = useRouter()
+
   const [searchText, setSearchText] = React.useState("")
   const [rows, setRows] = React.useState([])
   const [loading, setLoading] = React.useState(false)
   const [error, setError] = React.useState("")
+  const [checking, setChecking] = React.useState(true)
 
+  const API_URL = "http://localhost:8080/api"
+
+  // Verificar sesión y permisos
+  React.useEffect(() => {
+    async function verificar() {
+      try {
+        const res = await fetch(`${API_URL}/auth/me`, {
+          method: "GET",
+          credentials: "include"
+        })
+
+        if (res.status === 401) {
+          router.push("/")
+          return
+        }
+
+        const user = await res.json()
+
+        if (!user.permisos?.includes("Gestionar consultas")) {
+          router.push("/inicio")
+          return
+        }
+
+      } catch {
+        router.push("/")
+      } finally {
+        setChecking(false)
+      }
+    }
+
+    verificar()
+  }, [router])
+
+  // evitar render mientras valida
+  if (checking) {
+    return <div className="text-center mt-10">Cargando...</div>
+  }
+
+  // 🔍 Buscar consultas
   async function handleSearch(event) {
     event.preventDefault()
 
@@ -16,27 +59,32 @@ export function ConsultasJuridicasForm() {
     setError("")
 
     try {
-      const token = localStorage.getItem("token")
-
       const res = await fetch(
-        `http://localhost:8080/consultas?search=${searchText}`,
+        `${API_URL}/consultas?search=${searchText}`,
         {
           method: "GET",
-          headers: {
-            "Content-Type": "application/json",
-          },
+          credentials: "include",
         }
       )
+
+      if (res.status === 401) {
+        router.push("/")
+        return
+      }
+
+      if (res.status === 403) {
+        router.push("/inicio")
+        return
+      }
 
       if (!res.ok) {
         throw new Error("Error al obtener datos")
       }
 
       const data = await res.json()
-
       setRows(data)
 
-    } catch (err) {
+    } catch {
       setError("No se pudieron cargar las consultas")
       setRows([])
     } finally {

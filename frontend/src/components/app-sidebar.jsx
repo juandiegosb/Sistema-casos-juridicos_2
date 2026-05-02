@@ -14,6 +14,12 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { LayoutDashboard } from "lucide-react"
 import { useRouter, usePathname } from "next/navigation"
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+} from "@/components/ui/dropdown-menu"
 
 export function AppSidebar({ mainItems = [], footerItems = [] }) {
   const [email, setEmail] = React.useState("")
@@ -21,13 +27,30 @@ export function AppSidebar({ mainItems = [], footerItems = [] }) {
   const router = useRouter()
   const pathname = usePathname()
 
-  React.useEffect(() => {
-    const storedEmail = localStorage.getItem("username") || ""
-    setEmail(storedEmail)
+  const API_URL = "http://localhost:8080/api"
 
-    if (storedEmail.includes("@")) {
-      setName(storedEmail.split("@")[0])
+  // Obtener usuario desde backend (cookie JWT)
+  React.useEffect(() => {
+    const cargarUsuario = async () => {
+      try {
+        const res = await fetch(`${API_URL}/auth/me`, {
+          method: "GET",
+          credentials: "include",
+        })
+
+        if (!res.ok) return
+
+        const user = await res.json()
+
+        setEmail(user.username || "")
+        setName(user.nombre || user.username?.split("@")[0] || "")
+
+      } catch (error) {
+        console.error("Error cargando usuario", error)
+      }
     }
+
+    cargarUsuario()
   }, [])
 
   function normalizePath(text) {
@@ -45,10 +68,23 @@ export function AppSidebar({ mainItems = [], footerItems = [] }) {
     router.push(path)
   }
 
-  return (
-    <Sidebar className="relative overflow-hidden border-r border-sidebar-border bg-transparent [&_[data-sidebar=sidebar-inner]]:bg-transparent h-screen sticky top-0 border-r border-sidebar-border">
+  const handleLogout = async () => {
+    try {
+      await fetch(`${API_URL}/auth/logout`, {
+        method: "POST",
+        credentials: "include",
+      })
+    } catch (error) {
+      console.error("Error cerrando sesión", error)
+    }
 
-      <div className="bg-gradient-to-b from-blue-600 via-indigo-600 to-indigo-800">
+    router.replace("/") // tu login está en /
+  }
+
+  return (
+    <Sidebar className="relative overflow-hidden border-r h-screen sticky top-0">
+
+      <div className="bg-gradient-to-b from-blue-600 via-indigo-600 to-indigo-800 h-full flex flex-col">
 
         {/* HEADER */}
         <SidebarHeader className="p-4 flex items-center gap-3 text-sidebar-foreground">
@@ -68,10 +104,9 @@ export function AppSidebar({ mainItems = [], footerItems = [] }) {
 
         <SidebarSeparator />
 
-        {/* MENÚ */}
-        <SidebarContent className="px-2 py-4">
+        {/* MENU */}
+        <SidebarContent className="px-2 py-4 flex-1">
           <SidebarMenu>
-
             {mainItems.map((item, index) => {
               const path = normalizePath(item.title)
               const isActive = pathname === path
@@ -81,19 +116,18 @@ export function AppSidebar({ mainItems = [], footerItems = [] }) {
                   <SidebarMenuButton
                     onClick={() => handleSubmit(item)}
                     className={`
-                        rounded-lg transition-all
-                        ${isActive
+                      rounded-lg transition-all
+                      ${isActive
                         ? "text-black dark:text-white font-medium"
                         : "text-sidebar-foreground hover:bg-sidebar-accent/70"
                       }
-`}
+                    `}
                   >
                     <span>{item.title}</span>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               )
             })}
-
           </SidebarMenu>
         </SidebarContent>
 
@@ -116,23 +150,33 @@ export function AppSidebar({ mainItems = [], footerItems = [] }) {
 
             {/* USUARIO */}
             <SidebarMenuItem className="mt-6">
-              <div className="flex items-center gap-3 p-2 rounded-lg">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <div className="flex items-center gap-3 p-2 rounded-lg cursor-pointer hover:bg-sidebar-accent/70">
 
-                <Avatar className="size-9">
-                  <AvatarImage src="https://github.com/shadcn.png" />
-                  <AvatarFallback>
-                    {name?.charAt(0).toUpperCase()}
-                  </AvatarFallback>
-                </Avatar>
+                    <Avatar className="size-9">
+                      <AvatarImage src="https://github.com/shadcn.png" />
+                      <AvatarFallback>
+                        {name?.charAt(0).toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
 
-                <div className="flex flex-col text-sm leading-tight text-sidebar-foreground">
-                  <span className="font-medium">{name}</span>
-                  <span className="text-xs opacity-70">
-                    {email}
-                  </span>
-                </div>
+                    <div className="flex flex-col text-sm leading-tight text-sidebar-foreground">
+                      <span className="font-medium">{name}</span>
+                      <span className="text-xs opacity-70">
+                        {email}
+                      </span>
+                    </div>
 
-              </div>
+                  </div>
+                </DropdownMenuTrigger>
+
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={handleLogout}>
+                    Cerrar sesión
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </SidebarMenuItem>
 
           </SidebarMenu>

@@ -1,12 +1,18 @@
+"use client";
+
 import React, { useState, useEffect } from "react";
 import { useApiForm } from "@/hooks/useApiForm";
 import { useForm } from "react-hook-form";
 import { FormInput } from "./parts/FormInput";
 import { FormSelect } from "./parts/FormSelect";
 import { Button } from "@/components/ui/button";
+import { useRouter } from "next/navigation";
 
 export function TipoForm() {
   const API_URL_BASE = "http://localhost:8080/api";
+
+  const router = useRouter();
+  const [checking, setChecking] = useState(true);
 
   const {
     register,
@@ -22,12 +28,44 @@ export function TipoForm() {
 
   const [temas, setTemas] = useState([]);
 
-  const { submit, isSubmitting } = useApiForm({endpoint: `${API_URL_BASE}/tipos`});
+  const { submit, isSubmitting } = useApiForm({
+    endpoint: `${API_URL_BASE}/tipos`,
+  });
 
   useEffect(() => {
-    const fetchTemas = async () => {
+    const verificarYCargar = async () => {
       try {
-        const response = await fetch(`${API_URL_BASE}/temas`);
+        const res = await fetch(`${API_URL_BASE}/auth/me`, {
+          method: "GET",
+          credentials: "include",
+        });
+
+        if (res.status === 401) {
+          router.push("/");
+          return;
+        }
+
+        const user = await res.json();
+
+        if (!user.permisos?.includes("Gestionar catálogos")) {
+          router.push("/inicio");
+          return;
+        }
+
+        const response = await fetch(`${API_URL_BASE}/temas`, {
+          credentials: "include",
+        });
+
+        if (response.status === 401) {
+          router.push("/");
+          return;
+        }
+
+        if (response.status === 403) {
+          router.push("/inicio");
+          return;
+        }
+
         if (response.ok) {
           const temasData = await response.json();
 
@@ -41,12 +79,15 @@ export function TipoForm() {
           console.error("Error al cargar temas");
         }
       } catch (error) {
-        console.error("Error de red al cargar temas:", error);
+        console.error("Error:", error);
+        router.push("/");
+      } finally {
+        setChecking(false);
       }
     };
 
-    fetchTemas();
-  }, [API_URL_BASE]);
+    verificarYCargar();
+  }, [router]);
 
   const onSubmit = async (data) => {
     await submit({
@@ -54,6 +95,10 @@ export function TipoForm() {
       temaId: Number(data.temaId),
     });
   };
+
+  if (checking) {
+    return <div className="text-center mt-10">Cargando...</div>;
+  }
 
   return (
     <div className="space-y-6 p-6 bg-card rounded-xl border">

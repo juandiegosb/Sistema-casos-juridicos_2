@@ -3,44 +3,81 @@
 import React, { useEffect, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
+import { useRouter } from "next/navigation";
 
 export function EstudiantesForm() {
+  const router = useRouter();
+
   const [estudiantes, setEstudiantes] = useState([]);
   const [busqueda, setBusqueda] = useState("");
+  const [cargando, setCargando] = useState(true);
 
   const API_URL = "http://localhost:8080/api";
 
-  // Cargar estudiantes activos
+  // Validar sesión + permisos y luego cargar datos
   useEffect(() => {
-  const cargarDatos = async () => {
-    try {
-      const res = await fetch(`${API_URL}/estudiantes/activos`);
-      const data = await res.json();
+    const verificarYCargar = async () => {
+      try {
+        const res = await fetch(`${API_URL}/auth/me`, {
+          method: "GET",
+          credentials: "include",
+        });
 
-      console.log("RESPUESTA BACK:", data);
+        if (res.status === 401) {
+          router.push("/");
+          return;
+        }
 
-      // 🔥 Asegurar que siempre sea array
-      if (Array.isArray(data)) {
-        setEstudiantes(data);
-      } else if (Array.isArray(data.content)) {
-        setEstudiantes(data.content);
-      } else if (Array.isArray(data.data)) {
-        setEstudiantes(data.data);
-      } else {
-        setEstudiantes([]);
-        toast.error("La API no devolvió una lista");
+        const usuario = await res.json();
+
+        if (!usuario.permisos?.includes("Gestionar usuarios")) {
+          router.push("/inicio");
+          return;
+        }
+
+        // Cargar estudiantes
+        const estudiantesRes = await fetch(`${API_URL}/estudiantes/activos`, {
+          credentials: "include",
+        });
+
+        if (estudiantesRes.status === 401) {
+          router.push("/");
+          return;
+        }
+
+        if (estudiantesRes.status === 403) {
+          router.push("/inicio");
+          return;
+        }
+
+        const data = await estudiantesRes.json();
+
+        if (Array.isArray(data)) {
+          setEstudiantes(data);
+        } else if (Array.isArray(data.content)) {
+          setEstudiantes(data.content);
+        } else if (Array.isArray(data.data)) {
+          setEstudiantes(data.data);
+        } else {
+          setEstudiantes([]);
+          toast.error("La API no devolvió una lista");
+        }
+
+      } catch (e) {
+        console.error(e);
+        toast.error("Error cargando estudiantes");
+      } finally {
+        setCargando(false);
       }
+    };
 
-    } catch (e) {
-      console.error(e);
-      toast.error("Error cargando estudiantes");
-    }
-  };
+    verificarYCargar();
+  }, [router]);
 
-  cargarDatos();
-}, []);
+  if (cargando) {
+    return <div className="text-center mt-10">Cargando...</div>;
+  }
 
-  // Filtro
   const filtrados = estudiantes.filter(e =>
     `${e.nombre} ${e.documento} ${e.email} ${e.codigo}`
       .toLowerCase()
@@ -50,18 +87,15 @@ export function EstudiantesForm() {
   return (
     <div className="space-y-6">
 
-      {/* BUSCADOR */}
       <Input
         placeholder="Buscar por nombre, documento, email o código..."
         value={busqueda}
         onChange={(e) => setBusqueda(e.target.value)}
       />
 
-      {/* TABLA */}
       <div className="overflow-x-auto border rounded-xl">
         <table className="w-full text-sm">
 
-          {/* HEADER */}
           <thead className="bg-muted/50">
             <tr className="text-left">
               <th className="p-3">Nombre</th>
@@ -74,7 +108,6 @@ export function EstudiantesForm() {
             </tr>
           </thead>
 
-          {/* BODY */}
           <tbody>
             {filtrados.map((e) => (
               <tr
@@ -87,7 +120,6 @@ export function EstudiantesForm() {
                 <td className="p-3">{e.telefono}</td>
                 <td className="p-3">{e.codigo}</td>
 
-                {/* Conciliación */}
                 <td className="p-3">
                   <span className={`text-xs px-2 py-1 rounded ${
                     e.conciliacion
@@ -98,7 +130,6 @@ export function EstudiantesForm() {
                   </span>
                 </td>
 
-                {/* Activo */}
                 <td className="p-3">
                   <span className={`text-xs px-2 py-1 rounded ${
                     e.activo
@@ -115,7 +146,6 @@ export function EstudiantesForm() {
         </table>
       </div>
 
-      {/* VACÍO */}
       {filtrados.length === 0 && (
         <p className="text-center text-muted-foreground">
           No se encontraron resultados

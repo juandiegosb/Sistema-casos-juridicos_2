@@ -1,9 +1,9 @@
-
 "use client";
 
 import React, { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
+import { useRouter } from "next/navigation";
 
 import { FormInput } from "./parts/FormInput";
 import { FormSelect } from "./parts/FormSelect";
@@ -12,6 +12,9 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 
 export function UsuarioSistemaForm() {
+  const router = useRouter();
+  const [checking, setChecking] = useState(true);
+
   const {
     register,
     handleSubmit,
@@ -29,16 +32,51 @@ export function UsuarioSistemaForm() {
   const API_URL = "http://localhost:8080/api";
   const REQUIRED = "Campo obligatorio";
 
-  // 🔥 Evita hydration error
+  useEffect(() => {
+    const verificar = async () => {
+      try {
+        const res = await fetch(`${API_URL}/auth/me`, {
+          method: "GET",
+          credentials: "include",
+        });
+
+        if (res.status === 401) {
+          router.push("/");
+          return;
+        }
+
+        const user = await res.json();
+
+        if (!user.permisos?.includes("Gestionar usuarios")) {
+          router.push("/inicio");
+          return;
+        }
+      } catch {
+        router.push("/");
+      } finally {
+        setChecking(false);
+      }
+    };
+
+    verificar();
+  }, [router]);
+
   useEffect(() => {
     setMounted(true);
   }, []);
 
-  // 🔥 Cargar tipos documento
   useEffect(() => {
     const cargarTipos = async () => {
       try {
-        const res = await fetch(`${API_URL}/tipos-documento`);
+        const res = await fetch(`${API_URL}/tipos-documento`, {
+          credentials: "include",
+        });
+
+        if (res.status === 401) {
+          router.push("/");
+          return;
+        }
+
         const data = await res.json();
 
         setTiposDocumento(
@@ -53,17 +91,30 @@ export function UsuarioSistemaForm() {
     };
 
     cargarTipos();
-  }, []);
+  }, [router]);
 
-  // 🔥 Cargar datos base
   useEffect(() => {
     const cargar = async () => {
       try {
-        const [sedesData, areasData, asesoresData] = await Promise.all([
-          fetch(`${API_URL}/sedes`).then(r => r.json()),
-          fetch(`${API_URL}/areas`).then(r => r.json()),
-          fetch(`${API_URL}/asesores`).then(r => r.json())
+        const [sedesRes, areasRes, asesoresRes] = await Promise.all([
+          fetch(`${API_URL}/sedes`, { credentials: "include" }),
+          fetch(`${API_URL}/areas`, { credentials: "include" }),
+          fetch(`${API_URL}/asesores`, { credentials: "include" })
         ]);
+
+        if (sedesRes.status === 401 || areasRes.status === 401 || asesoresRes.status === 401) {
+          router.push("/");
+          return;
+        }
+
+        if (sedesRes.status === 403 || areasRes.status === 403 || asesoresRes.status === 403) {
+          router.push("/inicio");
+          return;
+        }
+
+        const sedesData = await sedesRes.json();
+        const areasData = await areasRes.json();
+        const asesoresData = await asesoresRes.json();
 
         setSedes(sedesData.map(s => ({ value: s.id, label: s.nombre })));
         setAreas(areasData.map(a => ({ value: a.id, label: a.nombre })));
@@ -79,9 +130,9 @@ export function UsuarioSistemaForm() {
     };
 
     cargar();
-  }, []);
+  }, [router]);
 
-  if (!mounted) return null;
+  if (checking || !mounted) return <div className="text-center mt-10">Cargando...</div>;
 
   const rol = watch("rol") || "";
 
@@ -107,10 +158,10 @@ export function UsuarioSistemaForm() {
     return payload;
   };
 
-  // 🔥 Submit
   const onSubmit = async (data) => {
     try {
       const endpoint = `${API_URL}/${rol}`;
+
       const tipoDocumentoSeleccionado = tiposDocumento.find(
         (tipo) => tipo.value === Number(data.tipoDocumentoId)
       );
@@ -124,9 +175,20 @@ export function UsuarioSistemaForm() {
 
       const res = await fetch(endpoint, {
         method: "POST",
+        credentials: "include",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload)
       });
+
+      if (res.status === 401) {
+        router.push("/");
+        return;
+      }
+
+      if (res.status === 403) {
+        router.push("/inicio");
+        return;
+      }
 
       if (!res.ok) throw new Error();
 
@@ -137,47 +199,33 @@ export function UsuarioSistemaForm() {
     }
   };
 
-  // 🔹 Campos comunes
   const camposBase = (
     <>
       <FormInput name="nombre" label="Nombre" register={register} errors={errors} rules={{ required: REQUIRED }} />
 
-      {tiposDocumento.length > 0 ? (
+      {tiposDocumento.length > 0 && (
         <div className="flex flex-col gap-1.5 w-full">
-          <label htmlFor="tipoDocumentoId" className="text-sm font-medium leading-none">
-            Tipo de Documento
-          </label>
+          <label className="text-sm font-medium">Tipo de Documento</label>
           <select
-            id="tipoDocumentoId"
             defaultValue=""
-            {...register("tipoDocumentoId", {
-              required: REQUIRED,
-              valueAsNumber: true
-            })}
-            className={`flex h-8 w-full rounded-lg border px-2.5 py-1 ${errors?.tipoDocumentoId ? "border-red-500" : ""
-              }`}
+            {...register("tipoDocumentoId", { required: REQUIRED, valueAsNumber: true })}
+            className={`flex h-8 w-full rounded-lg border px-2.5 py-1 ${errors?.tipoDocumentoId ? "border-red-500" : ""}`}
           >
             <option value="">Seleccione una opción</option>
-            {tiposDocumento.map((opt) => (
-              <option key={opt.value} value={opt.value}>
-                {opt.label}
-              </option>
+            {tiposDocumento.map(opt => (
+              <option key={opt.value} value={opt.value}>{opt.label}</option>
             ))}
           </select>
           {errors?.tipoDocumentoId && (
-            <p className="text-xs text-red-500">{errors.tipoDocumentoId?.message}</p>
+            <p className="text-xs text-red-500">{errors.tipoDocumentoId.message}</p>
           )}
         </div>
-      ) : null}
+      )}
 
       <FormInput name="documento" label="Documento" register={register} errors={errors} rules={{ required: REQUIRED }} />
-
       <FormInput name="email" label="Email" register={register} errors={errors} rules={{ required: REQUIRED }} />
-
       <FormInput name="telefono" label="Teléfono" register={register} errors={errors} rules={{ required: REQUIRED }} />
-
       <FormInput name="usuario" label="Usuario" register={register} errors={errors} rules={{ required: REQUIRED }} />
-
       <FormInput name="codigo" label="Código" register={register} errors={errors} rules={{ required: REQUIRED }} />
 
       {sedes.length > 0 && (
@@ -193,7 +241,6 @@ export function UsuarioSistemaForm() {
     </>
   );
 
-  // 🔥 Campos por rol
   const renderCamposRol = () => {
     switch (rol) {
       case "asesores":
@@ -219,15 +266,12 @@ export function UsuarioSistemaForm() {
               errors={errors}
               rules={{ required: REQUIRED, valueAsNumber: true }}
             />
-
             <FormCheckbox name="conciliacion" label="¿Conciliación?" register={register} />
           </>
         );
 
       case "administrativos":
-        return (
-          <FormCheckbox name="directora" label="¿Directora?" register={register} />
-        );
+        return <FormCheckbox name="directora" label="¿Directora?" register={register} />;
 
       case "conciliadores":
         return (
