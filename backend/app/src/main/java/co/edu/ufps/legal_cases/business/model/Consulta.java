@@ -1,6 +1,8 @@
 package co.edu.ufps.legal_cases.business.model;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -9,6 +11,8 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
+import jakarta.persistence.JoinTable;
+import jakarta.persistence.ManyToMany;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import lombok.Getter;
@@ -54,10 +58,28 @@ public class Consulta {
     @Column(name = "resultado", length = 100)
     private String resultado;
 
-    // Relaciones con usuarios del sistema
+    // Relación simple: persona principal (parte solicitante)
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "persona_id", nullable = false)
     private Persona persona;
+
+    // Relación ManyToMany: partes (pueden ser varias personas)
+    @ManyToMany(fetch = FetchType.LAZY)
+    @JoinTable(
+        name = "consulta_parte",
+        joinColumns = @JoinColumn(name = "consulta_id"),
+        inverseJoinColumns = @JoinColumn(name = "persona_id")
+    )
+    private List<Persona> partes = new ArrayList<>();
+
+    // Relación ManyToMany: contrapartes
+    @ManyToMany(fetch = FetchType.LAZY)
+    @JoinTable(
+        name = "consulta_contraparte",
+        joinColumns = @JoinColumn(name = "consulta_id"),
+        inverseJoinColumns = @JoinColumn(name = "persona_id")
+    )
+    private List<Persona> contrapartes = new ArrayList<>();
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "sede_id", nullable = false)
