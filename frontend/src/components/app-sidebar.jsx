@@ -88,8 +88,8 @@ export function AppSidebar({ mainItems = [], footerItems = [] }) {
 
         {/* HEADER */}
         <SidebarHeader className="p-4 flex items-center gap-3 text-sidebar-foreground">
-          <div className="flex size-9 items-center justify-center rounded-lg bg-sidebar-accent">
-            <LayoutDashboard className="size-5" />
+          <div className="flex size-10 items-center justify-center rounded-lg bg-transparent">
+            <img src="/logo.png" className="size-10 object-contain width={20} height={20}" />
           </div>
 
           <div className="flex flex-col leading-tight">
