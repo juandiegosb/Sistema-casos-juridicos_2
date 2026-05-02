@@ -10,14 +10,14 @@ export function useApiForm({ endpoint }) {
     try {
       const response = await fetch(endpoint, {
         method: "POST",
-        credentials: "include", // 🔥 CLAVE PARA ENVIAR LA COOKIE
+        credentials: "include",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify(data),
       });
 
-      // 🔥 Manejo de sesión
+      // Manejo de sesión
       if (response.status === 401) {
         toast.error("Sesión expirada", {
           description: "Debe iniciar sesión nuevamente",

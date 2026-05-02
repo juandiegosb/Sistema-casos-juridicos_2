@@ -23,17 +23,17 @@ import {
 export default function Home() {
   const sections = [
   "Inicio",
-  "Tareas💀",
+  "Tareas.",
   "Recepcion",
-  "Nueva consulta💀",
+  "Nueva consulta",
   "Consultas juridicas",
-  "Nuevo Proceso💀",
-  "Procesos juridicos💀",
+  "Nuevo Proceso.",
+  "Procesos juridicos.",
   "Estudiantes",
   "Asesores y monitores",
-  "Estadísticas💀",
-  "Formatos y modelos💀",
-  "Eliminacines💀",
+  "Estadísticas.",
+  "Formatos y modelos.",
+  "Eliminacines.",
   "admin",
   "Roles",
   "",
@@ -78,7 +78,7 @@ export default function Home() {
               </div>
             </div>
 
-            {/* 🌗 Tema */}
+            {/* Tema */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="outline" size="icon">
@@ -101,7 +101,7 @@ export default function Home() {
             </DropdownMenu>
           </header>
 
-          {/* 🔥 CONTENIDO */}
+          {/* CONTENIDO */}
           <div className="p-6 lg:p-10">
 
             {/* contenedor tipo card (clave del diseño) */}
@@ -116,7 +116,7 @@ export default function Home() {
                 </p>
               </div>
 
-              {/* 🔥 CARD PRINCIPAL */}
+              {/* CARD PRINCIPAL */}
               <div className="rounded-2xl border border-border bg-background shadow-sm p-6 lg:p-8">
 
                 <PersonaForm />

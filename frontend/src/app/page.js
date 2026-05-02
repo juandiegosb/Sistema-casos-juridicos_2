@@ -17,7 +17,7 @@ export default function LoginPage() {
   return (
     <main className="relative min-h-screen flex">
 
-      {/* 🌗 Toggle */}
+      {/* Toggle */}
       <div className="absolute top-4 right-4 z-50">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
@@ -41,8 +41,8 @@ export default function LoginPage() {
         </DropdownMenu>
       </div>
 
-      {/* 🔵 LADO IZQUIERDO (branding nuevo) */}
-      <div className="hidden lg:flex w-1/2 flex-col justify-between p-12 bg-gradient-to-br from-primary to-indigo-700 text-white">
+      {/* LADO IZQUIERDO */}
+      <div className="hidden lg:flex w-1/2 flex-col justify-between p-12 bg-gradient-to-b from-blue-600 via-indigo-600 to-indigo-800 h-full flex flex-col">
 
         <div className="flex items-center gap-3">
           <Scale className="h-8 w-8" />
@@ -67,7 +67,7 @@ export default function LoginPage() {
         </p>
       </div>
 
-      {/* ⚪ LADO DERECHO (form con fondo dinámico) */}
+      {/* LADO DERECHO */}
       <div className="flex w-full lg:w-1/2 items-center justify-center bg-background px-6 py-12">
 
         <div className="absolute inset-0 -z-10 bg-gradient-to-tr from-muted/40 via-transparent to-muted/40" />

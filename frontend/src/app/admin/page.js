@@ -31,17 +31,17 @@ import { AreaForm } from "@/components/forms/AreaForm"
 
 const sections = [
   "Inicio",
-  "Tareas💀",
+  "Tareas.",
   "Recepcion",
-  "Nueva consulta💀",
+  "Nueva consulta",
   "Consultas juridicas",
-  "Nuevo Proceso💀",
-  "Procesos juridicos💀",
+  "Nuevo Proceso.",
+  "Procesos juridicos.",
   "Estudiantes",
   "Asesores y monitores",
-  "Estadísticas💀",
-  "Formatos y modelos💀",
-  "Eliminacines💀",
+  "Estadísticas.",
+  "Formatos y modelos.",
+  "Eliminacines.",
   "admin",
   "Roles",
   "",
@@ -62,7 +62,7 @@ export default function ConfiguracionCatalogos() {
 
         <SidebarInset className="bg-muted/30 min-h-screen">
 
-          {/* 🔥 HEADER */}
+          {/* HEADER */}
           <header className="flex h-16 items-center justify-between border-b bg-background/80 backdrop-blur px-6">
             <div className="flex items-center gap-4">
               <SidebarTrigger />
@@ -98,7 +98,7 @@ export default function ConfiguracionCatalogos() {
             </DropdownMenu>
           </header>
 
-          {/* 🔥 CONTENIDO */}
+          {/* CONTENIDO */}
           <div className="p-6 lg:p-10">
             <div className="max-w-5xl mx-auto">
 
@@ -112,13 +112,13 @@ export default function ConfiguracionCatalogos() {
                 </p>
               </div>
 
-              {/* 🔥 CARD */}
+              {/* CARD */}
               <div className="rounded-2xl border bg-background shadow-sm p-6 lg:p-8 relative overflow-hidden">
 
-                {/* 🎨 línea superior */}
+                {/* línea superior */}
                 <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-600 via-indigo-600 to-indigo-800" />
 
-                {/* 🔥 TABS */}
+                {/* TABS */}
                 <Tabs defaultValue="tema" className="space-y-6">
 
                   {/* NAV */}

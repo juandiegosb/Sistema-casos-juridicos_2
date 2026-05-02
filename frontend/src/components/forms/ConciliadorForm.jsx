@@ -172,7 +172,7 @@ export function ConciliadorForm({ onSuccess, initialValues = {} }) {
   return (
   <div className="space-y-8">
 
-    {/* 🔥 HEADER VISUAL */}
+    {/* HEADER VISUAL */}
     <div className="relative overflow-hidden rounded-2xl border bg-gradient-to-r from-blue-600/10 via-indigo-500/10 to-purple-500/10 p-6">
       <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-600 via-indigo-500 to-purple-600" />
 
@@ -186,7 +186,7 @@ export function ConciliadorForm({ onSuccess, initialValues = {} }) {
       </p>
     </div>
 
-    {/* 🔥 CONTENEDOR PRINCIPAL */}
+    {/* CONTENEDOR PRINCIPAL */}
     <div className="space-y-6">
 
       {/* ───────────── SECCIÓN ───────────── */}
