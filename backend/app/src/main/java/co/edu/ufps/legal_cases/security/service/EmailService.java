@@ -1,48 +1,56 @@
 package co.edu.ufps.legal_cases.security.service;
 
+import java.nio.charset.StandardCharsets;
+
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
 
 import co.edu.ufps.legal_cases.exception.BusinessException;
+import jakarta.mail.internet.InternetAddress;
+import jakarta.mail.internet.MimeMessage;
 
 // Servicio para mandar correos
 @Service
 public class EmailService {
 
     private final JavaMailSender mailSender;
+    private final EmailTemplateService emailTemplateService;
     private final String from;
+    private final String fromName;
 
     public EmailService(
             JavaMailSender mailSender,
-            @Value("${spring.mail.username}") String from) {
+            EmailTemplateService emailTemplateService,
+            @Value("${spring.mail.username}") String from,
+            @Value("${app.mail.from-name}") String fromName) {
         this.mailSender = mailSender;
+        this.emailTemplateService = emailTemplateService;
         this.from = from;
+        this.fromName = fromName;
     }
 
     // El destinatario es el correo 
     public void enviarRecuperacionPassword(String destinatario, String enlace) {
         try {
-            SimpleMailMessage mensaje = new SimpleMailMessage();
-            mensaje.setFrom(from);
-            mensaje.setTo(destinatario);
-            mensaje.setSubject("Recuperación de contraseña");
-            mensaje.setText("""
-                    Hola,
+            MimeMessage mensaje = mailSender.createMimeMessage(); // Para enviar correos con HTML, estilos, imágenes, adjuntos, etc.
 
-                    Recibimos una solicitud para restablecer tu contraseña.
+            MimeMessageHelper helper = new MimeMessageHelper(
+                    mensaje,
+                    false,  // Se desactiva porque no envio adjuntos
+                    StandardCharsets.UTF_8.name()); // Para que soporte tildes y demas
 
-                    Ingresa al siguiente enlace para crear una nueva contraseña:
+            //Parametros del envio del correo
+            helper.setTo(destinatario);
+            helper.setSubject("Recuperación de contraseña");
+            helper.setFrom(new InternetAddress(from, fromName));
 
-                    %s
+            String html = emailTemplateService.construirRecuperacionPassword(enlace);   // Este servicio es el que construye el html del correo para que lusca mejor
 
-                    Si no solicitaste este cambio, puedes ignorar este mensaje.
+            helper.setText(html, true); // Pone el html en el cuerpo del correo
 
-                    Este enlace expirará pronto.
-                    """.formatted(enlace));
-
-            mailSender.send(mensaje);
+            mailSender.send(mensaje);   // Envia el correo
         } catch (Exception ex) {
             throw new BusinessException("No se pudo enviar el correo de recuperación");
         }

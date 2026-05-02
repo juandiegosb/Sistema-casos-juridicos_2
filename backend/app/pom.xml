@@ -101,6 +101,12 @@
     		<artifactId>spring-boot-starter-mail</artifactId>
 		</dependency>
 
+		<!--Para enviar correos con plantillas-->
+		<dependency>
+    		<groupId>org.springframework.boot</groupId>
+    		<artifactId>spring-boot-starter-thymeleaf</artifactId>
+		</dependency>
+
 		<!--Esto es solo para probar mientras se crea la base de datos-->
 		<dependency>
     		<groupId>com.h2database</groupId>
