@@ -82,9 +82,12 @@ public class ConsultaService {
                 .toList();
     }
 
+    @Transactional(readOnly = true)
     public ConsultaDTO obtenerPorId(Long id) {
-        Consulta consulta = consultaRepository.findById(id)
+        // Dos queries separadas para evitar MultipleBagFetchException
+        Consulta consulta = consultaRepository.findByIdConPartes(id)
                 .orElseThrow(() -> new BusinessException("Consulta no encontrada con id: " + id));
+        consultaRepository.findByIdConContrapartes(id); // inicializa contrapartes en la misma sesión
         return convertirADTO(consulta);
     }
 
@@ -102,8 +105,10 @@ public class ConsultaService {
 
     @Transactional
     public ConsultaDTO actualizar(Long id, ConsultaDTO dto) {
-        Consulta existente = consultaRepository.findById(id)
+        // Dos queries separadas para evitar MultipleBagFetchException
+        Consulta existente = consultaRepository.findByIdConPartes(id)
                 .orElseThrow(() -> new BusinessException("Consulta no encontrada con id: " + id));
+        consultaRepository.findByIdConContrapartes(id); // inicializa contrapartes en la misma sesión
 
         validarCamposObligatorios(dto);
 
