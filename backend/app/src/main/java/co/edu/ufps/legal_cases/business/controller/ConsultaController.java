@@ -12,7 +12,7 @@ import co.edu.ufps.legal_cases.business.service.ConsultaService;
 import jakarta.validation.Valid;
 
 @RestController
-@RequestMapping("/consultas")
+@RequestMapping("/api/consultas")
 @PreAuthorize("hasAuthority('Gestionar consultas')")
 public class ConsultaController {
 
