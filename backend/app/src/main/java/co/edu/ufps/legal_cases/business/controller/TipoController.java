@@ -4,12 +4,14 @@ import co.edu.ufps.legal_cases.business.dto.TipoDTO;
 import co.edu.ufps.legal_cases.business.service.TipoService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
 @RestController
 @RequestMapping("/api/tipos")
+@PreAuthorize("hasAuthority('Gestionar catálogos')")
 public class TipoController {
 
     private final TipoService tipoService;

@@ -3,6 +3,7 @@ package co.edu.ufps.legal_cases.business.controller;
 import java.util.List;
 
 import org.springframework.http.HttpStatus;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import co.edu.ufps.legal_cases.business.dto.TipoDocumentoDTO;
@@ -11,6 +12,7 @@ import jakarta.validation.Valid;
 
 @RestController
 @RequestMapping("/api/tipos-documento")
+@PreAuthorize("hasAuthority('Gestionar catálogos')")
 public class TipoDocumentoController {
 
     //Como tiene activo y desactivo no implemente algo para borrar y si se borra se borra de verdad, lo que hice fue un patch para cambiar el estado del tipo de documento a activo o inactivo, asi no se pierde la informacion de los casos que tengan ese tipo de documento asociado

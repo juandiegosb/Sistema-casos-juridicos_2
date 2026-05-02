@@ -3,6 +3,7 @@ package co.edu.ufps.legal_cases.business.controller;
 import java.util.List;
 
 import org.springframework.http.HttpStatus;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import co.edu.ufps.legal_cases.business.dto.EstudianteDTO;
@@ -11,6 +12,7 @@ import jakarta.validation.Valid;
 
 @RestController
 @RequestMapping("/api/estudiantes")
+@PreAuthorize("hasAuthority('Gestionar usuarios')")
 public class EstudianteController {
 
     private final EstudianteService estudianteService;

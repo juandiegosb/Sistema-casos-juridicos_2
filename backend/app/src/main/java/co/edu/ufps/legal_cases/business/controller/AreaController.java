@@ -5,12 +5,14 @@ import co.edu.ufps.legal_cases.business.service.AreaService;
 import jakarta.validation.Valid;
 
 import org.springframework.http.HttpStatus;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
 @RestController
 @RequestMapping("/api/areas")
+@PreAuthorize("hasAuthority('Gestionar catálogos')")
 public class AreaController {
 
     private final AreaService areaService;

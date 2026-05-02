@@ -3,6 +3,7 @@ package co.edu.ufps.legal_cases.business.controller;
 import java.util.List;
 
 import org.springframework.http.HttpStatus;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import co.edu.ufps.legal_cases.business.dto.ConsultaBusquedaDTO;
@@ -12,6 +13,7 @@ import jakarta.validation.Valid;
 
 @RestController
 @RequestMapping("/consultas")
+@PreAuthorize("hasAuthority('Gestionar consultas')")
 public class ConsultaController {
 
     private final ConsultaService consultaService;
