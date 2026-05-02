@@ -14,53 +14,66 @@ import co.edu.ufps.legal_cases.security.model.UsuarioSistema;
 @Repository
 public interface UsuarioSistemaRepository extends JpaRepository<UsuarioSistema, Long> {
 
-    Optional<UsuarioSistema> findByUsernameIgnoreCase(String username);
+        Optional<UsuarioSistema> findByUsernameIgnoreCase(String username);
 
-    boolean existsByUsernameIgnoreCase(String username);
+        boolean existsByUsernameIgnoreCase(String username);
 
-    // Aqui sobreescribe para poder cargar el rol y los permisos con el usuario
-    @Override
-    @EntityGraph(attributePaths = { "rol", "rol.permisos" })
-    List<UsuarioSistema> findAll();
+        // Aqui sobreescribe para poder cargar el rol y los permisos con el usuario
+        @Override
+        @EntityGraph(attributePaths = { "rol", "rol.permisos" })
+        List<UsuarioSistema> findAll();
 
-    // Tambien sobreescribe para cargar el rol y permisos, pero solo los activos
-    @EntityGraph(attributePaths = { "rol", "rol.permisos" })
-    List<UsuarioSistema> findByActivoTrue();
+        // Tambien sobreescribe para cargar el rol y permisos, pero solo los activos
+        @EntityGraph(attributePaths = { "rol", "rol.permisos" })
+        List<UsuarioSistema> findByActivoTrue();
 
-    // Para validar que un perfil no tenga 2 usuarios asociados.
-    boolean existsByAsesor_Id(Long asesorId);
+        // Para validar que un perfil no tenga 2 usuarios asociados.
+        boolean existsByAsesor_Id(Long asesorId);
 
-    boolean existsByEstudiante_Id(Long estudianteId);
+        boolean existsByEstudiante_Id(Long estudianteId);
 
-    boolean existsByMonitor_Id(Long monitorId);
+        boolean existsByMonitor_Id(Long monitorId);
 
-    boolean existsByAdministrativo_Id(Long administrativoId);
+        boolean existsByAdministrativo_Id(Long administrativoId);
 
-    boolean existsByConciliador_Id(Long conciliadorId);
+        boolean existsByConciliador_Id(Long conciliadorId);
 
-    @EntityGraph(attributePaths = { "rol", "rol.permisos" })
-    Optional<UsuarioSistema> findWithRolAndPermisosById(Long id);
+        @EntityGraph(attributePaths = { "rol", "rol.permisos" })
+        Optional<UsuarioSistema> findWithRolAndPermisosById(Long id);
 
-    // Tambien se puede usar para cargar el rol y permisos al buscar por username
-    @EntityGraph(attributePaths = { "rol", "rol.permisos" })
-    Optional<UsuarioSistema> findWithRolAndPermisosByUsernameIgnoreCase(String username);
+        // Tambien se puede usar para cargar el rol y permisos al buscar por username
+        @EntityGraph(attributePaths = { "rol", "rol.permisos" })
+        Optional<UsuarioSistema> findWithRolAndPermisosByUsernameIgnoreCase(String username);
 
-    // Esto es para que no solo el usuario del sistema se cargue sino sus permisos y el perfil asociado con todos sus datos
-    @EntityGraph(attributePaths = {
-            "rol",
-            "rol.permisos",
-            "asesor",
-            "estudiante",
-            "monitor",
-            "administrativo",
-            "conciliador"
-    })
-    //Selecciona al que tenga el username que se pide en el Param
-    @Query("""
-            SELECT u
-            FROM UsuarioSistema u
-            WHERE u.username = :username
-            """)
-    Optional<UsuarioSistema> findWithRolPermisosAndPerfilByUsername(
-            @Param("username") String username);        //El param es para usarlo como variable en la consulta
+        // Esto es para que no solo el usuario del sistema se cargue sino sus permisos y
+        // el perfil asociado con todos sus datos
+        @EntityGraph(attributePaths = {
+                        "rol",
+                        "rol.permisos",
+                        "asesor",
+                        "estudiante",
+                        "monitor",
+                        "administrativo",
+                        "conciliador"
+        })
+        // Selecciona al que tenga el username que se pide en el Param
+        @Query("""
+                        SELECT u
+                        FROM UsuarioSistema u
+                        WHERE u.username = :username
+                        """)
+        Optional<UsuarioSistema> findWithRolPermisosAndPerfilByUsername(
+                        @Param("username") String username); // El param es para usarlo como variable en la consulta
+
+        // Carga el usuario para recuperación de contraseña con rol y perfil real,
+        // sin cargar los permisos del rol porque no se necesitan en este proceso.
+        @EntityGraph(attributePaths = {
+                        "rol",
+                        "asesor",
+                        "estudiante",
+                        "monitor",
+                        "administrativo",
+                        "conciliador"
+        })
+        Optional<UsuarioSistema> findForPasswordResetByUsernameIgnoreCase(String username);
 }
