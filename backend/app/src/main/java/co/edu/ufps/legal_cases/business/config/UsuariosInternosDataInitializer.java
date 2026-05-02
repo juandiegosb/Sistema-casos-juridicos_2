@@ -136,6 +136,32 @@ public class UsuariosInternosDataInitializer {
             administrativoService.crear(administrativo);
         }
 
+        // Usuarios administrativos adicionales para pruebas con correos reales.
+        // Se crean solo si no existen, para no duplicarlos al reiniciar la aplicación.
+        crearAdministrativoSiNoExiste(
+                administrativoRepository,
+                administrativoService,
+                cc,
+                sedePrincipal,
+                "Nelson Enrrique Conde Tarazona",
+                "1002003001",
+                "nelsonenrriquect@ufps.edu.co",
+                "3009876543",
+                "nconde",
+                "ADM002");
+
+        crearAdministrativoSiNoExiste(
+                administrativoRepository,
+                administrativoService,
+                cc,
+                sedePrincipal,
+                "Juan Diego Sarmiento Barroyeta",
+                "1002003002",
+                "juandiegosb@ufps.edu.co",
+                "3009876544",
+                "jdsarmiento",
+                "ADM003");
+
         if (conciliadorRepository.count() == 0) {
             ConciliadorDTO conciliador = new ConciliadorDTO();
             conciliador.setNombre("Pedro Jose Rojas");
@@ -168,6 +194,41 @@ public class UsuariosInternosDataInitializer {
 
             estudianteService.crear(estudiante);
         }
+    }
+
+    private void crearAdministrativoSiNoExiste(
+            AdministrativoRepository administrativoRepository,
+            AdministrativoService administrativoService,
+            TipoDocumento tipoDocumento,
+            Sede sede,
+            String nombre,
+            String documento,
+            String email,
+            String telefono,
+            String usuario,
+            String codigo) {
+
+        boolean existe = administrativoRepository.findAll()
+                .stream()
+                .anyMatch(administrativo -> administrativo.getEmail().equalsIgnoreCase(email));
+
+        if (existe) {
+            return;
+        }
+
+        AdministrativoDTO administrativo = new AdministrativoDTO();
+        administrativo.setNombre(nombre);
+        administrativo.setTipoDocumentoId(tipoDocumento.getId());
+        administrativo.setDocumento(documento);
+        administrativo.setEmail(email);
+        administrativo.setTelefono(telefono);
+        administrativo.setUsuario(usuario);
+        administrativo.setSedeId(sede.getId());
+        administrativo.setCodigo(codigo);
+        administrativo.setDirectora(false);
+        administrativo.setActivo(true);
+
+        administrativoService.crear(administrativo);
     }
 
     private TipoDocumento buscarTipoDocumento(
