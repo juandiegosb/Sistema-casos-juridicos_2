@@ -373,6 +373,13 @@ export function NuevaConsultaForm() {
       if (res.status === 401) { router.push("/"); return; }
       if (res.status === 403) { toast.error("No tienes permisos"); return; }
       if (res.ok) {
+        const responseBody = await res.json();
+        const consultaId = responseBody?.id;
+
+        if (!consultaId) {
+          throw new Error("No se recibió el id de la consulta");
+        }
+
         consultaOk = true;
         toast.success("Consulta creada");
         if (archivos && archivos.length > 0) {
@@ -381,6 +388,7 @@ export function NuevaConsultaForm() {
           archivos.forEach(file => {
             formData.append('files', file);
           });
+          formData.append('path', String(consultaId));
           try {
             const uploadRes = await fetch(`${FILE_STORAGE_API_URL_BASE}/files/upload-multiple`, {
               method: 'POST',
