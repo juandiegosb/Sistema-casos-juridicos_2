@@ -6,7 +6,8 @@ import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
 import { PersonaMultiSelect } from "@/components/forms/parts/PersonaMultiSelect";
 
-const API = "http://localhost:8080";
+import { API_URL_BASE, FILE_STORAGE_API_URL_BASE } from "@/lib/config";
+import ArchivosConsultaForm from "./parts/ArchivosConsultaForm";
 
 const ESTADOS = ["Activo", "En proceso", "Pendiente", "Urgente", "Cerrado", "Archivado"];
 
@@ -23,6 +24,7 @@ export function NuevaConsultaForm() {
   const router = useRouter();
 
   const [form, setForm] = useState(VACIOS);
+  const [archivos, setArchivos] = useState([]);
   const [guardando, setGuardando] = useState(false);
   const [checking, setChecking] = useState(true); 
 
@@ -38,7 +40,7 @@ export function NuevaConsultaForm() {
   useEffect(() => {
     const verificar = async () => {
       try {
-        const res = await fetch(`${API}/api/auth/me`, {
+        const res = await fetch(`${API_URL_BASE}/auth/me`, {
           credentials: "include",
         });
 
@@ -68,7 +70,7 @@ export function NuevaConsultaForm() {
 
   useEffect(() => {
     if (form.areaId) {
-      fetch(`${API}/api/temas/area/${form.areaId}`, { credentials: "include" })
+      fetch(`${API_URL_BASE}/temas/area/${form.areaId}`, { credentials: "include" })
         .then(r => r.json())
         .then(d => setTemas(Array.isArray(d) ? d : []))
         .catch(() => setTemas([]));
@@ -79,7 +81,7 @@ export function NuevaConsultaForm() {
 
   useEffect(() => {
     if (form.temaId) {
-      fetch(`${API}/api/tipos/tema/${form.temaId}`, { credentials: "include" })
+      fetch(`${API_URL_BASE}/tipos/tema/${form.temaId}`, { credentials: "include" })
         .then(r => r.json())
         .then(d => setTipos(Array.isArray(d) ? d : []))
         .catch(() => setTipos([]));
@@ -91,12 +93,12 @@ export function NuevaConsultaForm() {
   async function cargarCatalogos() {
     try {
       const [pR, sR, aR, asR, moR, esR] = await Promise.all([
-        fetch(`${API}/api/personas`, { credentials: "include" }).then(r => r.json()),
-        fetch(`${API}/api/sedes`, { credentials: "include" }).then(r => r.json()),
-        fetch(`${API}/api/areas`, { credentials: "include" }).then(r => r.json()),
-        fetch(`${API}/api/asesores/activos`, { credentials: "include" }).then(r => r.json()),
-        fetch(`${API}/api/monitores/activos`, { credentials: "include" }).then(r => r.json()),
-        fetch(`${API}/api/estudiantes/activos`, { credentials: "include" }).then(r => r.json()),
+        fetch(`${API_URL_BASE}/personas`, { credentials: "include" }).then(r => r.json()),
+        fetch(`${API_URL_BASE}/sedes`, { credentials: "include" }).then(r => r.json()),
+        fetch(`${API_URL_BASE}/areas`, { credentials: "include" }).then(r => r.json()),
+        fetch(`${API_URL_BASE}/asesores/activos`, { credentials: "include" }).then(r => r.json()),
+        fetch(`${API_URL_BASE}/monitores/activos`, { credentials: "include" }).then(r => r.json()),
+        fetch(`${API_URL_BASE}/estudiantes/activos`, { credentials: "include" }).then(r => r.json()),
       ]);
 
       setPersonas(Array.isArray(pR) ? pR : []);
@@ -132,6 +134,8 @@ export function NuevaConsultaForm() {
   async function handleGuardar(e) {
     e.preventDefault();
     setGuardando(true);
+    let consultaOk = false;
+    let uploadOk = true;
 
     const payload = {
       ...form,
@@ -146,7 +150,7 @@ export function NuevaConsultaForm() {
     };
 
     try {
-      const res = await fetch(`${API}/api/consultas`, {
+      const res = await fetch(`${API_URL_BASE}/consultas`, {
         method: "POST",
         credentials: "include",
         headers: {
@@ -166,18 +170,58 @@ export function NuevaConsultaForm() {
       }
 
       if (res.ok) {
+        const responseBody = await res.json();
+        const consultaId = responseBody?.id;
+
+        if (!consultaId) {
+          throw new Error("No se recibió el id de la consulta");
+        }
+
+        consultaOk = true;
         toast.success("Consulta creada");
-        router.push("/consultasjuridicas");
+
+        if (archivos && archivos.length > 0) {
+          console.log("Subiendo archivos:", archivos);
+          const formData = new FormData();
+          archivos.forEach(file => {
+            formData.append('files', file);
+          });
+          formData.append('path', String(consultaId));
+          try {
+            const uploadRes = await fetch(`${FILE_STORAGE_API_URL_BASE}/files/upload-multiple`, {
+              method: 'POST',
+              credentials: "include",
+              body: formData,
+            });
+            console.log("Upload response status:", uploadRes.status);
+            if (uploadRes.ok) {
+              toast.success("Archivos subidos correctamente");
+            } else {
+              uploadOk = false;
+              const errorText = await uploadRes.text();
+              console.log("Upload error:", errorText);
+              toast.error("Error al subir archivos");
+            }
+          } catch (uploadError) {
+            uploadOk = false;
+            console.log("Error en upload fetch:", uploadError);
+            toast.error("Error al subir archivos");
+          }
+        }
       } else {
         const error = await res.json();
         toast.error(error.mensaje || "Error al crear");
       }
 
-    } catch {
+    } catch (error) {
+      console.log("Error en crear consulta:", error);
       toast.error("Error de conexión");
-    } finally {
-      setGuardando(false);
     }
+
+    if (consultaOk && uploadOk) {
+      router.push("/consultasjuridicas");
+    }
+    setGuardando(false);
   }
 
   if (checking) {
@@ -291,6 +335,8 @@ export function NuevaConsultaForm() {
       <C label="Pretensiones *"><textarea name="pretensiones" value={form.pretensiones} onChange={handleChange} required rows={3} placeholder="Qué solicita el consultante" className={ic} /></C>
       <C label="Concepto jurídico *"><textarea name="conceptoJuridico" value={form.conceptoJuridico} onChange={handleChange} required rows={3} placeholder="Fundamento legal aplicable" className={ic} /></C>
       <C label="Observaciones"><textarea name="observaciones" value={form.observaciones} onChange={handleChange} rows={2} placeholder="Opcional" className={ic} /></C>
+
+      <ArchivosConsultaForm archivos={archivos} onChange={setArchivos} />
 
       <div className="flex justify-end gap-3 pt-2">
         <Button type="button" variant="outline" onClick={() => router.push("/consultasjuridicas")} disabled={guardando}>
