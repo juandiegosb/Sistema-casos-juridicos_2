@@ -6,10 +6,7 @@ import { Button } from "@/components/ui/button"
 import { API_URL_BASE } from "@/lib/config"
 import { useRouter } from "next/navigation" 
 import { useEffect } from "react"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import { useTheme } from "next-themes"
-import { Sun, Moon } from "lucide-react"
-import { Scale } from "lucide-react"
+
 export function RestablecerPasswordForm({ token }) {
   const {
     register,
