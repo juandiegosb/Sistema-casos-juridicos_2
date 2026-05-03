@@ -84,10 +84,14 @@ public class ConsultaService {
 
     @Transactional(readOnly = true)
     public ConsultaDTO obtenerPorId(Long id) {
-        // Dos queries separadas para evitar MultipleBagFetchException
-        Consulta consulta = consultaRepository.findByIdConPartes(id)
+        // Dos queries separadas para evitar MultipleBagFetchException (Hibernate no permite
+        // JOIN FETCH de dos colecciones bag en la misma query).
+        // La primera inicializa las partes, la segunda las contrapartes.
+        // Hibernate fusiona ambas en el mismo objeto del contexto de persistencia.
+        consultaRepository.findByIdConPartes(id)
                 .orElseThrow(() -> new BusinessException("Consulta no encontrada con id: " + id));
-        consultaRepository.findByIdConContrapartes(id); // inicializa contrapartes en la misma sesión
+        Consulta consulta = consultaRepository.findByIdConContrapartes(id)
+                .orElseThrow(() -> new BusinessException("Consulta no encontrada con id: " + id));
         return convertirADTO(consulta);
     }
 
@@ -105,10 +109,11 @@ public class ConsultaService {
 
     @Transactional
     public ConsultaDTO actualizar(Long id, ConsultaDTO dto) {
-        // Dos queries separadas para evitar MultipleBagFetchException
-        Consulta existente = consultaRepository.findByIdConPartes(id)
+        // Cargar partes primero, luego contrapartes; Hibernate fusiona en el mismo objeto
+        consultaRepository.findByIdConPartes(id)
                 .orElseThrow(() -> new BusinessException("Consulta no encontrada con id: " + id));
-        consultaRepository.findByIdConContrapartes(id); // inicializa contrapartes en la misma sesión
+        Consulta existente = consultaRepository.findByIdConContrapartes(id)
+                .orElseThrow(() -> new BusinessException("Consulta no encontrada con id: " + id));
 
         validarCamposObligatorios(dto);
 
@@ -240,6 +245,18 @@ public class ConsultaService {
         consulta.setMonitor(obtenerMonitor(dto.getMonitorId()));
         consulta.setEstudiante(obtenerEstudiante(dto.getEstudianteId()));
 
+        // Sincronizar partes (reemplazar lista completa)
+        consulta.getPartes().clear();
+        if (dto.getPartesIds() != null) {
+            dto.getPartesIds().forEach(pid -> consulta.getPartes().add(obtenerPersona(pid)));
+        }
+
+        // Sincronizar contrapartes (reemplazar lista completa)
+        consulta.getContrapartes().clear();
+        if (dto.getContrapartesIds() != null) {
+            dto.getContrapartesIds().forEach(pid -> consulta.getContrapartes().add(obtenerPersona(pid)));
+        }
+
         return consulta;
     }
 
@@ -264,6 +281,14 @@ public class ConsultaService {
         dto.setAsesorId(c.getAsesor() != null ? c.getAsesor().getId() : null);
         dto.setMonitorId(c.getMonitor() != null ? c.getMonitor().getId() : null);
         dto.setEstudianteId(c.getEstudiante() != null ? c.getEstudiante().getId() : null);
+
+        // Mapear listas ManyToMany
+        dto.setPartesIds(
+            c.getPartes().stream().map(Persona::getId).collect(java.util.stream.Collectors.toList())
+        );
+        dto.setContrapartesIds(
+            c.getContrapartes().stream().map(Persona::getId).collect(java.util.stream.Collectors.toList())
+        );
         return dto;
     }
 
