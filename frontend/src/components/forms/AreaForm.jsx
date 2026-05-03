@@ -5,6 +5,7 @@ import { useForm } from "react-hook-form"
 import { FormInput } from "./parts/FormInput"
 import { Button } from "@/components/ui/button"
 import { useRouter } from "next/navigation"
+import { API_URL_BASE } from "@/lib/config"
 
 export function AreaForm() {
   const router = useRouter()
@@ -26,7 +27,7 @@ export function AreaForm() {
   useEffect(() => {
     async function verificar() {
       try {
-        const res = await fetch("http://localhost:8080/api/auth/me", {
+        const res = await fetch(`${API_URL_BASE}/auth/me`, {
           method: "GET",
           credentials: "include",
         })
@@ -61,7 +62,7 @@ export function AreaForm() {
     setError("")
 
     try {
-      const res = await fetch("http://localhost:8080/api/areas", {
+      const res = await fetch(`${API_URL_BASE}/areas`, {
         method: "POST",
         credentials: "include",
         headers: {

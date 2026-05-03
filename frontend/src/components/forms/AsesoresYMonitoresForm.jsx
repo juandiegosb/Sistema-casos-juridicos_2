@@ -4,6 +4,7 @@ import React, { useEffect, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
+import { API_URL_BASE } from "@/lib/config";
 
 export function AsesoresYMonitoresForm() {
   const router = useRouter();
@@ -14,13 +15,11 @@ export function AsesoresYMonitoresForm() {
 
   const [cargando, setCargando] = useState(true);
 
-  const API_URL = "http://localhost:8080/api";
-
   // Verificar sesión y permisos
   useEffect(() => {
     const verificarYcargar = async () => {
       try {
-        const res = await fetch(`${API_URL}/auth/me`, {
+        const res = await fetch(`${API_URL_BASE}/auth/me`, {
           method: "GET",
           credentials: "include",
         });
@@ -40,10 +39,10 @@ export function AsesoresYMonitoresForm() {
 
         // Cargar datos si pasa validación
         const [asesoresRes, monitoresRes] = await Promise.all([
-          fetch(`${API_URL}/asesores/activos`, {
+          fetch(`${API_URL_BASE}/asesores/activos`, {
             credentials: "include",
           }),
-          fetch(`${API_URL}/monitores/activos`, {
+          fetch(`${API_URL_BASE}/monitores/activos`, {
             credentials: "include",
           }),
         ]);

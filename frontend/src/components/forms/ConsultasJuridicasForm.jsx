@@ -5,8 +5,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
 import { X, ChevronDown, Search } from "lucide-react";
-
-const API = "http://localhost:8080";
+import { API_URL_BASE } from "@/lib/config";
 
 const ESTADOS = ["Activo", "En proceso", "Pendiente", "Urgente", "Cerrado", "Archivado"];
 
@@ -265,7 +264,7 @@ export function ConsultasJuridicasForm() {
     if (prevAreaId.current === form.areaId) return;
     prevAreaId.current = form.areaId;
     if (form.areaId) {
-      fetch(`${API}/api/temas/area/${form.areaId}`, { credentials: "include" })
+      fetch(`${API_URL_BASE}/temas/area/${form.areaId}`, { credentials: "include" })
         .then(r => r.json())
         .then(d => setTemas(Array.isArray(d) ? d : []))
         .catch(() => setTemas([]));
@@ -282,7 +281,7 @@ export function ConsultasJuridicasForm() {
     if (prevTemaId.current === form.temaId) return;
     prevTemaId.current = form.temaId;
     if (form.temaId) {
-      fetch(`${API}/api/tipos/tema/${form.temaId}`, { credentials: "include" })
+      fetch(`${API_URL_BASE}/tipos/tema/${form.temaId}`, { credentials: "include" })
         .then(r => r.json())
         .then(d => setTipos(Array.isArray(d) ? d : []))
         .catch(() => setTipos([]));
@@ -296,7 +295,7 @@ export function ConsultasJuridicasForm() {
     setLoading(true);
     try {
       const res = await fetch(
-        `${API}/api/consultas?search=${encodeURIComponent(search)}`,
+        `${API_URL_BASE}/consultas?search=${encodeURIComponent(search)}`,
         { credentials: "include" }
       );
       if (res.status === 401) { router.push("/"); return; }
@@ -313,12 +312,12 @@ export function ConsultasJuridicasForm() {
   async function cargarCatalogos() {
     try {
       const [pR, sR, aR, asR, moR, esR] = await Promise.all([
-        fetch(`${API}/api/personas`, { credentials: "include" }).then(r => r.json()),
-        fetch(`${API}/api/sedes`, { credentials: "include" }).then(r => r.json()),
-        fetch(`${API}/api/areas`, { credentials: "include" }).then(r => r.json()),
-        fetch(`${API}/api/asesores/activos`, { credentials: "include" }).then(r => r.json()),
-        fetch(`${API}/api/monitores/activos`, { credentials: "include" }).then(r => r.json()),
-        fetch(`${API}/api/estudiantes/activos`, { credentials: "include" }).then(r => r.json()),
+        fetch(`${API_URL_BASE}/personas`, { credentials: "include" }).then(r => r.json()),
+        fetch(`${API_URL_BASE}/sedes`, { credentials: "include" }).then(r => r.json()),
+        fetch(`${API_URL_BASE}/areas`, { credentials: "include" }).then(r => r.json()),
+        fetch(`${API_URL_BASE}/asesores/activos`, { credentials: "include" }).then(r => r.json()),
+        fetch(`${API_URL_BASE}/monitores/activos`, { credentials: "include" }).then(r => r.json()),
+        fetch(`${API_URL_BASE}/estudiantes/activos`, { credentials: "include" }).then(r => r.json()),
       ]);
       setTodasPersonas(Array.isArray(pR) ? pR : []);
       setSedes(Array.isArray(sR) ? sR : []);
@@ -358,7 +357,7 @@ export function ConsultasJuridicasForm() {
 
   async function abrirEditar(id) {
     try {
-      const res = await fetch(`${API}/api/consultas/${id}`, { credentials: "include" });
+      const res = await fetch(`${API_URL_BASE}/consultas/${id}`, { credentials: "include" });
       if (res.status === 401) { router.push("/"); return; }
       const data = await res.json();
 
@@ -366,12 +365,12 @@ export function ConsultasJuridicasForm() {
       cargandoEdicion.current = true;
 
       if (data.areaId) {
-        const temasRes = await fetch(`${API}/api/temas/area/${data.areaId}`, { credentials: "include" });
+        const temasRes = await fetch(`${API_URL_BASE}/temas/area/${data.areaId}`, { credentials: "include" });
         const temasData = await temasRes.json();
         setTemas(Array.isArray(temasData) ? temasData : []);
       }
       if (data.temaId) {
-        const tiposRes = await fetch(`${API}/api/tipos/tema/${data.temaId}`, { credentials: "include" });
+        const tiposRes = await fetch(`${API_URL_BASE}/tipos/tema/${data.temaId}`, { credentials: "include" });
         const tiposData = await tiposRes.json();
         setTipos(Array.isArray(tiposData) ? tiposData : []);
       }
@@ -429,7 +428,7 @@ export function ConsultasJuridicasForm() {
       contrapartesIds: form.contrapartesIds,
     };
     try {
-      const res = await fetch(`${API}/api/consultas/${idEditando}`, {
+      const res = await fetch(`${API_URL_BASE}/consultas/${idEditando}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
@@ -457,7 +456,7 @@ export function ConsultasJuridicasForm() {
   async function handleEliminar(id) {
     if (!confirm("¿Estás seguro de eliminar esta consulta?")) return;
     try {
-      const res = await fetch(`${API}/api/consultas/${id}`, {
+      const res = await fetch(`${API_URL_BASE}/consultas/${id}`, {
         method: "DELETE",
         credentials: "include",
       });

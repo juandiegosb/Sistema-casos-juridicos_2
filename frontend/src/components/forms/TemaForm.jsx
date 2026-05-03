@@ -5,6 +5,7 @@ import { FormInput } from "./parts/FormInput";
 import { FormSelect } from "./parts/FormSelect";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
+import { API_URL_BASE } from "@/lib/config";
 
 export function TemaForm() {
   const router = useRouter();
@@ -16,8 +17,6 @@ export function TemaForm() {
     watch,
     formState: { errors },
   } = useForm();
-
-  const API_URL_BASE = "http://localhost:8080/api"
 
   const [areas, setAreas] = useState([]);
   const { submit, isSubmitting } = useApiForm({ endpoint: `${API_URL_BASE}/temas`})

@@ -4,6 +4,7 @@ import React, { useEffect, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
+import { API_URL_BASE } from "@/lib/config";
 
 export function EstudiantesForm() {
   const router = useRouter();
@@ -12,13 +13,11 @@ export function EstudiantesForm() {
   const [busqueda, setBusqueda] = useState("");
   const [cargando, setCargando] = useState(true);
 
-  const API_URL = "http://localhost:8080/api";
-
   // Validar sesión + permisos y luego cargar datos
   useEffect(() => {
     const verificarYCargar = async () => {
       try {
-        const res = await fetch(`${API_URL}/auth/me`, {
+        const res = await fetch(`${API_URL_BASE}/auth/me`, {
           method: "GET",
           credentials: "include",
         });
@@ -36,7 +35,7 @@ export function EstudiantesForm() {
         }
 
         // Cargar estudiantes
-        const estudiantesRes = await fetch(`${API_URL}/estudiantes/activos`, {
+        const estudiantesRes = await fetch(`${API_URL_BASE}/estudiantes/activos`, {
           credentials: "include",
         });
 

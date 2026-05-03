@@ -6,6 +6,7 @@ import { useForm } from "react-hook-form"
 import { FormInput } from "../forms/parts/FormInput"
 import { Button } from "@/components/ui/button"
 import { Scale } from "lucide-react"
+import { API_URL_BASE } from "@/lib/config"
 
 export function LoginForm() {
   const router = useRouter()
@@ -24,7 +25,7 @@ export function LoginForm() {
   useEffect(() => {
     async function verificarSesion() {
       try {
-        const res = await fetch("http://localhost:8080/api/auth/me", {
+        const res = await fetch(`${API_URL_BASE}/auth/me`, {
           method: "GET",
           credentials: "include"
         })
@@ -52,7 +53,7 @@ export function LoginForm() {
     setErrorMessage("")
 
     try {
-      const response = await fetch("http://localhost:8080/api/auth/login", {
+      const response = await fetch(`${API_URL_BASE}/auth/login`, {
         method: "POST",
         credentials: "include",
         headers: {

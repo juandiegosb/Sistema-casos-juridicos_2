@@ -10,6 +10,7 @@ import { FormSelect } from "./parts/FormSelect";
 import { FormCheckbox } from "./parts/FormCheckbox";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
+import { API_URL_BASE } from "@/lib/config";
 
 export function UsuarioSistemaForm() {
   const router = useRouter();
@@ -29,13 +30,12 @@ export function UsuarioSistemaForm() {
   const [areas, setAreas] = useState([]);
   const [asesores, setAsesores] = useState([]);
 
-  const API_URL = "http://localhost:8080/api";
   const REQUIRED = "Campo obligatorio";
 
   useEffect(() => {
     const verificar = async () => {
       try {
-        const res = await fetch(`${API_URL}/auth/me`, {
+        const res = await fetch(`${API_URL_BASE}/auth/me`, {
           method: "GET",
           credentials: "include",
         });
@@ -68,7 +68,7 @@ export function UsuarioSistemaForm() {
   useEffect(() => {
     const cargarTipos = async () => {
       try {
-        const res = await fetch(`${API_URL}/tipos-documento`, {
+        const res = await fetch(`${API_URL_BASE}/tipos-documento`, {
           credentials: "include",
         });
 
@@ -97,9 +97,9 @@ export function UsuarioSistemaForm() {
     const cargar = async () => {
       try {
         const [sedesRes, areasRes, asesoresRes] = await Promise.all([
-          fetch(`${API_URL}/sedes`, { credentials: "include" }),
-          fetch(`${API_URL}/areas`, { credentials: "include" }),
-          fetch(`${API_URL}/asesores`, { credentials: "include" })
+          fetch(`${API_URL_BASE}/sedes`, { credentials: "include" }),
+          fetch(`${API_URL_BASE}/areas`, { credentials: "include" }),
+          fetch(`${API_URL_BASE}/asesores`, { credentials: "include" })
         ]);
 
         if (sedesRes.status === 401 || areasRes.status === 401 || asesoresRes.status === 401) {
@@ -160,7 +160,7 @@ export function UsuarioSistemaForm() {
 
   const onSubmit = async (data) => {
     try {
-      const endpoint = `${API_URL}/${rol}`;
+      const endpoint = `${API_URL_BASE}/${rol}`;
 
       const tipoDocumentoSeleccionado = tiposDocumento.find(
         (tipo) => tipo.value === Number(data.tipoDocumentoId)

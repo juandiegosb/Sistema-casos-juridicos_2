@@ -3,6 +3,7 @@
 import { useForm } from "react-hook-form"
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
+import { API_URL_BASE } from "@/lib/config"
 
 export function RestablecerPasswordForm({ token }) {
   const {
@@ -21,7 +22,7 @@ export function RestablecerPasswordForm({ token }) {
     setLoading(true)
 
     try {
-      const res = await fetch("http://localhost:8080/api/auth/restablecer-password", {
+      const res = await fetch(`${API_URL_BASE}/auth/restablecer-password`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
