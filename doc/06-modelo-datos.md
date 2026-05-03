@@ -2,249 +2,747 @@
 
 ## 1. Propósito
 
-Este documento describe el modelo de datos implementado actualmente en el backend del sistema. Su objetivo es presentar las entidades persistentes, sus atributos principales, las relaciones entre ellas y las decisiones de modelado adoptadas durante el desarrollo.
+Este documento describe el modelo de datos implementado en el backend del sistema de gestión de casos jurídicos. Incluye las entidades persistentes, sus atributos, relaciones y decisiones de modelado adoptadas, basadas en el código fuente real.
 
-El modelo actual cubre dos (CAMBIAR CUANDO SE HAGA LO QUE FALTA) grupos principales de información:
+## 2. Separación entre entidades business y security
 
-- la **gestión de personas**, orientada al registro de datos personales, de contacto, vivienda y caracterización;
-- la **parametrización jurídica**, orientada a la clasificación jerárquica por área, tema y tipo.
-- (AQUI LOS GRUPOS QUE FALTAN)
+El modelo se divide en dos módulos principales:
 
-## 2. Entidades implementadas
+- **Business**: Entidades relacionadas con la lógica de negocio del sistema (personas, perfiles, catálogos).
+- **Security**: Entidades para gestión de autenticación, autorización y recuperación de contraseñas.
 
-## 2.1 Persona
+## 3. Entidades business
 
-### Descripción
+### Persona
 
-La entidad `Persona` centraliza la información requerida para registrar una persona dentro del sistema. Su estructura agrupa datos de identificación, contacto, ubicación, condiciones socioeconómicas, datos del acudiente e información relacionada con el acceso al servicio.
+#### Descripción
+Entidad que representa a una persona en el sistema, con información completa de identificación, contacto, caracterización socioeconómica y académica.
 
-### Propósito
+#### Atributos principales
+- `id`: Identificador único (autogenerado).
+- `tipoUsuario`: Tipo de usuario (Demandante, Demandado, etc.).
+- `tipoDocumento`: Tipo de documento.
+- `numeroDocumento`: Número de documento (único).
+- `fechaExpedicion`: Fecha de expedición del documento.
+- `ciudadExpedicion`: Ciudad de expedición.
+- `nombres`: Nombres de la persona.
+- `apellidos`: Apellidos de la persona.
+- `nombreIdentitario`: Nombre identitario.
+- `pronombre`: Pronombre preferido.
+- `sexo`: Sexo biológico.
+- `genero`: Identidad de género.
+- `orientacionSexual`: Orientación sexual.
+- `fechaNacimiento`: Fecha de nacimiento.
+- `telefono`: Teléfono de contacto.
+- `correo`: Correo electrónico.
+- `nacionalidad`: Nacionalidad.
+- `estadoCivil`: Estado civil.
+- `escolaridad`: Nivel de escolaridad.
+- `grupoEtnico`: Grupo étnico.
+- `condicionActual`: Condición actual.
+- `sabeLeerEscribir`: Indicador de alfabetización.
+- `discapacidad`: Tipo de discapacidad.
+- `caracterizacionPcd`: Caracterización PCD.
+- `necesitaAjustePcd`: Necesidad de ajustes PCD.
+- `departamento`: Departamento de residencia.
+- `municipio`: Municipio de residencia.
+- `barrio`: Barrio de residencia.
+- `direccion`: Dirección completa.
+- `comuna`: Comuna.
+- `localidad`: Localidad.
+- `estrato`: Estrato socioeconómico.
+- `tipoVivienda`: Tipo de vivienda.
+- `zona`: Zona urbana/rural.
+- `tenencia`: Tenencia de vivienda.
+- `numeroPersonasACargo`: Número de personas a cargo.
+- `ingresosAdicionales`: Indicador de ingresos adicionales.
+- `energiaElectrica`: Acceso a energía eléctrica.
+- `acueducto`: Acceso a acueducto.
+- `alcantarillado`: Acceso a alcantarillado.
+- `ocupacion`: Ocupación actual.
+- `empresa`: Empresa donde trabaja.
+- `salario`: Salario mensual.
+- `cargo`: Cargo en la empresa.
+- `direccionEmpresa`: Dirección de la empresa.
+- `telefonoEmpresa`: Teléfono de la empresa.
+- `comoSeEntero`: Cómo se enteró del servicio.
+- `relacionConUniversidad`: Relación con la universidad.
 
-Esta entidad funciona como base para la gestión de personas dentro del sistema y evita distribuir la información en múltiples estructuras separadas. Su diseño permite concentrar en una sola tabla la información necesaria para caracterizar a una persona de forma integral.
+#### Relaciones principales
+- Ninguna (entidad independiente).
 
-### Atributos principales
+#### Decisiones de modelado
+- Entidad completa con todos los campos requeridos para caracterización socioeconómica.
+- No genera UsuarioSistema automáticamente.
 
-#### Identificación y datos básicos
-- `id`
-- `tipoUsuario`
-- `tipoDocumento`
-- `numeroDocumento`
-- `fechaExpedicion`
-- `ciudadExpedicion`
-- `nombres`
-- `apellidos`
-- `nombreIdentitario`
-- `pronombre`
-- `sexo`
-- `genero`
-- `orientacionSexual`
-- `fechaNacimiento`
+### TipoDocumento
 
-#### Contacto
-- `telefono`
-- `correo`
+#### Descripción
+Catálogo de tipos de documento de identificación.
 
-#### Información social y caracterización
-- `nacionalidad`
-- `estadoCivil`
-- `escolaridad`
-- `grupoEtnico`
-- `condicionActual`
-- `sabeLeerEscribir`
-- `discapacidad`
-- `caracterizacionPcd`
-- `necesitaAjustePcd`
+#### Atributos principales
+- `id`: Identificador único (autogenerado).
+- `displayName`: Nombre para mostrar.
+- `activo`: Estado activo/inactivo (por defecto true).
 
-#### Información de vivienda
-- `departamento`
-- `municipio`
-- `barrio`
-- `direccion`
-- `comuna`
-- `localidad`
-- `estrato`
-- `tipoVivienda`
-- `zona`
-- `tenencia`
-- `numeroPersonasACargo`
-- `ingresosAdicionales`
-- `energiaElectrica`
-- `acueducto`
-- `alcantarillado`
+#### Relaciones principales
+- 1:N con Asesor, Estudiante, Administrativo (tipoDocumento).
 
-#### Información económica
-- `ocupacion`
-- `empresa`
-- `salario`
-- `cargo`
-- `direccionEmpresa`
-- `telefonoEmpresa`
+#### Decisiones de modelado
+- Campo `activo` para control de estado sin eliminación física.
 
-#### Datos del acudiente
-- `nombreCompletoAcudiente`
-- `relacionAcudiente`
-- `telefonoAcudiente`
-- `correoAcudiente`
-- `direccionAcudiente`
+### Sede
 
-#### Información del servicio
-- `comoSeEntero`
-- `relacionConUniversidad`
+#### Descripción
+Entidad que representa sedes físicas del sistema.
 
-### Decisiones de modelado
+#### Atributos principales
+- `id`: Identificador único (autogenerado).
+- `nombre`: Nombre de la sede.
 
-- Se utiliza `numeroDocumento` como dato único para prevenir registros duplicados.
-- Se emplean tipos `LocalDate`, `Boolean` e `Integer` de acuerdo con la naturaleza del dato.
-- Los campos `telefono` y `correo` no se restringen rígidamente como obligatorios a nivel estructural, debido a que la validación real se resuelve mediante reglas de negocio.
-- Los datos del acudiente se consideran condicionales, ya que dependen del contexto de edad de la persona registrada.
+#### Relaciones principales
+- 1:N con Asesor, Estudiante, Administrativo (sede).
 
----
+#### Decisiones de modelado
+- Entidad básica, sin campos adicionales en el modelo actual.
 
-## 2.2 Area
+### Area
 
-### Descripción
+#### Descripción
+Primer nivel de clasificación jurídica (área).
 
-La entidad `Area` representa el primer nivel de parametrización jurídica del sistema. Su propósito es definir las categorías generales bajo las cuales se organizan los temas y, posteriormente, los tipos. 
+#### Atributos principales
+- `id`: Identificador único (autogenerado).
+- `nombre`: Nombre del área (único).
 
-### Atributos principales
-- `id`
-- `nombre`
+#### Relaciones principales
+- 1:N con Tema (area).
+- 1:N con Asesor (area).
 
-### Decisiones de modelado
+#### Decisiones de modelado
+- `nombre` único para evitar duplicados.
 
-- `nombre` es obligatorio.
-- `nombre` es único.
-- `nombre` tiene longitud máxima de 50 caracteres. 
-- Se incluye una relación con `Tema`.
-- La colección de temas no se expone directamente en las respuestas JSON, evitando serialización innecesaria.
+### Tema
 
----
+#### Descripción
+Segundo nivel de clasificación jurídica (tema), pertenece a un área.
 
-## 2.3 Tema
+#### Atributos principales
+- `id`: Identificador único (autogenerado).
+- `nombre`: Nombre del tema.
+- `area`: Relación con Area (obligatoria).
 
-### Descripción
+#### Relaciones principales
+- N:1 con Area.
+- 1:N con Tipo (tema).
 
-La entidad `Tema` representa el segundo nivel de clasificación jurídica del sistema. Cada tema pertenece a un área específica y puede agrupar múltiples tipos.
+#### Decisiones de modelado
+- Requiere área obligatoria.
 
-### Atributos principales
-- `id`
-- `nombre`
-- `area`
+### Tipo
 
-### Decisiones de modelado
+#### Descripción
+Tercer nivel de clasificación jurídica (tipo), pertenece a un tema.
 
-- `nombre` es obligatorio.
-- `nombre` tiene longitud máxima de 80 caracteres. 
-- La relación con `Area` se modela mediante una asociación muchos a uno.
-- La relación con `Tipo` se modela mediante una asociación uno a muchos. 
-- La lista de tipos no se serializa directamente para evitar recursividad en la respuesta JSON.
+#### Atributos principales
+- `id`: Identificador único (autogenerado).
+- `nombre`: Nombre del tipo.
+- `tema`: Relación con Tema (obligatoria).
 
----
+#### Relaciones principales
+- N:1 con Tema.
 
-## 2.4 Tipo
+#### Decisiones de modelado
+- Requiere tema obligatorio.
 
-### Descripción
+### Asesor
 
-La entidad `Tipo` representa el tercer nivel de parametrización jurídica del sistema. Cada tipo se asocia a un tema específico y permite refinar la clasificación de la información jurídica. 
+#### Descripción
+Perfil de asesor del sistema, genera UsuarioSistema automáticamente.
 
-### Atributos principales
-- `id`
-- `nombre`
-- `tema`
+#### Atributos principales
+- `id`: Identificador único (autogenerado).
+- `nombre`: Nombre completo.
+- `tipoDocumento`: Relación con TipoDocumento (obligatoria).
+- `documento`: Número de documento (único).
+- `email`: Correo electrónico (único).
+- `telefono`: Teléfono (único).
+- `usuario`: Nombre de usuario (único).
+- `sede`: Relación con Sede (obligatoria).
+- `codigo`: Código único del asesor.
+- `area`: Relación con Area (obligatoria).
+- `activo`: Estado activo/inactivo (por defecto true).
 
-### Decisiones de modelado
+#### Relaciones principales
+- N:1 con TipoDocumento.
+- N:1 con Sede.
+- N:1 con Area.
+- 1:1 con UsuarioSistema (asesor).
+- 1:N con Estudiante (asesor).
 
-- `nombre` es obligatorio.
-- `nombre` tiene longitud máxima de 80 caracteres.
-- La relación con `Tema` se modela mediante una asociación muchos a uno.
+#### Decisiones de modelado
+- Campos únicos para email, telefono, usuario, documento, codigo.
+- Genera UsuarioSistema al crear.
 
----
+### Estudiante
 
-(AQUI COLOCAR LAS DEMAS ENTIDADES QUE FALTAN CON LOS ITEMS DE:
-    2.X Tipo
-    ### Descripción 
-    ### Atributos principales
-    ### Decisiones de modelado
-)
+#### Descripción
+Perfil de estudiante del sistema, genera UsuarioSistema automáticamente.
 
-## 3. Relaciones entre entidades
+#### Atributos principales
+- `id`: Identificador único (autogenerado).
+- `nombre`: Nombre completo.
+- `tipoDocumento`: Relación con TipoDocumento (obligatoria).
+- `documento`: Número de documento (único).
+- `email`: Correo electrónico (único).
+- `telefono`: Teléfono (único).
+- `usuario`: Nombre de usuario (único).
+- `sede`: Relación con Sede (obligatoria).
+- `codigo`: Código único del estudiante.
+- `asesor`: Relación con Asesor (obligatoria).
+- `activo`: Estado activo/inactivo (por defecto true).
+- `conciliacion`: Indicador de participación en conciliación (por defecto false).
 
-El modelo de datos implementado actualmente presenta una relación jerárquica en la parametrización jurídica y una entidad independiente para la gestión de personas.
+#### Relaciones principales
+- N:1 con TipoDocumento.
+- N:1 con Sede.
+- N:1 con Asesor.
+- 1:1 con UsuarioSistema (estudiante).
 
-### 3.1 Relación Area - Tema
+#### Decisiones de modelado
+- Campos únicos para email, telefono, usuario, documento, codigo.
+- Asesor asignado obligatorio.
+- Campo `conciliacion` para control de participación.
+- Genera UsuarioSistema al crear.
 
-- Una **área** puede tener muchos **temas**.
-- Un **tema** pertenece a una sola **área**.
+### Monitor
 
-Tipo de relación:
+#### Descripción
+Perfil de monitor del sistema, genera UsuarioSistema automáticamente.
 
-- `Area` 1 --- N `Tema`
+#### Atributos principales
+- `id`: Identificador único (autogenerado).
+- `nombre`: Nombre completo.
+- `tipoDocumento`: Relación con TipoDocumento (obligatoria).
+- `documento`: Número de documento (único).
+- `email`: Correo electrónico (único).
+- `telefono`: Teléfono (único).
+- `usuario`: Nombre de usuario (único).
+- `sede`: Relación con Sede (obligatoria).
+- `codigo`: Código único del monitor.
+- `activo`: Estado activo/inactivo (por defecto true).
 
-Esta relación permite que el sistema seleccione primero un área y, a partir de ella, recupere los temas correspondientes.
+#### Relaciones principales
+- N:1 con TipoDocumento.
+- N:1 con Sede.
+- 1:1 con UsuarioSistema (monitor).
 
-### 3.2 Relación Tema - Tipo
+#### Decisiones de modelado
+- Campos únicos para email, telefono, usuario, documento, codigo.
+- Genera UsuarioSistema al crear.
 
-- Un **tema** puede tener muchos **tipos**.
-- Un **tipo** pertenece a un solo **tema**.
+### Administrativo
 
-Tipo de relación:
+#### Descripción
+Perfil administrativo del sistema, genera UsuarioSistema automáticamente.
 
-- `Tema` 1 --- N `Tipo`
+#### Atributos principales
+- `id`: Identificador único (autogenerado).
+- `nombre`: Nombre completo.
+- `tipoDocumento`: Relación con TipoDocumento (opcional).
+- `documento`: Número de documento (único, opcional).
+- `email`: Correo electrónico (único, obligatorio).
+- `telefono`: Teléfono (único, obligatorio).
+- `usuario`: Nombre de usuario (único, obligatorio).
+- `codigo`: Código único del administrativo (obligatorio).
+- `sede`: Relación con Sede (opcional).
+- `activo`: Estado activo/inactivo (por defecto true).
+- `directora`: Indicador de rol directora (por defecto false).
 
-Esta relación soporta el flujo jerárquico del sistema: área → tema → tipo. 
+#### Relaciones principales
+- N:1 con TipoDocumento.
+- N:1 con Sede.
+- 1:1 con UsuarioSistema (administrativo).
 
-### 3.3 Relación de Persona con otras entidades
+#### Decisiones de modelado
+- Algunos campos opcionales (tipoDocumento, documento, sede) para flexibilidad.
+- Campo `directora` para roles jerárquicos.
+- Genera UsuarioSistema al crear.
 
-En la etapa actual del sistema, `Persona` se mantiene como una entidad autónoma dentro del modelo implementado, sin relación directa persistida con `Area`, `Tema` o `Tipo`. Su propósito es gestionar el registro integral de datos personales y de caracterización. 
+### Conciliador
 
-(AQUI LO MISMO PERO CON LO QUE UD CREO EN EL CRUD)
+#### Descripción
+Perfil de conciliador del sistema, genera UsuarioSistema automáticamente.
 
-## 4. Representación conceptual del modelo
+#### Atributos principales
+- `id`: Identificador único (autogenerado).
+- `nombre`: Nombre completo.
+- `tipoDocumento`: Relación con TipoDocumento (obligatoria).
+- `documento`: Número de documento (único).
+- `email`: Correo electrónico (único).
+- `telefono`: Teléfono (único).
+- `usuario`: Nombre de usuario (único).
+- `sede`: Relación con Sede (obligatoria).
+- `codigo`: Código único del conciliador.
+- `activo`: Estado activo/inactivo (por defecto true).
 
+#### Relaciones principales
+- N:1 con TipoDocumento.
+- N:1 con Sede.
+- 1:1 con UsuarioSistema (conciliador).
+
+#### Decisiones de modelado
+- Campos únicos para email, telefono, usuario, documento, codigo.
+- Genera UsuarioSistema al crear.
+
+## 4. Entidades security
+
+### Permiso
+
+#### Descripción
+Entidad que define permisos específicos del sistema.
+
+#### Atributos principales
+- `id`: Identificador único (autogenerado).
+- `nombre`: Nombre del permiso (único).
+- `descripcion`: Descripción del permiso.
+- `activo`: Estado activo/inactivo (por defecto true).
+
+#### Relaciones principales
+- N:N con Rol (a través de tabla rol_permiso).
+
+#### Decisiones de modelado
+- `nombre` único.
+- Campo `activo` para control de estado.
+
+### Rol
+
+#### Descripción
+Entidad que agrupa permisos y se asigna a usuarios.
+
+#### Atributos principales
+- `id`: Identificador único (autogenerado).
+- `nombre`: Nombre del rol (único).
+- `descripcion`: Descripción del rol.
+- `activo`: Estado activo/inactivo (por defecto true).
+- `permisos`: Conjunto de permisos asociados.
+
+#### Relaciones principales
+- N:N con Permiso (permisos).
+- 1:N con UsuarioSistema (rol).
+
+#### Decisiones de modelado
+- `nombre` único.
+- Campo `activo` para control de estado.
+- Relación bidireccional con Permiso.
+
+### UsuarioSistema
+
+#### Descripción
+Entidad que representa usuarios del sistema para autenticación y autorización.
+
+#### Atributos principales
+- `id`: Identificador único (autogenerado).
+- `username`: Nombre de usuario (email, único).
+- `passwordHash`: Contraseña hasheada con BCrypt.
+- `activo`: Estado activo/inactivo (por defecto true).
+- `rol`: Relación con Rol (obligatoria).
+
+#### Relaciones principales
+- N:1 con Rol.
+- 1:1 con Asesor (asesor).
+- 1:1 con Estudiante (estudiante).
+- 1:1 con Monitor (monitor).
+- 1:1 con Administrativo (administrativo).
+- 1:1 con Conciliador (conciliador).
+- 1:N con PasswordResetToken (usuarioSistema).
+
+#### Decisiones de modelado
+- Username único (correo electrónico).
+- Password hasheada para seguridad.
+- Relaciones 1:1 opcionales con perfiles (solo uno informado por usuario).
+- Rol obligatorio para autorización.
+
+### PasswordResetToken
+
+#### Descripción
+Entidad para tokens de recuperación de contraseña.
+
+#### Atributos principales
+- `id`: Identificador único (autogenerado).
+- `tokenHash`: Hash del token (único).
+- `usuarioSistema`: Relación con UsuarioSistema (obligatoria).
+- `fechaCreacion`: Fecha de creación.
+- `fechaExpiracion`: Fecha de expiración.
+- `usado`: Indicador de uso (por defecto false).
+- `fechaUso`: Fecha de uso (opcional).
+
+#### Relaciones principales
+- N:1 con UsuarioSistema.
+
+#### Decisiones de modelado
+- Token guardado como hash para seguridad.
+- Expiración y uso único para prevenir reutilización.
+
+## 5. Relaciones importantes
+
+- Area 1:N Tema
+- Tema 1:N Tipo
+- Rol N:N Permiso (tabla rol_permiso)
+- UsuarioSistema N:1 Rol
+- UsuarioSistema 1:1 Asesor
+- UsuarioSistema 1:1 Monitor
+- UsuarioSistema 1:1 Administrativo
+- UsuarioSistema 1:1 Conciliador
+- UsuarioSistema 1:1 Estudiante
+- PasswordResetToken N:1 UsuarioSistema
+- Asesor N:1 TipoDocumento
+- Asesor N:1 Sede
+- Asesor N:1 Area
+- Estudiante N:1 TipoDocumento
+- Estudiante N:1 Sede
+- Estudiante N:1 Asesor
+- Monitor N:1 TipoDocumento
+- Monitor N:1 Sede
+- Administrativo N:1 TipoDocumento
+- Administrativo N:1 Sede
+- Conciliador N:1 TipoDocumento
+- Conciliador N:1 Sede
+
+## 6. Decisiones clave
+
+- Perfiles no tienen rol directamente; el rol pertenece a UsuarioSistema.
+- Persona no genera UsuarioSistema; es entidad independiente.
+- Asesor, Monitor, Administrativo, Conciliador y Estudiante sí generan UsuarioSistema automáticamente.
+- Username en UsuarioSistema es el email del perfil.
+- Campos únicos en perfiles: documento, email, telefono, usuario, codigo.
+- Token de recuperación se guarda como hash, con expiración y de un solo uso.
+- Relaciones opcionales en Administrativo (tipoDocumento, documento, sede) para flexibilidad.
+- Campo `conciliacion` en Estudiante para control específico.
+- Campo `directora` en Administrativo para roles jerárquicos.
+
+## 7. Representación textual del modelo
+
+```
 Area
-└── Tema
-└── Tipo
+├── Tema
+│   └── Tipo
+└── Asesor
+
+TipoDocumento
+├── Asesor
+├── Estudiante
+├── Monitor
+├── Administrativo
+└── Conciliador
+
+Sede
+├── Asesor
+├── Estudiante
+├── Monitor
+├── Administrativo
+└── Conciliador
+
+Persona (independiente)
+
+Asesor
+├── UsuarioSistema
+└── Estudiante
+
+Estudiante
+└── UsuarioSistema
+
+Monitor
+└── UsuarioSistema
+
+Administrativo
+└── UsuarioSistema
+
+Conciliador
+└── UsuarioSistema
+
+Permiso
+└── Rol (N:N)
+
+Rol
+└── UsuarioSistema
+
+UsuarioSistema
+├── Rol
+├── Asesor
+├── Monitor
+├── Administrativo
+├── Conciliador
+├── Estudiante
+└── PasswordResetToken
+```
+- Campo `activo` para soft delete.
+
+### Asesor
+
+#### Descripción
+Perfil de asesor, genera UsuarioSistema automáticamente.
+
+#### Atributos principales
+- `id`: Identificador único.
+- `persona`: Relación con Persona.
+- `email`: Correo electrónico (username).
+- `telefono`: Teléfono.
+- `usuarioSistema`: Relación con UsuarioSistema.
+- `activo`: Estado activo/inactivo.
+
+#### Relaciones principales
+- 1:1 con Persona.
+- 1:1 con UsuarioSistema.
+- 1:N con Estudiante (como asesor asignado).
+
+#### Decisiones de modelado
+- Genera UsuarioSistema al crear.
+- Email como username único.
+
+### Monitor
+
+#### Descripción
+Perfil de monitor, genera UsuarioSistema automáticamente.
+
+#### Atributos principales
+- `id`: Identificador único.
+- `persona`: Relación con Persona.
+- `email`: Correo electrónico (username).
+- `telefono`: Teléfono.
+- `usuarioSistema`: Relación con UsuarioSistema.
+- `activo`: Estado activo/inactivo.
+
+#### Relaciones principales
+- 1:1 con Persona.
+- 1:1 con UsuarioSistema.
+
+#### Decisiones de modelado
+- Genera UsuarioSistema al crear.
+- Email como username único.
+
+### Administrativo
+
+#### Descripción
+Perfil administrativo, genera UsuarioSistema automáticamente.
+
+#### Atributos principales
+- `id`: Identificador único.
+- `persona`: Relación con Persona.
+- `email`: Correo electrónico (username).
+- `telefono`: Teléfono.
+- `usuarioSistema`: Relación con UsuarioSistema.
+- `activo`: Estado activo/inactivo.
+
+#### Relaciones principales
+- 1:1 con Persona.
+- 1:1 con UsuarioSistema.
+
+#### Decisiones de modelado
+- Genera UsuarioSistema al crear.
+- Email como username único.
+
+### Conciliador
+
+#### Descripción
+Perfil de conciliador, genera UsuarioSistema automáticamente.
+
+#### Atributos principales
+- `id`: Identificador único.
+- `persona`: Relación con Persona.
+- `email`: Correo electrónico (username).
+- `telefono`: Teléfono.
+- `usuarioSistema`: Relación con UsuarioSistema.
+- `activo`: Estado activo/inactivo.
+
+#### Relaciones principales
+- 1:1 con Persona.
+- 1:1 con UsuarioSistema.
+
+#### Decisiones de modelado
+- Genera UsuarioSistema al crear.
+- Email como username único.
+
+### Estudiante
+
+#### Descripción
+Perfil de estudiante, genera UsuarioSistema automáticamente.
+
+#### Atributos principales
+- `id`: Identificador único.
+- `persona`: Relación con Persona.
+- `email`: Correo electrónico (username).
+- `telefono`: Teléfono.
+- `asesor`: Relación con Asesor.
+- `usuarioSistema`: Relación con UsuarioSistema.
+- `activo`: Estado activo/inactivo.
+
+#### Relaciones principales
+- 1:1 con Persona.
+- 1:1 con UsuarioSistema.
+- N:1 con Asesor.
+
+#### Decisiones de modelado
+- Genera UsuarioSistema al crear.
+- Email como username único.
+- Asesor asignado opcional.
+
+## 4. Entidades security
+
+### Permiso
+
+#### Descripción
+Entidad que define permisos específicos del sistema.
+
+#### Atributos principales
+- `id`: Identificador único.
+- `nombre`: Nombre del permiso (único).
+- `descripcion`: Descripción del permiso.
+- `activo`: Estado activo/inactivo.
+
+#### Relaciones principales
+- N:N con Rol (a través de tabla intermedia).
+
+#### Decisiones de modelado
+- `nombre` único.
+- Campo `activo` para soft delete.
+
+### Rol
+
+#### Descripción
+Entidad que agrupa permisos y se asigna a usuarios.
+
+#### Atributos principales
+- `id`: Identificador único.
+- `nombre`: Nombre del rol (único).
+- `descripcion`: Descripción del rol.
+- `activo`: Estado activo/inactivo.
+
+#### Relaciones principales
+- N:N con Permiso.
+- 1:N con UsuarioSistema.
+
+#### Decisiones de modelado
+- `nombre` único.
+- Campo `activo` para soft delete.
+
+### UsuarioSistema
+
+#### Descripción
+Entidad que representa usuarios del sistema para autenticación.
+
+#### Atributos principales
+- `id`: Identificador único.
+- `username`: Nombre de usuario (email, único).
+- `password`: Contraseña hasheada.
+- `rol`: Relación con Rol.
+- `activo`: Estado activo/inactivo.
+- `fechaCreacion`: Fecha de creación.
+- `ultimoAcceso`: Fecha de último acceso.
+
+#### Relaciones principales
+- N:1 con Rol.
+- 1:1 con Asesor.
+- 1:1 con Monitor.
+- 1:1 con Administrativo.
+- 1:1 con Conciliador.
+- 1:1 con Estudiante.
+- 1:N con PasswordResetToken.
+
+#### Decisiones de modelado
+- Username único.
+- Password hasheada con BCrypt.
+- Relaciones 1:1 con perfiles internos.
+
+### PasswordResetToken
+
+#### Descripción
+Entidad para tokens de recuperación de contraseña.
+
+#### Atributos principales
+- `id`: Identificador único.
+- `token`: Token hasheado (único).
+- `usuarioSistema`: Relación con UsuarioSistema.
+- `fechaExpiracion`: Fecha de expiración.
+- `usado`: Indicador de uso.
+
+#### Relaciones principales
+- N:1 con UsuarioSistema.
+
+#### Decisiones de modelado
+- Token hasheado para seguridad.
+- Expiración y uso único.
+
+## 5. Relaciones importantes
+
+- Area 1:N Tema
+- Tema 1:N Tipo
+- Rol N:N Permiso
+- UsuarioSistema N:1 Rol
+- UsuarioSistema 1:1 Asesor
+- UsuarioSistema 1:1 Monitor
+- UsuarioSistema 1:1 Administrativo
+- UsuarioSistema 1:1 Conciliador
+- UsuarioSistema 1:1 Estudiante
+- PasswordResetToken N:1 UsuarioSistema
+- Estudiante N:1 Asesor
+
+## 6. Decisiones clave
+
+- Perfiles no tienen rol directamente; el rol pertenece a UsuarioSistema.
+- Frontend no envía rolId al crear perfiles internos.
+- Persona no genera UsuarioSistema.
+- Asesor, Monitor, Administrativo, Conciliador y Estudiante sí generan UsuarioSistema automáticamente.
+- Username es el email del perfil.
+- Contraseña inicial es el documento cifrado con BCrypt.
+- Token de recuperación se guarda como hash, con expiración y de un solo uso.
+
+## 7. Representación textual del modelo
+
+```
+Area
+├── Tema
+│   └── Tipo
 
 Persona
+├── TipoDocumento
 
-(AQUI AGREGUE LA ESTRUCTURA DE LOS DEMAS CRUDS)
+Sede
 
-## 5. Reglas de modelado
+Asesor
+├── Persona
+├── UsuarioSistema
+└── Estudiante (como asesor)
 
-### Identificadores
+Monitor
+├── Persona
+└── UsuarioSistema
 
-Todas las entidades usan identificador único.
+Administrativo
+├── Persona
+└── UsuarioSistema
 
-### Jerarquía
+Conciliador
+├── Persona
+└── UsuarioSistema
 
-Área → Tema → Tipo
+Estudiante
+├── Persona
+├── UsuarioSistema
+└── Asesor
 
-### Integridad
+Permiso
+└── Rol (N:N)
 
-- nombre de área único,
-- número de documento único,
-- tema requiere área,
-- tipo requiere tema.
+Rol
+└── UsuarioSistema
 
-### Persistencia vs API
-
-Las entidades no se exponen directamente.  
-Se usan DTO para desacoplar modelo y API.
-
----
-
-## 6. Persistencia
-
-- Implementada con Spring Data JPA.
-- Mapeo mediante anotaciones JPA.
-- Relaciones uno a muchos / muchos a uno.
-- Base de datos: PostgreSQL.
-
-> H2 se utilizó solo en pruebas iniciales.
-
----
-
-## 7. Alcance
-
-Este modelo corresponde a las entidades actuales del backend.  
-La arquitectura permite agregar nuevas entidades sin cambios estructurales.
+UsuarioSistema
+├── Rol
+├── Asesor
+├── Monitor
+├── Administrativo
+├── Conciliador
+├── Estudiante
+└── PasswordResetToken
+```

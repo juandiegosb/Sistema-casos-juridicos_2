@@ -20,6 +20,7 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
 } from "@/components/ui/dropdown-menu"
+import { API_URL_BASE } from "@/lib/config"
 
 export function AppSidebar({ mainItems = [], footerItems = [] }) {
   const [email, setEmail] = React.useState("")
@@ -27,13 +28,11 @@ export function AppSidebar({ mainItems = [], footerItems = [] }) {
   const router = useRouter()
   const pathname = usePathname()
 
-  const API_URL = "http://localhost:8080/api"
-
   // Obtener usuario desde backend (cookie JWT)
   React.useEffect(() => {
     const cargarUsuario = async () => {
       try {
-        const res = await fetch(`${API_URL}/auth/me`, {
+        const res = await fetch(`${API_URL_BASE}/auth/me`, {
           method: "GET",
           credentials: "include",
         })
@@ -70,7 +69,7 @@ export function AppSidebar({ mainItems = [], footerItems = [] }) {
 
   const handleLogout = async () => {
     try {
-      await fetch(`${API_URL}/auth/logout`, {
+      await fetch(`${API_URL_BASE}/auth/logout`, {
         method: "POST",
         credentials: "include",
       })

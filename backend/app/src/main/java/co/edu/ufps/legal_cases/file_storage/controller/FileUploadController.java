@@ -7,6 +7,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.core.io.Resource;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -20,6 +21,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.servlet.HandlerMapping;
 
 import co.edu.ufps.legal_cases.file_storage.exception.FileNotFoundException;
 import co.edu.ufps.legal_cases.file_storage.service.FileStorageService;
@@ -81,10 +83,16 @@ public class FileUploadController {
         return ResponseEntity.ok(results);
     }
 
-    @GetMapping("/download/{fileName:.+}")
-    public ResponseEntity<Resource> downloadFile(@PathVariable String fileName) {
+    @GetMapping("/download/**")
+    public ResponseEntity<Resource> downloadFile(HttpServletRequest request) {
         try {
-            Resource resource = fileStorageService.loadFileAsResource(fileName);
+            String pathWithinHandler = (String) request.getAttribute(HandlerMapping.PATH_WITHIN_HANDLER_MAPPING_ATTRIBUTE);
+            String requestedFile = java.net.URLDecoder.decode(
+                    pathWithinHandler.replaceFirst("^.*/download/", ""),
+                    java.nio.charset.StandardCharsets.UTF_8.name()
+            );
+
+            Resource resource = fileStorageService.loadFileAsResource(requestedFile);
 
             String contentType = null;
             try {

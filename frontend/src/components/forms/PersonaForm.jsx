@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { API_URL_BASE } from "@/lib/config";
 
 export function PersonaForm({ onSubmit, initialValues = {} }) {
   const defaultFormValues = {
@@ -31,7 +32,7 @@ export function PersonaForm({ onSubmit, initialValues = {} }) {
   useEffect(() => {
   async function verificar() {
     try {
-      const res = await fetch("http://localhost:8080/api/auth/me", {
+      const res = await fetch(`${API_URL_BASE}/auth/me`, {
         method: "GET",
         credentials: "include",
       });
@@ -57,8 +58,6 @@ export function PersonaForm({ onSubmit, initialValues = {} }) {
 
   verificar();
 }, [router]);
-
-  const API_URL_BASE = "http://localhost:8080/api";
 
   const { submit, isSubmitting } = useApiForm({ endpoint: `${API_URL_BASE}/personas` });
 

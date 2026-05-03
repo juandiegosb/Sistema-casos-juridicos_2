@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/accordion";
 import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { API_URL_BASE } from '@/lib/config';
 
 export default function ArchivoForm() {
   const [isUploading, setIsUploading] = useState(false);
@@ -20,7 +21,7 @@ export default function ArchivoForm() {
   useEffect(() => {
     const fetchDirs = async () => {
       try {
-        const response = await fetch(`http://localhost:8080/api/files/directories`, {
+        const response = await fetch(`${API_URL_BASE}/files/directories`, {
           credentials: "include",
         });
         if (response.ok) {
@@ -53,13 +54,13 @@ export default function ArchivoForm() {
     const formData = new FormData();
     // Determinamos si es un arreglo (múltiple) o un solo archivo
     const isMultiple = Array.isArray(data.archivos);
-    let endpoint = `http://localhost:8080/api/files/upload`;
+    let endpoint = `${FILE_STORAGE_API_URL_BASE}/files/upload`;
     
     if (isMultiple) {
       data.archivos.forEach(file => {
         formData.append('files', file);
       });
-      endpoint = `http://localhost:8080/api/files/upload-multiple`;
+      endpoint = `${FILE_STORAGE_API_URL_BASE}/files/upload-multiple`;
     } else {
       formData.append('file', data.archivos);
     }

@@ -6,6 +6,7 @@ import { FormSelect } from "./parts/FormSelect";
 import { FormCheckbox } from "./parts/FormCheckbox";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
+import { API_URL_BASE } from "@/lib/config";
 
 export function ConciliadorForm({ onSuccess, initialValues = {} }) {
   const defaultFormValues = {
@@ -25,9 +26,6 @@ export function ConciliadorForm({ onSuccess, initialValues = {} }) {
     reset,
     formState: { errors },
   } = useForm({ defaultValues: defaultFormValues });
-
-  const API_URL_BASE =
-    process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080/api";
 
   const { submit, isSubmitting } = useApiForm({
     endpoint: `${API_URL_BASE}/personas`,

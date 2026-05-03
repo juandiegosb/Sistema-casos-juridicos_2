@@ -7,10 +7,9 @@ import { FormInput } from "./parts/FormInput";
 import { FormSelect } from "./parts/FormSelect";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
+import { API_URL_BASE } from "@/lib/config";
 
 export function TipoForm() {
-  const API_URL_BASE = "http://localhost:8080/api";
-
   const router = useRouter();
   const [checking, setChecking] = useState(true);
 

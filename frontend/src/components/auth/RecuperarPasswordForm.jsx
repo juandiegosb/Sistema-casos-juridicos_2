@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation"
 import { FormInput } from "../forms/parts/FormInput"
 import { Button } from "@/components/ui/button"
 import { Scale } from "lucide-react"
+import { API_URL_BASE } from "@/lib/config"
 
 export function RecuperarPasswordForm() {
   const router = useRouter()
@@ -25,7 +26,7 @@ export function RecuperarPasswordForm() {
     setMessage("")
 
     try {
-      const res = await fetch("http://localhost:8080/api/auth/solicitar-recuperacion", {
+      const res = await fetch(`${API_URL_BASE}/auth/solicitar-recuperacion`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json"

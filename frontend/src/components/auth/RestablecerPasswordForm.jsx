@@ -3,9 +3,13 @@
 import { useForm } from "react-hook-form"
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
-import { useRouter } from "next/navigation"
+import { API_URL_BASE } from "@/lib/config"
+import { useRouter } from "next/navigation" 
 import { useEffect } from "react"
-
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { useTheme } from "next-themes"
+import { Sun, Moon } from "lucide-react"
+import { Scale } from "lucide-react"
 export function RestablecerPasswordForm({ token }) {
   const {
     register,
@@ -24,7 +28,7 @@ export function RestablecerPasswordForm({ token }) {
     setLoading(true)
 
     try {
-      const res = await fetch("http://localhost:8080/api/auth/restablecer-password", {
+      const res = await fetch(`${API_URL_BASE}/auth/restablecer-password`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
