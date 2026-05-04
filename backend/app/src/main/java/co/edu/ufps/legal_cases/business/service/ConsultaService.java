@@ -84,14 +84,10 @@ public class ConsultaService {
 
     @Transactional(readOnly = true)
     public ConsultaDTO obtenerPorId(Long id) {
-        // Dos queries separadas para evitar MultipleBagFetchException (Hibernate no permite
-        // JOIN FETCH de dos colecciones bag en la misma query).
-        // La primera inicializa las partes, la segunda las contrapartes.
-        // Hibernate fusiona ambas en el mismo objeto del contexto de persistencia.
-        consultaRepository.findByIdConPartes(id)
+        // Dos queries separadas para evitar MultipleBagFetchException
+        Consulta consulta = consultaRepository.findByIdConPartes(id)
                 .orElseThrow(() -> new BusinessException("Consulta no encontrada con id: " + id));
-        Consulta consulta = consultaRepository.findByIdConContrapartes(id)
-                .orElseThrow(() -> new BusinessException("Consulta no encontrada con id: " + id));
+        consultaRepository.findByIdConContrapartes(id); // inicializa contrapartes en la misma sesión
         return convertirADTO(consulta);
     }
 
@@ -109,11 +105,10 @@ public class ConsultaService {
 
     @Transactional
     public ConsultaDTO actualizar(Long id, ConsultaDTO dto) {
-        // Cargar partes primero, luego contrapartes; Hibernate fusiona en el mismo objeto
-        consultaRepository.findByIdConPartes(id)
+        // Dos queries separadas para evitar MultipleBagFetchException
+        Consulta existente = consultaRepository.findByIdConPartes(id)
                 .orElseThrow(() -> new BusinessException("Consulta no encontrada con id: " + id));
-        Consulta existente = consultaRepository.findByIdConContrapartes(id)
-                .orElseThrow(() -> new BusinessException("Consulta no encontrada con id: " + id));
+        consultaRepository.findByIdConContrapartes(id); // inicializa contrapartes en la misma sesión
 
         validarCamposObligatorios(dto);
 
@@ -245,16 +240,26 @@ public class ConsultaService {
         consulta.setMonitor(obtenerMonitor(dto.getMonitorId()));
         consulta.setEstudiante(obtenerEstudiante(dto.getEstudianteId()));
 
-        // Sincronizar partes (reemplazar lista completa)
-        consulta.getPartes().clear();
+        // Partes adicionales
         if (dto.getPartesIds() != null) {
-            dto.getPartesIds().forEach(pid -> consulta.getPartes().add(obtenerPersona(pid)));
+            List<Persona> partes = dto.getPartesIds().stream()
+                    .map(this::obtenerPersona)
+                    .toList();
+            consulta.getPartes().clear();
+            consulta.getPartes().addAll(partes);
+        } else {
+            consulta.getPartes().clear();
         }
 
-        // Sincronizar contrapartes (reemplazar lista completa)
-        consulta.getContrapartes().clear();
+        // Contrapartes
         if (dto.getContrapartesIds() != null) {
-            dto.getContrapartesIds().forEach(pid -> consulta.getContrapartes().add(obtenerPersona(pid)));
+            List<Persona> contrapartes = dto.getContrapartesIds().stream()
+                    .map(this::obtenerPersona)
+                    .toList();
+            consulta.getContrapartes().clear();
+            consulta.getContrapartes().addAll(contrapartes);
+        } else {
+            consulta.getContrapartes().clear();
         }
 
         return consulta;
@@ -282,13 +287,18 @@ public class ConsultaService {
         dto.setMonitorId(c.getMonitor() != null ? c.getMonitor().getId() : null);
         dto.setEstudianteId(c.getEstudiante() != null ? c.getEstudiante().getId() : null);
 
-        // Mapear listas ManyToMany
+        // Mapear IDs de partes y contrapartes
         dto.setPartesIds(
-            c.getPartes().stream().map(Persona::getId).collect(java.util.stream.Collectors.toList())
+            c.getPartes() != null
+                ? c.getPartes().stream().map(Persona::getId).toList()
+                : List.of()
         );
         dto.setContrapartesIds(
-            c.getContrapartes().stream().map(Persona::getId).collect(java.util.stream.Collectors.toList())
+            c.getContrapartes() != null
+                ? c.getContrapartes().stream().map(Persona::getId).toList()
+                : List.of()
         );
+
         return dto;
     }
 

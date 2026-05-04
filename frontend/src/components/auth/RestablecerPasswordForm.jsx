@@ -4,6 +4,8 @@ import { useForm } from "react-hook-form"
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { API_URL_BASE } from "@/lib/config"
+import { useRouter } from "next/navigation" 
+import { useEffect } from "react"
 
 export function RestablecerPasswordForm({ token }) {
   const {
@@ -15,6 +17,7 @@ export function RestablecerPasswordForm({ token }) {
   const [error, setError] = useState("")
   const [success, setSuccess] = useState("")
   const [loading, setLoading] = useState(false)
+  const router = useRouter()
 
   const onSubmit = async (data) => {
     setError("")
@@ -48,6 +51,16 @@ export function RestablecerPasswordForm({ token }) {
       setLoading(false)
     }
   }
+
+  useEffect(() => {
+    if (success) {
+      const timer = setTimeout(() => {
+        router.push("/")
+      }, 2000)
+
+      return () => clearTimeout(timer)
+    }
+  }, [success, router])
 
   return (
     <div className="w-full max-w-md p-6 bg-card rounded-xl border shadow space-y-4">
@@ -98,6 +111,7 @@ export function RestablecerPasswordForm({ token }) {
           {success}
         </p>
       )}
+
 
       <Button
         className="w-full"
