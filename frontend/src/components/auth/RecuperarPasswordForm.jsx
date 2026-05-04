@@ -88,12 +88,6 @@ export function RecuperarPasswordForm() {
             </div>
           )}
 
-          {message && (
-            <div className="text-sm text-green-600">
-              {message}
-            </div>
-          )}
-
           <Button type="submit" className="w-full">
             Enviar instrucciones
           </Button>
