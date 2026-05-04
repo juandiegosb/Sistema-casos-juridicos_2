@@ -34,3 +34,6 @@ build/
 
 ### File storage ###
 uploads/
+
+## Credentials ##
+src/main/resources/application.properties
