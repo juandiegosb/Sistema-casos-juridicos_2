@@ -6,12 +6,11 @@ import { FormInput } from "./parts/FormInput"
 import { Button } from "@/components/ui/button"
 import { useRouter } from "next/navigation"
 import { API_URL_BASE } from "@/lib/config"
+import { useApiForm } from "@/hooks/useApiForm"
 
 export function AreaForm() {
   const router = useRouter()
-
   const [checking, setChecking] = useState(true)
-  const [error, setError] = useState("")
 
   const {
     register,
@@ -21,6 +20,13 @@ export function AreaForm() {
   } = useForm({
     defaultValues: {
       nombre: "",
+    },
+  })
+
+  const { submit, isSubmitting } = useApiForm({
+    endpoint: `${API_URL_BASE}/areas`,
+    onSuccess: () => {
+      reset()
     },
   })
 
@@ -54,49 +60,12 @@ export function AreaForm() {
     verificar()
   }, [router])
 
-  if (checking) {
-    return <div className="text-center mt-10">Cargando...</div>
+  const onSubmit = async (data) => {
+    await submit(data)
   }
 
-  const onSubmit = async (data) => {
-    setError("")
-
-    try {
-      const res = await fetch(`${API_URL_BASE}/areas`, {
-        method: "POST",
-        credentials: "include",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(data),
-      })
-
-      if (res.status === 401) {
-        router.push("/")
-        return
-      }
-
-      if (res.status === 403) {
-        router.push("/inicio")
-        return
-      }
-
-      const result = await res.json()
-
-      if (!res.ok) {
-        throw new Error(
-          result?.mensaje ||
-          result?.message ||
-          "Error al guardar el área"
-        )
-      }
-
-      reset()
-      alert("Área creada correctamente")
-
-    } catch (err) {
-      setError(err.message)
-    }
+  if (checking) {
+    return <div className="text-center mt-10">Cargando...</div>
   }
 
   return (
@@ -116,12 +85,11 @@ export function AreaForm() {
         rules={{ required: "El nombre es obligatorio" }}
       />
 
-      {error && (
-        <div className="text-sm text-destructive">{error}</div>
-      )}
-
-      <Button onClick={handleSubmit(onSubmit)}>
-        Guardar área
+      <Button
+        onClick={handleSubmit(onSubmit)}
+        disabled={isSubmitting}
+      >
+        {isSubmitting ? "Guardando..." : "Guardar área"}
       </Button>
     </div>
   )
