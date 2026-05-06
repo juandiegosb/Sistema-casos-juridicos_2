@@ -1,6 +1,7 @@
 "use client"
 
 import { useSearchParams } from "next/navigation"
+import { Suspense } from "react"
 import { RestablecerPasswordForm } from "@/components/auth/RestablecerPasswordForm"
 import { useTheme } from "next-themes";
 import {
@@ -13,7 +14,7 @@ import { Button } from "@/components/ui/button"
 import { Moon, Sun } from "lucide-react"
 import { Scale } from "lucide-react"
 
-export default function RestablecerPasswordPage() {
+function RestablecerPasswordContent() {
   const searchParams = useSearchParams()
   const token = searchParams.get("token")
   const { setTheme } = useTheme()
@@ -88,5 +89,13 @@ export default function RestablecerPasswordPage() {
       </div>
 
     </main>
+  )
+}
+
+export default function RestablecerPasswordPage() {
+  return (
+    <Suspense fallback={<div className="flex items-center justify-center min-h-screen">Cargando...</div>}>
+      <RestablecerPasswordContent />
+    </Suspense>
   )
 }
