@@ -32,8 +32,7 @@ export function RecuperarPasswordForm() {
           "Content-Type": "application/json"
         },
         body: JSON.stringify({
-          username: data.correo,
-          email: data.correo,
+          username: data.correo
         })
       })
 
