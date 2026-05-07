@@ -445,6 +445,7 @@ export function ConsultasJuridicasForm() {
                     <li key={fileName} className="flex items-center justify-between rounded-md border px-3 py-2 text-sm">
                       <span className="truncate">{fileName}</span>
                       <button
+                        type="button"
                         onClick={() => descargarArchivo(fileName)}
                         className="text-primary hover:underline"
                       >
