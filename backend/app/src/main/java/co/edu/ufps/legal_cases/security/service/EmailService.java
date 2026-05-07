@@ -1,68 +1,115 @@
 package co.edu.ufps.legal_cases.security.service;
 
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
+import java.util.List;
+import java.util.Map;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.mail.javamail.JavaMailSender;
-import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
 
 import co.edu.ufps.legal_cases.exception.BusinessException;
-import jakarta.mail.internet.InternetAddress;
-import jakarta.mail.internet.MimeMessage;
+import tools.jackson.databind.json.JsonMapper;
 
 @Service
 public class EmailService {
 
     private static final Logger log = LoggerFactory.getLogger(EmailService.class);
 
-    private final JavaMailSender mailSender;
+    private static final URI BREVO_EMAIL_URI = URI.create("https://api.brevo.com/v3/smtp/email");
+
     private final EmailTemplateService emailTemplateService;
-    private final String from;
+    private final JsonMapper jsonMapper;
+    private final HttpClient httpClient;
+
+    private final String brevoApiKey;
+    private final String fromEmail;
     private final String fromName;
 
     public EmailService(
-            JavaMailSender mailSender,
             EmailTemplateService emailTemplateService,
-            @Value("${spring.mail.username}") String from,
+            JsonMapper jsonMapper,
+            @Value("${brevo.api-key:}") String brevoApiKey,
+            @Value("${app.mail.from-email}") String fromEmail,
             @Value("${app.mail.from-name}") String fromName) {
-        this.mailSender = mailSender;
+
         this.emailTemplateService = emailTemplateService;
-        this.from = from;
+        this.jsonMapper = jsonMapper;
+        this.brevoApiKey = brevoApiKey;
+        this.fromEmail = fromEmail;
         this.fromName = fromName;
+
+        this.httpClient = HttpClient.newBuilder()
+                .connectTimeout(Duration.ofSeconds(15))
+                .build();
     }
 
     public void enviarRecuperacionPassword(String destinatario, String enlace) {
         try {
-            log.info("Intentando enviar correo de recuperación a {}", mascararCorreo(destinatario));
+            validarConfiguracion();
 
-            MimeMessage mensaje = mailSender.createMimeMessage();
-
-            MimeMessageHelper helper = new MimeMessageHelper(
-                    mensaje,
-                    false,
-                    StandardCharsets.UTF_8.name()
-            );
-
-            helper.setTo(destinatario);
-            helper.setSubject("Recuperación de contraseña");
-
-            helper.setFrom(new InternetAddress(
-                    from,
-                    fromName,
-                    StandardCharsets.UTF_8.name()
-            ));
+            log.info("Intentando enviar correo de recuperación por Brevo a {}", mascararCorreo(destinatario));
 
             String html = emailTemplateService.construirRecuperacionPassword(enlace);
 
-            helper.setText(html, true);
+            Map<String, Object> payload = Map.of(
+                    "sender", Map.of(
+                            "name", fromName,
+                            "email", fromEmail
+                    ),
+                    "to", List.of(
+                            Map.of("email", destinatario)
+                    ),
+                    "subject", "Recuperación de contraseña",
+                    "htmlContent", html
+            );
 
-            mailSender.send(mensaje);
+            String json = jsonMapper.writeValueAsString(payload);
 
-            log.info("Correo de recuperación enviado correctamente a {}", mascararCorreo(destinatario));
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(BREVO_EMAIL_URI)
+                    .timeout(Duration.ofSeconds(20))
+                    .header("api-key", brevoApiKey)
+                    .header("accept", "application/json")
+                    .header("content-type", "application/json")
+                    .POST(HttpRequest.BodyPublishers.ofString(json, StandardCharsets.UTF_8))
+                    .build();
 
+            HttpResponse<String> response = httpClient.send(
+                    request,
+                    HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8)
+            );
+
+            if (response.statusCode() < 200 || response.statusCode() >= 300) {
+                log.error(
+                        "Brevo no pudo enviar el correo. Status: {}. Body: {}",
+                        response.statusCode(),
+                        response.body()
+                );
+
+                throw new BusinessException("No se pudo enviar el correo de recuperación");
+            }
+
+            log.info("Correo de recuperación enviado correctamente por Brevo a {}", mascararCorreo(destinatario));
+
+        } catch (BusinessException ex) {
+            throw ex;
+        } catch (InterruptedException ex) {
+            Thread.currentThread().interrupt();
+
+            log.error(
+                    "Envío de correo interrumpido para {}",
+                    mascararCorreo(destinatario),
+                    ex
+            );
+
+            throw new BusinessException("No se pudo enviar el correo de recuperación");
         } catch (Exception ex) {
             log.error(
                     "Error enviando correo de recuperación a {}. Tipo error: {}. Mensaje: {}",
@@ -72,6 +119,18 @@ public class EmailService {
                     ex
             );
 
+            throw new BusinessException("No se pudo enviar el correo de recuperación");
+        }
+    }
+
+    private void validarConfiguracion() {
+        if (brevoApiKey == null || brevoApiKey.isBlank()) {
+            log.error("No está configurada la variable BREVO_API_KEY");
+            throw new BusinessException("No se pudo enviar el correo de recuperación");
+        }
+
+        if (fromEmail == null || fromEmail.isBlank()) {
+            log.error("No está configurada la variable MAIL_FROM_EMAIL");
             throw new BusinessException("No se pudo enviar el correo de recuperación");
         }
     }
