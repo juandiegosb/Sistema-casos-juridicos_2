@@ -2,6 +2,8 @@ package co.edu.ufps.legal_cases.security.service;
 
 import java.nio.charset.StandardCharsets;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
@@ -11,9 +13,10 @@ import co.edu.ufps.legal_cases.exception.BusinessException;
 import jakarta.mail.internet.InternetAddress;
 import jakarta.mail.internet.MimeMessage;
 
-// Servicio para mandar correos
 @Service
 public class EmailService {
+
+    private static final Logger log = LoggerFactory.getLogger(EmailService.class);
 
     private final JavaMailSender mailSender;
     private final EmailTemplateService emailTemplateService;
@@ -31,28 +34,61 @@ public class EmailService {
         this.fromName = fromName;
     }
 
-    // El destinatario es el correo 
     public void enviarRecuperacionPassword(String destinatario, String enlace) {
         try {
-            MimeMessage mensaje = mailSender.createMimeMessage(); // Para enviar correos con HTML, estilos, imágenes, adjuntos, etc.
+            log.info("Intentando enviar correo de recuperación a {}", mascararCorreo(destinatario));
+
+            MimeMessage mensaje = mailSender.createMimeMessage();
 
             MimeMessageHelper helper = new MimeMessageHelper(
                     mensaje,
-                    false,  // Se desactiva porque no envio adjuntos
-                    StandardCharsets.UTF_8.name()); // Para que soporte tildes y demas
+                    false,
+                    StandardCharsets.UTF_8.name()
+            );
 
-            //Parametros del envio del correo
             helper.setTo(destinatario);
             helper.setSubject("Recuperación de contraseña");
-            helper.setFrom(new InternetAddress(from, fromName));
 
-            String html = emailTemplateService.construirRecuperacionPassword(enlace);   // Este servicio es el que construye el html del correo para que lusca mejor
+            helper.setFrom(new InternetAddress(
+                    from,
+                    fromName,
+                    StandardCharsets.UTF_8.name()
+            ));
 
-            helper.setText(html, true); // Pone el html en el cuerpo del correo
+            String html = emailTemplateService.construirRecuperacionPassword(enlace);
 
-            mailSender.send(mensaje);   // Envia el correo
+            helper.setText(html, true);
+
+            mailSender.send(mensaje);
+
+            log.info("Correo de recuperación enviado correctamente a {}", mascararCorreo(destinatario));
+
         } catch (Exception ex) {
+            log.error(
+                    "Error enviando correo de recuperación a {}. Tipo error: {}. Mensaje: {}",
+                    mascararCorreo(destinatario),
+                    ex.getClass().getName(),
+                    ex.getMessage(),
+                    ex
+            );
+
             throw new BusinessException("No se pudo enviar el correo de recuperación");
         }
+    }
+
+    private String mascararCorreo(String correo) {
+        if (correo == null || correo.isBlank() || !correo.contains("@")) {
+            return "correo-no-valido";
+        }
+
+        String[] partes = correo.split("@", 2);
+        String nombre = partes[0];
+        String dominio = partes[1];
+
+        if (nombre.length() <= 2) {
+            return "***@" + dominio;
+        }
+
+        return nombre.charAt(0) + "***" + nombre.charAt(nombre.length() - 1) + "@" + dominio;
     }
 }
