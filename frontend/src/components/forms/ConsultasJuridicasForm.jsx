@@ -208,6 +208,39 @@ export function ConsultasJuridicasForm() {
     }
   }
 
+  const descargarArchivo = async (fileName) => {
+    try {
+      const response = await fetch(
+        `${FILE_STORAGE_API_URL_BASE}/files/download/${idEditando}/${encodeURIComponent(fileName)}`,
+        {
+          method: 'GET',
+          credentials: 'include',
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error('Error descargando archivo');
+      }
+
+      const blob = await response.blob();
+
+      const url = window.URL.createObjectURL(blob);
+
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = fileName;
+
+      document.body.appendChild(a);
+      a.click();
+
+      a.remove();
+
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
   async function handleGuardar(e) {
     e.preventDefault();
     setGuardando(true);
@@ -411,14 +444,12 @@ export function ConsultasJuridicasForm() {
                   {archivosCaso.map(fileName => (
                     <li key={fileName} className="flex items-center justify-between rounded-md border px-3 py-2 text-sm">
                       <span className="truncate">{fileName}</span>
-                      <a
-                        href={`${FILE_STORAGE_API_URL_BASE}/files/download/${idEditando}/${encodeURIComponent(fileName)}`}
-                        target="_blank"
-                        rel="noreferrer"
+                      <button
+                        onClick={() => descargarArchivo(fileName)}
                         className="text-primary hover:underline"
                       >
                         Descargar
-                      </a>
+                      </button>
                     </li>
                   ))}
                 </ul>
