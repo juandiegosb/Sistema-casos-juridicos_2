@@ -13,6 +13,7 @@ import co.edu.ufps.legal_cases.business.repository.AdministrativoRepository;
 import co.edu.ufps.legal_cases.business.repository.SedeRepository;
 import co.edu.ufps.legal_cases.business.repository.TipoDocumentoRepository;
 import co.edu.ufps.legal_cases.exception.BusinessException;
+import co.edu.ufps.legal_cases.security.model.UsuarioSistema;
 import co.edu.ufps.legal_cases.security.service.UsuarioSistemaRegistroService;
 import jakarta.transaction.Transactional;
 
@@ -107,8 +108,16 @@ public class AdministrativoService {
         Administrativo administrativoGuardado = administrativoRepository.save(administrativo);
 
         //Aqui estoy creando el usuario ante el sistema
-        usuarioSistemaRegistroService.crearParaAdministrativo(administrativoGuardado);
-        return convertirADTO(administrativoGuardado);
+        // También se conserva temporalmente la relación vieja UsuarioSistema.administrativo.
+        UsuarioSistema usuarioSistema = usuarioSistemaRegistroService.crearParaAdministrativo(administrativoGuardado);
+
+        // Nueva relación normalizada.
+        // Ahora el perfil real administrativo apunta al usuario del sistema.
+        administrativoGuardado.setUsuarioSistema(usuarioSistema);
+
+        Administrativo administrativoActualizado = administrativoRepository.save(administrativoGuardado);
+
+        return convertirADTO(administrativoActualizado);
     }
 
     public AdministrativoDTO actualizar(Long id, AdministrativoDTO dto) {

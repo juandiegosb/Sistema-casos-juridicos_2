@@ -99,7 +99,7 @@ public class UsuarioSistemaRegistroService {
         return usuarioSistemaRepository.save(usuario);
     }
 
-    public void crearParaAdministrativo(Administrativo administrativo) {
+    public UsuarioSistema crearParaAdministrativo(Administrativo administrativo) {
         validarPerfilAdministrativo(administrativo);
 
         UsuarioSistema usuario = crearUsuarioBase(
@@ -109,10 +109,12 @@ public class UsuarioSistemaRegistroService {
                 TipoPerfilUsuario.ADMINISTRATIVO
         );
 
+        // Relación vieja temporal.
+        // Se mantiene para no romper login, /me ni validaciones actuales mientras se migra.
         usuario.setAdministrativo(administrativo);
         validarUnSoloPerfil(usuario);
 
-        usuarioSistemaRepository.save(usuario);
+        return usuarioSistemaRepository.save(usuario);
     }
 
     public void crearParaConciliador(Conciliador conciliador) {
