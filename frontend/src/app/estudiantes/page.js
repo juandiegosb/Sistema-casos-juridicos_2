@@ -12,7 +12,7 @@ import { Moon, Sun, Users } from "lucide-react";
 import { useTheme } from "next-themes";
 import { Button } from "@/components/ui/button";
 import { Toaster } from "@/components/ui/sonner";
-
+import { PermissionSidebar } from "@/components/navigation/PermissionSidebar";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -22,36 +22,16 @@ import {
 
 import { EstudiantesForm } from "@/components/forms/EstudiantesForm";
 
-const sections = [
-  "Inicio",
-  "Tareas.",
-  "Recepcion",
-  "Nueva consulta",
-  "Consultas juridicas",
-  "Nuevo Proceso.",
-  "Procesos juridicos.",
-  "Estudiantes",
-  "Asesores y monitores",
-  "Estadísticas.",
-  "Formatos y modelos.",
-  "Eliminacines.",
-  "admin",
-  "Roles",
-  "",
-];
+
 
 export default function EstudiantesPage() {
   const { setTheme } = useTheme();
 
-  const mainItems = sections.map((item) => ({
-    title: item,
-    tooltip: item,
-  }));
 
   return (
     <TooltipProvider>
       <SidebarProvider className="min-h-screen">
-        <AppSidebar mainItems={mainItems} footerItems={[]} />
+        <PermissionSidebar />
 
         <SidebarInset className="bg-muted/30 min-h-screen">
 

@@ -21,37 +21,16 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 import { AsesoresYMonitoresForm } from "@/components/forms/AsesoresYMonitoresForm";
-
-const sections = [
-  "Inicio",
-  "Tareas.",
-  "Recepcion",
-  "Nueva consulta",
-  "Consultas juridicas",
-  "Nuevo Proceso.",
-  "Procesos juridicos.",
-  "Estudiantes",
-  "Asesores y monitores",
-  "Estadísticas.",
-  "Formatos y modelos.",
-  "Eliminacines.",
-  "admin",
-  "Roles",
-  "",
-];
+import { PermissionSidebar } from "@/components/navigation/PermissionSidebar";
 
 export default function AsesoresYMonitoresPage() {
   const { setTheme } = useTheme();
 
-  const mainItems = sections.map((item) => ({
-    title: item,
-    tooltip: item,
-  }));
 
   return (
     <TooltipProvider>
       <SidebarProvider className="min-h-screen">
-        <AppSidebar mainItems={mainItems} footerItems={[]} />
+        <PermissionSidebar />
 
         <SidebarInset className="bg-muted/30 min-h-screen">
 

@@ -56,14 +56,19 @@ export function AppSidebar({ mainItems = [], footerItems = [] }) {
     return `/${String(text).toLowerCase().replace(/\s+/g, "")}`
   }
 
-  function handleSubmit(item) {
-    const path = item.path
-      ? item.path.startsWith("/")
-        ? item.path
-        : `/${item.path}`
-      : normalizePath(item.title)
+  function getItemPath(item) {
+    if (item.path) {
+      return item.path.startsWith("/") ? item.path : `/${item.path}`
+    }
 
-    if (!path) return
+    return normalizePath(item.title)
+  }
+
+  function handleSubmit(item) {
+    const path = getItemPath(item)
+
+    if (!path || path === "#") return
+
     router.push(path)
   }
 
@@ -107,7 +112,7 @@ export function AppSidebar({ mainItems = [], footerItems = [] }) {
         <SidebarContent className="px-2 py-4 flex-1">
           <SidebarMenu>
             {mainItems.map((item, index) => {
-              const path = normalizePath(item.title)
+              const path = getItemPath(item)
               const isActive = pathname === path
 
               return (

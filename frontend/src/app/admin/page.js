@@ -28,37 +28,19 @@ import {
 import { TemaForm } from "@/components/forms/TemaForm"
 import { TipoForm } from "@/components/forms/TipoForm"
 import { AreaForm } from "@/components/forms/AreaForm"
+import { RolePermissionsForm } from "@/components/forms/RolePermissionsForm"  
 
-const sections = [
-  "Inicio",
-  "Tareas.",
-  "Recepcion",
-  "Nueva consulta",
-  "Consultas juridicas",
-  "Nuevo Proceso.",
-  "Procesos juridicos.",
-  "Estudiantes",
-  "Asesores y monitores",
-  "Estadísticas.",
-  "Formatos y modelos.",
-  "Eliminacines.",
-  "admin",
-  "Roles",
-  "",
-];
+
 
 export default function ConfiguracionCatalogos() {
   const { setTheme } = useTheme()
 
-  const mainItems = sections.map((item) => ({
-    title: item,
-    tooltip: item,
-  }))
 
   return (
     <TooltipProvider>
       <SidebarProvider>
-        <AppSidebar mainItems={mainItems} footerItems={[]} />
+        <PermissionSidebar />
+
 
         <SidebarInset className="bg-muted/30 min-h-screen">
 
@@ -126,6 +108,7 @@ export default function ConfiguracionCatalogos() {
                     <TabsTrigger value="tema">Tema</TabsTrigger>
                     <TabsTrigger value="tipo">Tipo</TabsTrigger>
                     <TabsTrigger value="area">Área</TabsTrigger>
+                    <TabsTrigger value="permisos">Permisos</TabsTrigger>
                   </TabsList>
 
                   {/* CONTENIDO */}
@@ -139,6 +122,10 @@ export default function ConfiguracionCatalogos() {
 
                   <TabsContent value="area" className="pt-4">
                     <AreaForm />
+                  </TabsContent>
+
+                  <TabsContent value="permisos" className="pt-4">
+                    <RolePermissionsForm />
                   </TabsContent>
 
                 </Tabs>

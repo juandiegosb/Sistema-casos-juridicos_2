@@ -19,46 +19,18 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-
+import { PermissionSidebar } from "@/components/navigation/PermissionSidebar" 
 export default function Home() {
-  const sections = [
-  "Inicio",
-  "Tareas.",
-  "Recepcion",
-  "Nueva consulta",
-  "Consultas juridicas",
-  "Nuevo Proceso.",
-  "Procesos juridicos.",
-  "Estudiantes",
-  "Asesores y monitores",
-  "Estadísticas.",
-  "Formatos y modelos.",
-  "Eliminacines.",
-  "admin",
-  "Roles",
-  "",
-];
+  
+
+const { setTheme } = useTheme()
 
 
-  const { setTheme } = useTheme()
-
-  const mainItems = sections.map((item) => ({
-    title: item,
-    tooltip: item,
-  }))
-
-  const footerItems = [
-    {
-      title: "Configuración",
-      tooltip: "Configuración",
-      path: "/configuracion",
-    },
-  ]
 
   return (
     <TooltipProvider>
       <SidebarProvider>
-        <AppSidebar mainItems={mainItems} footerItems={footerItems} />
+        <PermissionSidebar />
 
         <SidebarInset className="bg-muted/30">
 

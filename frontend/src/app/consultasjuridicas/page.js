@@ -18,36 +18,16 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { ConsultasJuridicasForm } from "@/components/forms/ConsultasJuridicasForm"
+import { PermissionSidebar } from "@/components/navigation/PermissionSidebar"
 
-const sections = [
-  "Inicio",
-  "Tareas.",
-  "Recepcion",
-  "Nueva consulta",
-  "Consultas juridicas",
-  "Nuevo Proceso.",
-  "Procesos juridicos.",
-  "Estudiantes",
-  "Asesores y monitores",
-  "Estadísticas.",
-  "Formatos y modelos.",
-  "Eliminacines.",
-  "admin",
-  "Roles",
-  "",
-];
 export default function ConsultasJuridicasPage() {
   const { setTheme } = useTheme()
 
-  const mainItems = sections.map((item) => ({
-    title: item,
-    tooltip: item,
-  }))
 
   return (
     <TooltipProvider>
       <SidebarProvider className="min-h-screen">
-        <AppSidebar mainItems={mainItems} footerItems={[]} />
+        <PermissionSidebar />
 
         <SidebarInset className="bg-muted/30 min-h-screen">
 
