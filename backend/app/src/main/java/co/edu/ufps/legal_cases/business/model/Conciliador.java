@@ -1,5 +1,6 @@
 package co.edu.ufps.legal_cases.business.model;
 
+import co.edu.ufps.legal_cases.security.model.UsuarioSistema;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -10,6 +11,7 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
 import lombok.Getter;
 import lombok.Setter;
@@ -23,6 +25,13 @@ public class Conciliador {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    // Usuario del sistema asociado a este conciliador.
+    // Esta relación hace parte de la normalización nueva.
+    // Por ahora es nullable para permitir migrar datos existentes sin romper el arranque.
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "usuario_sistema_id", unique = true)
+    private UsuarioSistema usuarioSistema;
 
     @Column(name = "nombre", nullable = false, length = 150)
     private String nombre;

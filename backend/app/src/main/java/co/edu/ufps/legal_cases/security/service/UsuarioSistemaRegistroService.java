@@ -117,7 +117,7 @@ public class UsuarioSistemaRegistroService {
         return usuarioSistemaRepository.save(usuario);
     }
 
-    public void crearParaConciliador(Conciliador conciliador) {
+    public UsuarioSistema crearParaConciliador(Conciliador conciliador) {
         validarPerfilConciliador(conciliador);
 
         UsuarioSistema usuario = crearUsuarioBase(
@@ -127,10 +127,12 @@ public class UsuarioSistemaRegistroService {
                 TipoPerfilUsuario.CONCILIADOR
         );
 
+        // Relación vieja temporal.
+        // Se mantiene para no romper login, /me ni validaciones actuales mientras se migra.
         usuario.setConciliador(conciliador);
         validarUnSoloPerfil(usuario);
 
-        usuarioSistemaRepository.save(usuario);
+        return usuarioSistemaRepository.save(usuario);
     }
 
     private UsuarioSistema crearUsuarioBase(

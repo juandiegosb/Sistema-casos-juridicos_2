@@ -14,6 +14,7 @@ import co.edu.ufps.legal_cases.business.repository.ConciliadorRepository;
 import co.edu.ufps.legal_cases.business.repository.SedeRepository;
 import co.edu.ufps.legal_cases.business.repository.TipoDocumentoRepository;
 import co.edu.ufps.legal_cases.exception.BusinessException;
+import co.edu.ufps.legal_cases.security.model.UsuarioSistema;
 import co.edu.ufps.legal_cases.security.service.UsuarioSistemaRegistroService;
 import jakarta.transaction.Transactional;
 
@@ -101,8 +102,16 @@ public class ConciliadorService {
         Conciliador conciliadorGuardado = conciliadorRepository.save(conciliador);
 
         //Aqui estoy creando el usuario ante el sistema
-        usuarioSistemaRegistroService.crearParaConciliador(conciliadorGuardado);
-        return convertirADTO(conciliadorGuardado);
+        // También se conserva temporalmente la relación vieja UsuarioSistema.conciliador.
+        UsuarioSistema usuarioSistema = usuarioSistemaRegistroService.crearParaConciliador(conciliadorGuardado);
+
+        // Nueva relación normalizada.
+        // Ahora el perfil real conciliador apunta al usuario del sistema.
+        conciliadorGuardado.setUsuarioSistema(usuarioSistema);
+
+        Conciliador conciliadorActualizado = conciliadorRepository.save(conciliadorGuardado);
+
+        return convertirADTO(conciliadorActualizado);
     }
 
     public ConciliadorDTO actualizar(Long id, ConciliadorDTO dto) {
