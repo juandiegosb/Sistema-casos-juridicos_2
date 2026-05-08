@@ -7,6 +7,8 @@ import co.edu.ufps.legal_cases.business.model.Estudiante;
 import co.edu.ufps.legal_cases.business.model.Monitor;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -39,12 +41,24 @@ public class UsuarioSistema {
     @Column(name = "activo", nullable = false)
     private Boolean activo = true;
 
+    // Tipo de perfil real activo del usuario.
+    // Este campo hace parte de la normalización nueva.
+    // Por ahora puede ser null para permitir migrar usuarios existentes.
+    // Más adelante reemplazará la necesidad de consultar asesor_id, estudiante_id,
+    // monitor_id, administrativo_id y conciliador_id desde usuario_sistema.
+    @Enumerated(EnumType.STRING)
+    @Column(name = "tipo_perfil_actual", length = 30)
+    private TipoPerfilUsuario tipoPerfilActual;
+
     // Rol administrable asignado al usuario.
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "rol_id", nullable = false)
     private Rol rol;
 
     // Perfiles reales del sistema. Solo uno debe estar informado por usuario.
+    // Estas relaciones se mantienen temporalmente para no romper la lógica actual.
+    // Más adelante se eliminarán cuando el sistema lea el perfil desde cada tabla
+    // real mediante usuario_sistema_id.
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "asesor_id", unique = true)
     private Asesor asesor;
