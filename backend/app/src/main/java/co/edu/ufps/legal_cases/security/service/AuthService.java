@@ -12,6 +12,7 @@ import co.edu.ufps.legal_cases.security.dto.CambiarPasswordRequestDTO;
 import co.edu.ufps.legal_cases.security.dto.LoginRequestDTO;
 import co.edu.ufps.legal_cases.security.dto.LoginResponseDTO;
 import co.edu.ufps.legal_cases.security.dto.LoginResultDTO;
+import co.edu.ufps.legal_cases.security.dto.PerfilUsuarioActual;
 import co.edu.ufps.legal_cases.security.dto.UsuarioSistemaDTO;
 import co.edu.ufps.legal_cases.security.model.Permiso;
 import co.edu.ufps.legal_cases.security.model.UsuarioSistema;
@@ -25,14 +26,17 @@ public class AuthService {
     private final UsuarioSistemaRepository usuarioSistemaRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
+    private final PerfilUsuarioResolverService perfilUsuarioResolverService;
 
     public AuthService(
             UsuarioSistemaRepository usuarioSistemaRepository,
             PasswordEncoder passwordEncoder,
-            JwtService jwtService) {
+            JwtService jwtService,
+            PerfilUsuarioResolverService perfilUsuarioResolverService) {
         this.usuarioSistemaRepository = usuarioSistemaRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtService = jwtService;
+        this.perfilUsuarioResolverService = perfilUsuarioResolverService;
     }
 
     @Transactional(readOnly = true)
@@ -53,7 +57,10 @@ public class AuthService {
 
         validarUsuarioActivo(usuario);
         validarRolActivo(usuario);
-        validarPerfilActivo(usuario);
+
+        // Se valida que el perfil real asociado también esté activo.
+        // Ahora se resuelve con tipo_perfil_actual y usuario_sistema_id en la tabla real.
+        PerfilUsuarioActual perfilActual = validarPerfilActivo(usuario);
 
         if (!passwordEncoder.matches(dto.getPassword(), usuario.getPasswordHash())) {
             throw new BusinessException("Usuario o contraseña incorrectos");
@@ -64,8 +71,8 @@ public class AuthService {
                 usuario.getUsername(),
                 usuario.getRol().getId(),
                 usuario.getRol().getNombre(),
-                obtenerPerfilId(usuario),
-                obtenerTipoPerfil(usuario),
+                perfilActual.getPerfilId(),
+                perfilActual.getTipoPerfil().name(),
                 obtenerPermisosActivos(usuario));
 
         String token = jwtService.generarToken(usuario.getUsername());
@@ -108,6 +115,8 @@ public class AuthService {
 
         validarUsuarioActivo(usuario);
         validarRolActivo(usuario);
+
+        // Se valida con la nueva relación normalizada.
         validarPerfilActivo(usuario);
 
         return usuario;
@@ -160,74 +169,10 @@ public class AuthService {
     }
 
     // Se valida que el perfil real asociado también esté activo.
-    private void validarPerfilActivo(UsuarioSistema usuario) {
-        if (usuario.getAsesor() != null && !Boolean.TRUE.equals(usuario.getAsesor().getActivo())) {
-            throw new BusinessException("El asesor asociado se encuentra inactivo");
-        }
-
-        if (usuario.getEstudiante() != null && !Boolean.TRUE.equals(usuario.getEstudiante().getActivo())) {
-            throw new BusinessException("El estudiante asociado se encuentra inactivo");
-        }
-
-        if (usuario.getMonitor() != null && !Boolean.TRUE.equals(usuario.getMonitor().getActivo())) {
-            throw new BusinessException("El monitor asociado se encuentra inactivo");
-        }
-
-        if (usuario.getAdministrativo() != null && !Boolean.TRUE.equals(usuario.getAdministrativo().getActivo())) {
-            throw new BusinessException("El administrativo asociado se encuentra inactivo");
-        }
-
-        if (usuario.getConciliador() != null && !Boolean.TRUE.equals(usuario.getConciliador().getActivo())) {
-            throw new BusinessException("El conciliador asociado se encuentra inactivo");
-        }
-    }
-
-    private Long obtenerPerfilId(UsuarioSistema usuario) {
-        if (usuario.getAsesor() != null) {
-            return usuario.getAsesor().getId();
-        }
-
-        if (usuario.getEstudiante() != null) {
-            return usuario.getEstudiante().getId();
-        }
-
-        if (usuario.getMonitor() != null) {
-            return usuario.getMonitor().getId();
-        }
-
-        if (usuario.getAdministrativo() != null) {
-            return usuario.getAdministrativo().getId();
-        }
-
-        if (usuario.getConciliador() != null) {
-            return usuario.getConciliador().getId();
-        }
-
-        return null;
-    }
-
-    private String obtenerTipoPerfil(UsuarioSistema usuario) {
-        if (usuario.getAsesor() != null) {
-            return "ASESOR";
-        }
-
-        if (usuario.getEstudiante() != null) {
-            return "ESTUDIANTE";
-        }
-
-        if (usuario.getMonitor() != null) {
-            return "MONITOR";
-        }
-
-        if (usuario.getAdministrativo() != null) {
-            return "ADMINISTRATIVO";
-        }
-
-        if (usuario.getConciliador() != null) {
-            return "CONCILIADOR";
-        }
-
-        return "SIN_PERFIL";
+    // Esta validación ya no depende de asesor_id, estudiante_id, monitor_id,
+    // administrativo_id ni conciliador_id en usuario_sistema.
+    private PerfilUsuarioActual validarPerfilActivo(UsuarioSistema usuario) {
+        return perfilUsuarioResolverService.obtenerPerfilActivoObligatorio(usuario);
     }
 
     // Obtiene solo los permisos activos del rol y los ordena por nombre
@@ -254,8 +199,10 @@ public class AuthService {
             dto.setPermisos(obtenerPermisosActivos(usuario));
         }
 
-        dto.setPerfilId(obtenerPerfilId(usuario));
-        dto.setTipoPerfil(obtenerTipoPerfil(usuario));
+        PerfilUsuarioActual perfilActual = validarPerfilActivo(usuario);
+
+        dto.setPerfilId(perfilActual.getPerfilId());
+        dto.setTipoPerfil(perfilActual.getTipoPerfil().name());
 
         return dto;
     }
