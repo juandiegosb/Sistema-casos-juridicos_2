@@ -1,6 +1,7 @@
 package co.edu.ufps.legal_cases.business.repository;
 
 import java.util.List;
+import java.util.Optional;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
@@ -31,4 +32,6 @@ public interface ConciliadorRepository extends JpaRepository<Conciliador, Long> 
     boolean existsByCodigoIgnoreCaseAndIdNot(String codigo, Long id);
 
     List<Conciliador> findByActivoTrue();
+
+    Optional<Conciliador> findByUsuarioSistema_IdAndActivoTrue(Long usuarioSistemaId);
 }

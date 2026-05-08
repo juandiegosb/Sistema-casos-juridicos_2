@@ -36,4 +36,6 @@ public interface AsesorRepository extends JpaRepository<Asesor, Long> {
 
     //Para en estudiante poder ver los asesores activos
     Optional<Asesor> findByIdAndActivoTrue(Long id);
+
+    Optional<Asesor> findByUsuarioSistema_IdAndActivoTrue(Long usuarioSistemaId);
 }

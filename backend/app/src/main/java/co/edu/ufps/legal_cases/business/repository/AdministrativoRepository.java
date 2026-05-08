@@ -1,6 +1,7 @@
 package co.edu.ufps.legal_cases.business.repository;
 
 import java.util.List;
+import java.util.Optional;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
@@ -33,4 +34,6 @@ public interface AdministrativoRepository extends JpaRepository<Administrativo, 
     List<Administrativo> findByActivoTrue();
 
     List<Administrativo> findByDirectoraTrue();
+
+    Optional<Administrativo> findByUsuarioSistema_IdAndActivoTrue(Long usuarioSistemaId);
 }
