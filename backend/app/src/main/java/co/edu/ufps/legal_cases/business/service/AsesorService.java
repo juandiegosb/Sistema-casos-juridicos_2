@@ -2,9 +2,9 @@ package co.edu.ufps.legal_cases.business.service;
 
 import java.util.List;
 import java.util.Objects;
-import org.springframework.transaction.annotation.Transactional;
 
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import co.edu.ufps.legal_cases.business.dto.AsesorDTO;
 import co.edu.ufps.legal_cases.business.model.Area;
@@ -16,6 +16,7 @@ import co.edu.ufps.legal_cases.business.repository.AsesorRepository;
 import co.edu.ufps.legal_cases.business.repository.SedeRepository;
 import co.edu.ufps.legal_cases.business.repository.TipoDocumentoRepository;
 import co.edu.ufps.legal_cases.exception.BusinessException;
+import co.edu.ufps.legal_cases.security.model.UsuarioSistema;
 import co.edu.ufps.legal_cases.security.service.UsuarioSistemaRegistroService;
 
 import static co.edu.ufps.legal_cases.util.ComparacionUtils.equalsIgnoreCase;
@@ -104,10 +105,18 @@ public class AsesorService {
         asesor.setActivo(dto.getActivo() != null ? dto.getActivo() : true);
 
         Asesor asesorGuardado = asesorRepository.save(asesor);
-        
+
         //Aqui estoy creando el usuario ante el sistema
-        usuarioSistemaRegistroService.crearParaAsesor(asesorGuardado);
-        return convertirADTO(asesorGuardado);
+        // También se conserva temporalmente la relación vieja UsuarioSistema.asesor.
+        UsuarioSistema usuarioSistema = usuarioSistemaRegistroService.crearParaAsesor(asesorGuardado);
+
+        // Nueva relación normalizada.
+        // Ahora el perfil real asesor apunta al usuario del sistema.
+        asesorGuardado.setUsuarioSistema(usuarioSistema);
+
+        Asesor asesorActualizado = asesorRepository.save(asesorGuardado);
+
+        return convertirADTO(asesorActualizado);
     }
 
     public AsesorDTO actualizar(Long id, AsesorDTO dto) {

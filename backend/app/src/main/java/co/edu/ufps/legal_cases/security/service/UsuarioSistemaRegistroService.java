@@ -45,7 +45,7 @@ public class UsuarioSistemaRegistroService {
         this.passwordEncoder = passwordEncoder;
     }
 
-    public void crearParaAsesor(Asesor asesor) {
+    public UsuarioSistema crearParaAsesor(Asesor asesor) {
         validarPerfilAsesor(asesor);
 
         UsuarioSistema usuario = crearUsuarioBase(
@@ -55,10 +55,12 @@ public class UsuarioSistemaRegistroService {
                 TipoPerfilUsuario.ASESOR
         );
 
+        // Relación vieja temporal.
+        // Se mantiene para no romper login, /me ni validaciones actuales mientras se migra.
         usuario.setAsesor(asesor);
         validarUnSoloPerfil(usuario);
 
-        usuarioSistemaRepository.save(usuario);
+        return usuarioSistemaRepository.save(usuario);
     }
 
     public UsuarioSistema crearParaEstudiante(Estudiante estudiante) {
