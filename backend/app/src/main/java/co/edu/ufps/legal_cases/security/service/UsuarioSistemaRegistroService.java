@@ -11,6 +11,7 @@ import co.edu.ufps.legal_cases.business.model.Estudiante;
 import co.edu.ufps.legal_cases.business.model.Monitor;
 import co.edu.ufps.legal_cases.exception.BusinessException;
 import co.edu.ufps.legal_cases.security.model.Rol;
+import co.edu.ufps.legal_cases.security.model.TipoPerfilUsuario;
 import co.edu.ufps.legal_cases.security.model.UsuarioSistema;
 import co.edu.ufps.legal_cases.security.repository.RolRepository;
 import co.edu.ufps.legal_cases.security.repository.UsuarioSistemaRepository;
@@ -50,7 +51,8 @@ public class UsuarioSistemaRegistroService {
         UsuarioSistema usuario = crearUsuarioBase(
                 asesor.getEmail(),
                 asesor.getDocumento(),
-                ROL_ASESOR
+                ROL_ASESOR,
+                TipoPerfilUsuario.ASESOR
         );
 
         usuario.setAsesor(asesor);
@@ -59,19 +61,22 @@ public class UsuarioSistemaRegistroService {
         usuarioSistemaRepository.save(usuario);
     }
 
-    public void crearParaEstudiante(Estudiante estudiante) {
+    public UsuarioSistema crearParaEstudiante(Estudiante estudiante) {
         validarPerfilEstudiante(estudiante);
 
         UsuarioSistema usuario = crearUsuarioBase(
                 estudiante.getEmail(),
                 estudiante.getDocumento(),
-                ROL_ESTUDIANTE
+                ROL_ESTUDIANTE,
+                TipoPerfilUsuario.ESTUDIANTE
         );
 
+        // Relación vieja temporal.
+        // Se mantiene para no romper login, /me ni validaciones actuales mientras se migra.
         usuario.setEstudiante(estudiante);
         validarUnSoloPerfil(usuario);
 
-        usuarioSistemaRepository.save(usuario);
+        return usuarioSistemaRepository.save(usuario);
     }
 
     public void crearParaMonitor(Monitor monitor) {
@@ -80,7 +85,8 @@ public class UsuarioSistemaRegistroService {
         UsuarioSistema usuario = crearUsuarioBase(
                 monitor.getEmail(),
                 monitor.getDocumento(),
-                ROL_MONITOR
+                ROL_MONITOR,
+                TipoPerfilUsuario.MONITOR
         );
 
         usuario.setMonitor(monitor);
@@ -95,7 +101,8 @@ public class UsuarioSistemaRegistroService {
         UsuarioSistema usuario = crearUsuarioBase(
                 administrativo.getEmail(),
                 administrativo.getDocumento(),
-                ROL_ADMINISTRADOR
+                ROL_ADMINISTRADOR,
+                TipoPerfilUsuario.ADMINISTRATIVO
         );
 
         usuario.setAdministrativo(administrativo);
@@ -110,7 +117,8 @@ public class UsuarioSistemaRegistroService {
         UsuarioSistema usuario = crearUsuarioBase(
                 conciliador.getEmail(),
                 conciliador.getDocumento(),
-                ROL_CONCILIADOR
+                ROL_CONCILIADOR,
+                TipoPerfilUsuario.CONCILIADOR
         );
 
         usuario.setConciliador(conciliador);
@@ -119,7 +127,12 @@ public class UsuarioSistemaRegistroService {
         usuarioSistemaRepository.save(usuario);
     }
 
-    private UsuarioSistema crearUsuarioBase(String email, String documento, String nombreRol) {
+    private UsuarioSistema crearUsuarioBase(
+            String email,
+            String documento,
+            String nombreRol,
+            TipoPerfilUsuario tipoPerfilActual) {
+
         String username = normalizarEmail(email);
         String passwordInicial = normalizarNumeroDocumento(documento);
         Rol rol = obtenerRolBaseActivo(nombreRol);
@@ -130,6 +143,10 @@ public class UsuarioSistemaRegistroService {
 
         if (passwordInicial == null) {
             throw new BusinessException("El documento es obligatorio para crear la contraseña inicial");
+        }
+
+        if (tipoPerfilActual == null) {
+            throw new BusinessException("El tipo de perfil actual es obligatorio para crear el usuario del sistema");
         }
 
         if (usuarioSistemaRepository.existsByUsernameIgnoreCase(username)) {
@@ -144,6 +161,11 @@ public class UsuarioSistemaRegistroService {
 
         usuario.setRol(rol);
         usuario.setActivo(true);
+
+        // Nuevo modelo de normalización.
+        // Define cuál es el perfil real activo del usuario sin depender a futuro
+        // de asesor_id, estudiante_id, monitor_id, administrativo_id o conciliador_id.
+        usuario.setTipoPerfilActual(tipoPerfilActual);
 
         return usuario;
     }

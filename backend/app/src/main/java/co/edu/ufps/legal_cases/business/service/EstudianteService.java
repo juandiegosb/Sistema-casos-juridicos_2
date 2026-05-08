@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.Objects;
 
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import co.edu.ufps.legal_cases.business.dto.EstudianteDTO;
 import co.edu.ufps.legal_cases.business.model.Asesor;
@@ -15,6 +16,7 @@ import co.edu.ufps.legal_cases.business.repository.EstudianteRepository;
 import co.edu.ufps.legal_cases.business.repository.SedeRepository;
 import co.edu.ufps.legal_cases.business.repository.TipoDocumentoRepository;
 import co.edu.ufps.legal_cases.exception.BusinessException;
+import co.edu.ufps.legal_cases.security.model.UsuarioSistema;
 import co.edu.ufps.legal_cases.security.service.UsuarioSistemaRegistroService;
 
 import static co.edu.ufps.legal_cases.util.ComparacionUtils.equalsIgnoreCase;
@@ -83,6 +85,7 @@ public class EstudianteService {
         return convertirADTO(estudiante);
     }
 
+    @Transactional
     public EstudianteDTO crear(EstudianteDTO dto) {
         if (dto.getId() != null) {
             throw new BusinessException("El id no debe enviarse en la creación");
@@ -119,10 +122,18 @@ public class EstudianteService {
         estudiante.setConciliacion(dto.getConciliacion() != null ? dto.getConciliacion() : false);
 
         Estudiante estudianteGuardado = estudianteRepository.save(estudiante);
-        
+
         //Aqui estoy creando el usuario ante el sistema
-        usuarioSistemaRegistroService.crearParaEstudiante(estudianteGuardado);
-        return convertirADTO(estudianteGuardado);
+        // También se conserva temporalmente la relación vieja UsuarioSistema.estudiante.
+        UsuarioSistema usuarioSistema = usuarioSistemaRegistroService.crearParaEstudiante(estudianteGuardado);
+
+        // Nueva relación normalizada.
+        // Ahora el perfil real estudiante apunta al usuario del sistema.
+        estudianteGuardado.setUsuarioSistema(usuarioSistema);
+
+        Estudiante estudianteActualizado = estudianteRepository.save(estudianteGuardado);
+
+        return convertirADTO(estudianteActualizado);
     }
 
     public EstudianteDTO actualizar(Long id, EstudianteDTO dto) {
