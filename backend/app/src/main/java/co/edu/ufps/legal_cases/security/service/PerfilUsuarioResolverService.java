@@ -1,0 +1,119 @@
+package co.edu.ufps.legal_cases.security.service;
+
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import co.edu.ufps.legal_cases.business.model.Administrativo;
+import co.edu.ufps.legal_cases.business.model.Asesor;
+import co.edu.ufps.legal_cases.business.model.Conciliador;
+import co.edu.ufps.legal_cases.business.model.Estudiante;
+import co.edu.ufps.legal_cases.business.model.Monitor;
+import co.edu.ufps.legal_cases.business.repository.AdministrativoRepository;
+import co.edu.ufps.legal_cases.business.repository.AsesorRepository;
+import co.edu.ufps.legal_cases.business.repository.ConciliadorRepository;
+import co.edu.ufps.legal_cases.business.repository.EstudianteRepository;
+import co.edu.ufps.legal_cases.business.repository.MonitorRepository;
+import co.edu.ufps.legal_cases.exception.BusinessException;
+import co.edu.ufps.legal_cases.security.dto.PerfilUsuarioActual;
+import co.edu.ufps.legal_cases.security.model.TipoPerfilUsuario;
+import co.edu.ufps.legal_cases.security.model.UsuarioSistema;
+
+// Este servicio se encarga de buscar el perfil activo por la id del usuario del sistema
+// que se esta autenticando con ayuda del TipoPerfilUsuario que esta en el usuario de sistema
+@Service
+@Transactional(readOnly = true)
+public class PerfilUsuarioResolverService {
+
+    private final EstudianteRepository estudianteRepository;
+    private final AsesorRepository asesorRepository;
+    private final MonitorRepository monitorRepository;
+    private final AdministrativoRepository administrativoRepository;
+    private final ConciliadorRepository conciliadorRepository;
+
+    public PerfilUsuarioResolverService(
+            EstudianteRepository estudianteRepository,
+            AsesorRepository asesorRepository,
+            MonitorRepository monitorRepository,
+            AdministrativoRepository administrativoRepository,
+            ConciliadorRepository conciliadorRepository) {
+        this.estudianteRepository = estudianteRepository;
+        this.asesorRepository = asesorRepository;
+        this.monitorRepository = monitorRepository;
+        this.administrativoRepository = administrativoRepository;
+        this.conciliadorRepository = conciliadorRepository;
+    }
+
+    public PerfilUsuarioActual obtenerPerfilActivoObligatorio(UsuarioSistema usuario) {
+        validarUsuario(usuario);
+
+        TipoPerfilUsuario tipoPerfil = usuario.getTipoPerfilActual();
+
+        if (tipoPerfil == null) {
+            throw new BusinessException("El usuario del sistema no tiene tipo de perfil actual definido");
+        }
+
+        return switch (tipoPerfil) {
+            case ESTUDIANTE -> obtenerEstudianteActivo(usuario.getId());
+            case ASESOR -> obtenerAsesorActivo(usuario.getId());
+            case MONITOR -> obtenerMonitorActivo(usuario.getId());
+            case ADMINISTRATIVO -> obtenerAdministrativoActivo(usuario.getId());
+            case CONCILIADOR -> obtenerConciliadorActivo(usuario.getId());
+        };
+    }
+
+    public boolean tienePerfilActivo(UsuarioSistema usuario) {
+        try {
+            obtenerPerfilActivoObligatorio(usuario);
+            return true;
+        } catch (BusinessException ex) {
+            return false;
+        }
+    }
+
+    // Metodos para obtener el id del perfil asociado a la id de usuario del sistema que se esta autenticado
+    private PerfilUsuarioActual obtenerEstudianteActivo(Long usuarioSistemaId) {
+        Estudiante estudiante = estudianteRepository.findByUsuarioSistema_IdAndActivoTrue(usuarioSistemaId)
+                .orElseThrow(() -> new BusinessException(
+                        "El estudiante asociado al usuario no existe o se encuentra inactivo"));
+
+        return new PerfilUsuarioActual(estudiante.getId(), TipoPerfilUsuario.ESTUDIANTE);
+    }
+
+    private PerfilUsuarioActual obtenerAsesorActivo(Long usuarioSistemaId) {
+        Asesor asesor = asesorRepository.findByUsuarioSistema_IdAndActivoTrue(usuarioSistemaId)
+                .orElseThrow(() -> new BusinessException(
+                        "El asesor asociado al usuario no existe o se encuentra inactivo"));
+
+        return new PerfilUsuarioActual(asesor.getId(), TipoPerfilUsuario.ASESOR);
+    }
+
+    private PerfilUsuarioActual obtenerMonitorActivo(Long usuarioSistemaId) {
+        Monitor monitor = monitorRepository.findByUsuarioSistema_IdAndActivoTrue(usuarioSistemaId)
+                .orElseThrow(() -> new BusinessException(
+                        "El monitor asociado al usuario no existe o se encuentra inactivo"));
+
+        return new PerfilUsuarioActual(monitor.getId(), TipoPerfilUsuario.MONITOR);
+    }
+
+    private PerfilUsuarioActual obtenerAdministrativoActivo(Long usuarioSistemaId) {
+        Administrativo administrativo = administrativoRepository.findByUsuarioSistema_IdAndActivoTrue(usuarioSistemaId)
+                .orElseThrow(() -> new BusinessException(
+                        "El administrativo asociado al usuario no existe o se encuentra inactivo"));
+
+        return new PerfilUsuarioActual(administrativo.getId(), TipoPerfilUsuario.ADMINISTRATIVO);
+    }
+
+    private PerfilUsuarioActual obtenerConciliadorActivo(Long usuarioSistemaId) {
+        Conciliador conciliador = conciliadorRepository.findByUsuarioSistema_IdAndActivoTrue(usuarioSistemaId)
+                .orElseThrow(() -> new BusinessException(
+                        "El conciliador asociado al usuario no existe o se encuentra inactivo"));
+
+        return new PerfilUsuarioActual(conciliador.getId(), TipoPerfilUsuario.CONCILIADOR);
+    }
+
+    private void validarUsuario(UsuarioSistema usuario) {
+        if (usuario == null || usuario.getId() == null) {
+            throw new BusinessException("El usuario del sistema es obligatorio para resolver el perfil");
+        }
+    }
+}
