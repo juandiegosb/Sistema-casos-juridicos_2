@@ -81,7 +81,7 @@ public class UsuarioSistemaRegistroService {
         return usuarioSistemaRepository.save(usuario);
     }
 
-    public void crearParaMonitor(Monitor monitor) {
+    public UsuarioSistema crearParaMonitor(Monitor monitor) {
         validarPerfilMonitor(monitor);
 
         UsuarioSistema usuario = crearUsuarioBase(
@@ -91,10 +91,12 @@ public class UsuarioSistemaRegistroService {
                 TipoPerfilUsuario.MONITOR
         );
 
+        // Relación vieja temporal.
+        // Se mantiene para no romper login, /me ni validaciones actuales mientras se migra.
         usuario.setMonitor(monitor);
         validarUnSoloPerfil(usuario);
 
-        usuarioSistemaRepository.save(usuario);
+        return usuarioSistemaRepository.save(usuario);
     }
 
     public void crearParaAdministrativo(Administrativo administrativo) {

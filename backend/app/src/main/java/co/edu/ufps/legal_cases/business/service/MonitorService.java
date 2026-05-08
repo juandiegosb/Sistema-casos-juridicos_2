@@ -13,6 +13,7 @@ import co.edu.ufps.legal_cases.business.repository.MonitorRepository;
 import co.edu.ufps.legal_cases.business.repository.SedeRepository;
 import co.edu.ufps.legal_cases.business.repository.TipoDocumentoRepository;
 import co.edu.ufps.legal_cases.exception.BusinessException;
+import co.edu.ufps.legal_cases.security.model.UsuarioSistema;
 import co.edu.ufps.legal_cases.security.service.UsuarioSistemaRegistroService;
 import jakarta.transaction.Transactional;
 
@@ -97,10 +98,18 @@ public class MonitorService {
         monitor.setActivo(dto.getActivo() != null ? dto.getActivo() : true);
 
         Monitor monitorGuardado = monitorRepository.save(monitor);
-        
+
         //Aqui estoy creando el usuario ante el sistema
-        usuarioSistemaRegistroService.crearParaMonitor(monitorGuardado);
-        return convertirADTO(monitorGuardado);
+        // También se conserva temporalmente la relación vieja UsuarioSistema.monitor.
+        UsuarioSistema usuarioSistema = usuarioSistemaRegistroService.crearParaMonitor(monitorGuardado);
+
+        // Nueva relación normalizada.
+        // Ahora el perfil real monitor apunta al usuario del sistema.
+        monitorGuardado.setUsuarioSistema(usuarioSistema);
+
+        Monitor monitorActualizado = monitorRepository.save(monitorGuardado);
+
+        return convertirADTO(monitorActualizado);
     }
 
     public MonitorDTO actualizar(Long id, MonitorDTO dto) {
