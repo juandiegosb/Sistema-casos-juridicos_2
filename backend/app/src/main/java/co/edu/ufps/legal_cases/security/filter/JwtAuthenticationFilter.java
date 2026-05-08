@@ -14,6 +14,7 @@ import co.edu.ufps.legal_cases.security.model.Permiso;
 import co.edu.ufps.legal_cases.security.model.UsuarioSistema;
 import co.edu.ufps.legal_cases.security.repository.UsuarioSistemaRepository;
 import co.edu.ufps.legal_cases.security.service.JwtService;
+import co.edu.ufps.legal_cases.security.service.PerfilUsuarioResolverService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.Cookie;
@@ -30,12 +31,15 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtService jwtService;
     private final UsuarioSistemaRepository usuarioSistemaRepository;
+    private final PerfilUsuarioResolverService perfilUsuarioResolverService;
 
     public JwtAuthenticationFilter(
             JwtService jwtService,
-            UsuarioSistemaRepository usuarioSistemaRepository) {
+            UsuarioSistemaRepository usuarioSistemaRepository,
+            PerfilUsuarioResolverService perfilUsuarioResolverService) {
         this.jwtService = jwtService;
         this.usuarioSistemaRepository = usuarioSistemaRepository;
+        this.perfilUsuarioResolverService = perfilUsuarioResolverService;
     }
 
     @Override
@@ -114,27 +118,10 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     }
 
     private boolean perfilActivo(UsuarioSistema usuario) {
-        if (usuario.getAsesor() != null) {
-            return Boolean.TRUE.equals(usuario.getAsesor().getActivo());
-        }
-
-        if (usuario.getEstudiante() != null) {
-            return Boolean.TRUE.equals(usuario.getEstudiante().getActivo());
-        }
-
-        if (usuario.getMonitor() != null) {
-            return Boolean.TRUE.equals(usuario.getMonitor().getActivo());
-        }
-
-        if (usuario.getAdministrativo() != null) {
-            return Boolean.TRUE.equals(usuario.getAdministrativo().getActivo());
-        }
-
-        if (usuario.getConciliador() != null) {
-            return Boolean.TRUE.equals(usuario.getConciliador().getActivo());
-        }
-
-        return false;
+        // Nueva validación normalizada.
+        // Ya no depende de asesor_id, estudiante_id, monitor_id, administrativo_id ni conciliador_id
+        // dentro de usuario_sistema, sino de tipo_perfil_actual y usuario_sistema_id en la tabla real.
+        return perfilUsuarioResolverService.tienePerfilActivo(usuario);
     }
 
     // Convierte los permisos activos del rol en permisos de Spring Security
