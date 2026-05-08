@@ -34,6 +34,7 @@ public class PasswordResetService {
     private final PasswordResetTokenRepository passwordResetTokenRepository;
     private final PasswordEncoder passwordEncoder;
     private final EmailService emailService;
+    private final PerfilUsuarioResolverService perfilUsuarioResolverService;
     private final String resetPasswordUrl;
     private final long expirationMinutes;
 
@@ -42,12 +43,14 @@ public class PasswordResetService {
             PasswordResetTokenRepository passwordResetTokenRepository,
             PasswordEncoder passwordEncoder,
             EmailService emailService,
+            PerfilUsuarioResolverService perfilUsuarioResolverService,
             @Value("${app.frontend.reset-password-url}") String resetPasswordUrl,
             @Value("${app.password-reset.expiration-minutes}") long expirationMinutes) {
         this.usuarioSistemaRepository = usuarioSistemaRepository;
         this.passwordResetTokenRepository = passwordResetTokenRepository;
         this.passwordEncoder = passwordEncoder;
         this.emailService = emailService;
+        this.perfilUsuarioResolverService = perfilUsuarioResolverService;
         this.resetPasswordUrl = resetPasswordUrl;
         this.expirationMinutes = expirationMinutes;
     }
@@ -60,8 +63,10 @@ public class PasswordResetService {
             throw new BusinessException("El correo es obligatorio");
         }
 
-        // Busca el usuario con rol y perfil cargados para poder validar si puede
-        // recuperar contraseña
+        // Busca el usuario con rol cargado para poder validar si puede recuperar contraseña.
+        // El perfil real ya no se carga desde usuario_sistema, ahora se resuelve con
+        // PerfilUsuarioResolverService usando tipo_perfil_actual y usuario_sistema_id
+        // en la tabla real.
         UsuarioSistema usuario = usuarioSistemaRepository
                 .findForPasswordResetByUsernameIgnoreCase(username)
                 .orElse(null);
@@ -199,27 +204,10 @@ public class PasswordResetService {
 
     // Valida que el perfil real asociado al usuario tambien este activo
     private boolean perfilActivo(UsuarioSistema usuario) {
-        if (usuario.getAsesor() != null) {
-            return Boolean.TRUE.equals(usuario.getAsesor().getActivo());
-        }
-
-        if (usuario.getEstudiante() != null) {
-            return Boolean.TRUE.equals(usuario.getEstudiante().getActivo());
-        }
-
-        if (usuario.getMonitor() != null) {
-            return Boolean.TRUE.equals(usuario.getMonitor().getActivo());
-        }
-
-        if (usuario.getAdministrativo() != null) {
-            return Boolean.TRUE.equals(usuario.getAdministrativo().getActivo());
-        }
-
-        if (usuario.getConciliador() != null) {
-            return Boolean.TRUE.equals(usuario.getConciliador().getActivo());
-        }
-
-        return false;
+        // Nueva validación normalizada.
+        // Ya no depende de asesor_id, estudiante_id, monitor_id, administrativo_id
+        // ni conciliador_id dentro de usuario_sistema.
+        return perfilUsuarioResolverService.tienePerfilActivo(usuario);
     }
 
     // Genera un token aleatorio y seguro para enviarlo por correo
