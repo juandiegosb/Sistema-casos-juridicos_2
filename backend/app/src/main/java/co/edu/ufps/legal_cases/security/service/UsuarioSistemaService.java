@@ -8,6 +8,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import co.edu.ufps.legal_cases.exception.BusinessException;
+import co.edu.ufps.legal_cases.security.dto.PerfilUsuarioActual;
 import co.edu.ufps.legal_cases.security.dto.UsuarioSistemaDTO;
 import co.edu.ufps.legal_cases.security.model.Permiso;
 import co.edu.ufps.legal_cases.security.model.UsuarioSistema;
@@ -17,9 +18,13 @@ import co.edu.ufps.legal_cases.security.repository.UsuarioSistemaRepository;
 public class UsuarioSistemaService {
 
     private final UsuarioSistemaRepository usuarioSistemaRepository;
+    private final PerfilUsuarioResolverService perfilUsuarioResolverService;
 
-    public UsuarioSistemaService(UsuarioSistemaRepository usuarioSistemaRepository) {
+    public UsuarioSistemaService(
+            UsuarioSistemaRepository usuarioSistemaRepository,
+            PerfilUsuarioResolverService perfilUsuarioResolverService) {
         this.usuarioSistemaRepository = usuarioSistemaRepository;
+        this.perfilUsuarioResolverService = perfilUsuarioResolverService;
     }
 
     @Transactional(readOnly = true)
@@ -94,37 +99,19 @@ public class UsuarioSistemaService {
 
     // Identifica a qué perfil real pertenece el usuario del sistema.
     private void asignarPerfil(UsuarioSistemaDTO dto, UsuarioSistema usuario) {
-        if (usuario.getAsesor() != null) {
-            dto.setPerfilId(usuario.getAsesor().getId());
-            dto.setTipoPerfil("ASESOR");
-            return;
-        }
+        try {
+            // Nueva lectura normalizada.
+            // Ya no depende de asesor_id, estudiante_id, monitor_id, administrativo_id
+            // ni conciliador_id dentro de usuario_sistema.
+            PerfilUsuarioActual perfilActual =
+                    perfilUsuarioResolverService.obtenerPerfilActivoObligatorio(usuario);
 
-        if (usuario.getEstudiante() != null) {
-            dto.setPerfilId(usuario.getEstudiante().getId());
-            dto.setTipoPerfil("ESTUDIANTE");
-            return;
-        }
+            dto.setPerfilId(perfilActual.getPerfilId());
+            dto.setTipoPerfil(perfilActual.getTipoPerfil().name());
 
-        if (usuario.getMonitor() != null) {
-            dto.setPerfilId(usuario.getMonitor().getId());
-            dto.setTipoPerfil("MONITOR");
-            return;
+        } catch (BusinessException ex) {
+            dto.setPerfilId(null);
+            dto.setTipoPerfil("SIN_PERFIL");
         }
-
-        if (usuario.getAdministrativo() != null) {
-            dto.setPerfilId(usuario.getAdministrativo().getId());
-            dto.setTipoPerfil("ADMINISTRATIVO");
-            return;
-        }
-
-        if (usuario.getConciliador() != null) {
-            dto.setPerfilId(usuario.getConciliador().getId());
-            dto.setTipoPerfil("CONCILIADOR");
-            return;
-        }
-
-        dto.setPerfilId(null);
-        dto.setTipoPerfil("SIN_PERFIL");
     }
 }

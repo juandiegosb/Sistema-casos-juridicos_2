@@ -28,6 +28,8 @@ public interface UsuarioSistemaRepository extends JpaRepository<UsuarioSistema, 
         List<UsuarioSistema> findByActivoTrue();
 
         // Para validar que un perfil no tenga 2 usuarios asociados.
+        // Estos metodos se mantienen temporalmente mientras se termina la migracion
+        // desde las columnas viejas de usuario_sistema hacia usuario_sistema_id en cada perfil real.
         boolean existsByAsesor_Id(Long asesorId);
 
         boolean existsByEstudiante_Id(Long estudianteId);
@@ -45,16 +47,13 @@ public interface UsuarioSistemaRepository extends JpaRepository<UsuarioSistema, 
         @EntityGraph(attributePaths = { "rol", "rol.permisos" })
         Optional<UsuarioSistema> findWithRolAndPermisosByUsernameIgnoreCase(String username);
 
-        // Esto es para que no solo el usuario del sistema se cargue sino sus permisos y
-        // el perfil asociado con todos sus datos
+        // Esto es para que no solo el usuario del sistema se cargue sino sus permisos.
+        // El nombre del metodo se conserva temporalmente para no romper el filtro JWT.
+        // El perfil asociado ahora se resuelve con PerfilUsuarioResolverService usando
+        // tipo_perfil_actual y usuario_sistema_id en la tabla real.
         @EntityGraph(attributePaths = {
                         "rol",
-                        "rol.permisos",
-                        "asesor",
-                        "estudiante",
-                        "monitor",
-                        "administrativo",
-                        "conciliador"
+                        "rol.permisos"
         })
         // Selecciona al que tenga el username que se pide en el Param
         @Query("""
@@ -65,15 +64,10 @@ public interface UsuarioSistemaRepository extends JpaRepository<UsuarioSistema, 
         Optional<UsuarioSistema> findWithRolPermisosAndPerfilByUsername(
                         @Param("username") String username); // El param es para usarlo como variable en la consulta
 
-        // Carga el usuario para recuperación de contraseña con rol y perfil real,
-        // sin cargar los permisos del rol porque no se necesitan en este proceso.
+        // Carga el usuario para recuperación de contraseña con rol,
+        // sin cargar los permisos del rol ni el perfil real porque no se necesitan en este proceso.
         @EntityGraph(attributePaths = {
-                        "rol",
-                        "asesor",
-                        "estudiante",
-                        "monitor",
-                        "administrativo",
-                        "conciliador"
+                        "rol"
         })
         Optional<UsuarioSistema> findForPasswordResetByUsernameIgnoreCase(String username);
 }
