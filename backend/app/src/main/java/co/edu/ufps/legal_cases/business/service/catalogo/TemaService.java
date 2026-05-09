@@ -5,7 +5,7 @@ import co.edu.ufps.legal_cases.business.model.catalogo.Area;
 import co.edu.ufps.legal_cases.business.model.catalogo.Tema;
 import co.edu.ufps.legal_cases.business.repository.catalogo.AreaRepository;
 import co.edu.ufps.legal_cases.business.repository.catalogo.TemaRepository;
-import co.edu.ufps.legal_cases.exception.BusinessException;
+import co.edu.ufps.legal_cases.common.exception.BusinessException;
 
 import org.springframework.stereotype.Service;
 

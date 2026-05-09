@@ -8,7 +8,7 @@ import java.util.Objects;
 
 import org.springframework.stereotype.Service;
 
-import co.edu.ufps.legal_cases.exception.BusinessException;
+import co.edu.ufps.legal_cases.common.exception.BusinessException;
 import co.edu.ufps.legal_cases.security.dto.access.PermisoDTO;
 import co.edu.ufps.legal_cases.security.model.access.Permiso;
 import co.edu.ufps.legal_cases.security.repository.access.PermisoRepository;

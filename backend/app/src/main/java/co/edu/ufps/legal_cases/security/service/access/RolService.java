@@ -13,7 +13,7 @@ import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import co.edu.ufps.legal_cases.exception.BusinessException;
+import co.edu.ufps.legal_cases.common.exception.BusinessException;
 import co.edu.ufps.legal_cases.security.dto.access.PermisoDTO;
 import co.edu.ufps.legal_cases.security.dto.access.RolDTO;
 import co.edu.ufps.legal_cases.security.model.access.Permiso;

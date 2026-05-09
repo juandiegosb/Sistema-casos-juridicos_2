@@ -16,7 +16,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import co.edu.ufps.legal_cases.exception.BusinessException;
+import co.edu.ufps.legal_cases.common.exception.BusinessException;
 import co.edu.ufps.legal_cases.security.dto.auth.RestablecerPasswordDTO;
 import co.edu.ufps.legal_cases.security.dto.auth.SolicitarRecuperacionPasswordDTO;
 import co.edu.ufps.legal_cases.security.model.account.UsuarioSistema;

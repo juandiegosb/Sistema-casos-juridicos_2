@@ -12,7 +12,7 @@ import co.edu.ufps.legal_cases.business.model.perfil.Asesor;
 import co.edu.ufps.legal_cases.business.model.perfil.Conciliador;
 import co.edu.ufps.legal_cases.business.model.perfil.Estudiante;
 import co.edu.ufps.legal_cases.business.model.perfil.Monitor;
-import co.edu.ufps.legal_cases.exception.BusinessException;
+import co.edu.ufps.legal_cases.common.exception.BusinessException;
 import co.edu.ufps.legal_cases.security.model.access.Rol;
 import co.edu.ufps.legal_cases.security.model.account.TipoPerfilUsuario;
 import co.edu.ufps.legal_cases.security.model.account.UsuarioSistema;

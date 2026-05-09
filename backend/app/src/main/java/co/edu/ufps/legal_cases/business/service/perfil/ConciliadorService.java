@@ -22,7 +22,7 @@ import co.edu.ufps.legal_cases.business.model.perfil.TipoConciliador;
 import co.edu.ufps.legal_cases.business.repository.catalogo.SedeRepository;
 import co.edu.ufps.legal_cases.business.repository.catalogo.TipoDocumentoRepository;
 import co.edu.ufps.legal_cases.business.repository.perfil.ConciliadorRepository;
-import co.edu.ufps.legal_cases.exception.BusinessException;
+import co.edu.ufps.legal_cases.common.exception.BusinessException;
 import co.edu.ufps.legal_cases.security.model.account.UsuarioSistema;
 import co.edu.ufps.legal_cases.security.service.account.UsuarioSistemaRegistroService;
 import jakarta.transaction.Transactional;

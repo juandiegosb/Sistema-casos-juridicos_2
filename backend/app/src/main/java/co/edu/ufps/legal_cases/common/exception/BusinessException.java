@@ -1,4 +1,4 @@
-package co.edu.ufps.legal_cases.exception;
+package co.edu.ufps.legal_cases.common.exception;
 
 public class BusinessException extends RuntimeException {
 

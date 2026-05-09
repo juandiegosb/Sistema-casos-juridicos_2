@@ -27,7 +27,7 @@ import co.edu.ufps.legal_cases.business.repository.perfil.AsesorRepository;
 import co.edu.ufps.legal_cases.business.repository.perfil.EstudianteRepository;
 import co.edu.ufps.legal_cases.business.repository.perfil.MonitorRepository;
 import co.edu.ufps.legal_cases.business.repository.persona.PersonaRepository;
-import co.edu.ufps.legal_cases.exception.BusinessException;
+import co.edu.ufps.legal_cases.common.exception.BusinessException;
 
 @Service
 public class ConsultaService {

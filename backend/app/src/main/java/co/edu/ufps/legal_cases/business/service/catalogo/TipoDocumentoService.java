@@ -9,7 +9,7 @@ import org.springframework.stereotype.Service;
 import co.edu.ufps.legal_cases.business.dto.catalogo.TipoDocumentoDTO;
 import co.edu.ufps.legal_cases.business.model.catalogo.TipoDocumento;
 import co.edu.ufps.legal_cases.business.repository.catalogo.TipoDocumentoRepository;
-import co.edu.ufps.legal_cases.exception.BusinessException;
+import co.edu.ufps.legal_cases.common.exception.BusinessException;
 
 @Service
 public class TipoDocumentoService {

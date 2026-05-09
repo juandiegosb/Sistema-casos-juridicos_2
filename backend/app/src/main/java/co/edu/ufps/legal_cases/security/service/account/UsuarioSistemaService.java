@@ -7,7 +7,7 @@ import java.util.Objects;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import co.edu.ufps.legal_cases.exception.BusinessException;
+import co.edu.ufps.legal_cases.common.exception.BusinessException;
 import co.edu.ufps.legal_cases.security.dto.account.PerfilUsuarioActual;
 import co.edu.ufps.legal_cases.security.dto.account.UsuarioSistemaDTO;
 import co.edu.ufps.legal_cases.security.model.access.Permiso;
