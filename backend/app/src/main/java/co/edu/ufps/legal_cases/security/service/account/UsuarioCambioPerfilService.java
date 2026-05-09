@@ -60,6 +60,7 @@ public class UsuarioCambioPerfilService {
         this.handlers = construirMapaHandlers(handlers);
     }
 
+    // Metodos para que el controller use y no tenga destras la logica de negocio
     public UsuarioSistemaDTO cambiarAAdministrativo(
             Long usuarioSistemaId,
             CambiarPerfilAAdministrativoDTO dto,
@@ -68,6 +69,54 @@ public class UsuarioCambioPerfilService {
         return cambiarPerfil(
                 usuarioSistemaId,
                 TipoPerfilUsuario.ADMINISTRATIVO,
+                dto,
+                cambiadoPorUsername);
+    }
+
+    public UsuarioSistemaDTO cambiarAEstudiante(
+            Long usuarioSistemaId,
+            CambiarPerfilAEstudianteDTO dto,
+            String cambiadoPorUsername) {
+
+        return cambiarPerfil(
+                usuarioSistemaId,
+                TipoPerfilUsuario.ESTUDIANTE,
+                dto,
+                cambiadoPorUsername);
+    }
+
+    public UsuarioSistemaDTO cambiarAAsesor(
+            Long usuarioSistemaId,
+            CambiarPerfilAAsesorDTO dto,
+            String cambiadoPorUsername) {
+
+        return cambiarPerfil(
+                usuarioSistemaId,
+                TipoPerfilUsuario.ASESOR,
+                dto,
+                cambiadoPorUsername);
+    }
+
+    public UsuarioSistemaDTO cambiarAMonitor(
+            Long usuarioSistemaId,
+            CambiarPerfilAMonitorDTO dto,
+            String cambiadoPorUsername) {
+
+        return cambiarPerfil(
+                usuarioSistemaId,
+                TipoPerfilUsuario.MONITOR,
+                dto,
+                cambiadoPorUsername);
+    }
+
+    public UsuarioSistemaDTO cambiarAConciliador(
+            Long usuarioSistemaId,
+            CambiarPerfilAConciliadorDTO dto,
+            String cambiadoPorUsername) {
+
+        return cambiarPerfil(
+                usuarioSistemaId,
+                TipoPerfilUsuario.CONCILIADOR,
                 dto,
                 cambiadoPorUsername);
     }
@@ -271,51 +320,4 @@ public class UsuarioCambioPerfilService {
         usuarioSistemaRepository.save(usuario);
     }
 
-    public UsuarioSistemaDTO cambiarAEstudiante(
-            Long usuarioSistemaId,
-            CambiarPerfilAEstudianteDTO dto,
-            String cambiadoPorUsername) {
-
-        return cambiarPerfil(
-                usuarioSistemaId,
-                TipoPerfilUsuario.ESTUDIANTE,
-                dto,
-                cambiadoPorUsername);
-    }
-
-    public UsuarioSistemaDTO cambiarAAsesor(
-            Long usuarioSistemaId,
-            CambiarPerfilAAsesorDTO dto,
-            String cambiadoPorUsername) {
-
-        return cambiarPerfil(
-                usuarioSistemaId,
-                TipoPerfilUsuario.ASESOR,
-                dto,
-                cambiadoPorUsername);
-    }
-
-    public UsuarioSistemaDTO cambiarAMonitor(
-            Long usuarioSistemaId,
-            CambiarPerfilAMonitorDTO dto,
-            String cambiadoPorUsername) {
-
-        return cambiarPerfil(
-                usuarioSistemaId,
-                TipoPerfilUsuario.MONITOR,
-                dto,
-                cambiadoPorUsername);
-    }
-
-    public UsuarioSistemaDTO cambiarAConciliador(
-            Long usuarioSistemaId,
-            CambiarPerfilAConciliadorDTO dto,
-            String cambiadoPorUsername) {
-
-        return cambiarPerfil(
-                usuarioSistemaId,
-                TipoPerfilUsuario.CONCILIADOR,
-                dto,
-                cambiadoPorUsername);
-    }
 }
