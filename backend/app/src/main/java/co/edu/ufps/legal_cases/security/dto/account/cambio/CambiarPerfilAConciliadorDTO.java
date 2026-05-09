@@ -6,30 +6,7 @@ import lombok.Setter;
 
 @Getter
 @Setter
-public class CambiarPerfilAConciliadorDTO {
-
-    // No se pone email porque eso ya existe en el usuario de sistema
-
-    // Rol conciliador que tendrá el usuario después del cambio.
-    private Long rolId;
-
-    // Motivo del cambio. Se guardará en el historial.
-    private String motivo;
-
-    // Datos propios del nuevo perfil conciliador.
-    private String nombre;
-
-    private Long tipoDocumentoId;
-
-    private String documento;
-
-    private String telefono;
-
-    private String usuario;
-
-    private String codigo;
-
-    private Long sedeId;
+public class CambiarPerfilAConciliadorDTO extends CambiarPerfilBaseDTO {
 
     private TipoConciliador tipoConciliador;
 }
