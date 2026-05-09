@@ -9,7 +9,7 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
-import co.edu.ufps.legal_cases.security.filter.JwtAuthenticationFilter;
+import co.edu.ufps.legal_cases.security.filter.jwt.JwtAuthenticationFilter;
 
 @Configuration
 @EnableMethodSecurity // Para poder proteger endpoints por @PreAuthorize

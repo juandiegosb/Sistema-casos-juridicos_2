@@ -16,8 +16,8 @@ import co.edu.ufps.legal_cases.business.repository.catalogo.SedeRepository;
 import co.edu.ufps.legal_cases.business.repository.catalogo.TipoDocumentoRepository;
 import co.edu.ufps.legal_cases.business.repository.perfil.AsesorRepository;
 import co.edu.ufps.legal_cases.exception.BusinessException;
-import co.edu.ufps.legal_cases.security.model.UsuarioSistema;
-import co.edu.ufps.legal_cases.security.service.UsuarioSistemaRegistroService;
+import co.edu.ufps.legal_cases.security.model.account.UsuarioSistema;
+import co.edu.ufps.legal_cases.security.service.account.UsuarioSistemaRegistroService;
 
 import static co.edu.ufps.legal_cases.util.ComparacionUtils.equalsIgnoreCase;
 import static co.edu.ufps.legal_cases.util.ComparacionUtils.mismoId;

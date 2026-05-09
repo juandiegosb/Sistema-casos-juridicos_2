@@ -2,7 +2,7 @@ package co.edu.ufps.legal_cases.business.model.perfil;
 
 import co.edu.ufps.legal_cases.business.model.catalogo.Sede;
 import co.edu.ufps.legal_cases.business.model.catalogo.TipoDocumento;
-import co.edu.ufps.legal_cases.security.model.UsuarioSistema;
+import co.edu.ufps.legal_cases.security.model.account.UsuarioSistema;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;

@@ -7,10 +7,10 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.Order;
 
-import co.edu.ufps.legal_cases.security.model.Permiso;
-import co.edu.ufps.legal_cases.security.model.Rol;
-import co.edu.ufps.legal_cases.security.repository.PermisoRepository;
-import co.edu.ufps.legal_cases.security.repository.RolRepository;
+import co.edu.ufps.legal_cases.security.model.access.Permiso;
+import co.edu.ufps.legal_cases.security.model.access.Rol;
+import co.edu.ufps.legal_cases.security.repository.access.PermisoRepository;
+import co.edu.ufps.legal_cases.security.repository.access.RolRepository;
 
 import static co.edu.ufps.legal_cases.util.NormalizacionUtils.normalizarTexto;
 
