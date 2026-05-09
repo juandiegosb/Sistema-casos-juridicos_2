@@ -48,93 +48,76 @@ public class UsuarioSistemaRegistroService {
     public UsuarioSistema crearParaAsesor(Asesor asesor) {
         validarPerfilAsesor(asesor);
 
-        UsuarioSistema usuario = crearUsuarioBase(
+        return crearYGuardarUsuarioBase(
                 asesor.getEmail(),
                 asesor.getDocumento(),
                 ROL_ASESOR,
                 TipoPerfilUsuario.ASESOR
         );
-
-        // Relación vieja temporal.
-        // Se mantiene para no romper login, /me ni validaciones actuales mientras se migra.
-        usuario.setAsesor(asesor);
-        validarUnSoloPerfil(usuario);
-
-        return usuarioSistemaRepository.save(usuario);
     }
 
     public UsuarioSistema crearParaEstudiante(Estudiante estudiante) {
         validarPerfilEstudiante(estudiante);
 
-        UsuarioSistema usuario = crearUsuarioBase(
+        return crearYGuardarUsuarioBase(
                 estudiante.getEmail(),
                 estudiante.getDocumento(),
                 ROL_ESTUDIANTE,
                 TipoPerfilUsuario.ESTUDIANTE
         );
-
-        // Relación vieja temporal.
-        // Se mantiene para no romper login, /me ni validaciones actuales mientras se migra.
-        usuario.setEstudiante(estudiante);
-        validarUnSoloPerfil(usuario);
-
-        return usuarioSistemaRepository.save(usuario);
     }
 
     public UsuarioSistema crearParaMonitor(Monitor monitor) {
         validarPerfilMonitor(monitor);
 
-        UsuarioSistema usuario = crearUsuarioBase(
+        return crearYGuardarUsuarioBase(
                 monitor.getEmail(),
                 monitor.getDocumento(),
                 ROL_MONITOR,
                 TipoPerfilUsuario.MONITOR
         );
-
-        // Relación vieja temporal.
-        // Se mantiene para no romper login, /me ni validaciones actuales mientras se migra.
-        usuario.setMonitor(monitor);
-        validarUnSoloPerfil(usuario);
-
-        return usuarioSistemaRepository.save(usuario);
     }
 
     public UsuarioSistema crearParaAdministrativo(Administrativo administrativo) {
         validarPerfilAdministrativo(administrativo);
 
-        UsuarioSistema usuario = crearUsuarioBase(
+        return crearYGuardarUsuarioBase(
                 administrativo.getEmail(),
                 administrativo.getDocumento(),
                 ROL_ADMINISTRADOR,
                 TipoPerfilUsuario.ADMINISTRATIVO
         );
-
-        // Relación vieja temporal.
-        // Se mantiene para no romper login, /me ni validaciones actuales mientras se migra.
-        usuario.setAdministrativo(administrativo);
-        validarUnSoloPerfil(usuario);
-
-        return usuarioSistemaRepository.save(usuario);
     }
 
     public UsuarioSistema crearParaConciliador(Conciliador conciliador) {
         validarPerfilConciliador(conciliador);
 
-        UsuarioSistema usuario = crearUsuarioBase(
+        return crearYGuardarUsuarioBase(
                 conciliador.getEmail(),
                 conciliador.getDocumento(),
                 ROL_CONCILIADOR,
                 TipoPerfilUsuario.CONCILIADOR
         );
+    }
 
-        // Relación vieja temporal.
-        // Se mantiene para no romper login, /me ni validaciones actuales mientras se migra.
-        usuario.setConciliador(conciliador);
-        validarUnSoloPerfil(usuario);
+    private UsuarioSistema crearYGuardarUsuarioBase(
+            String email,
+            String documento,
+            String nombreRol,
+            TipoPerfilUsuario tipoPerfilActual) {
 
+        UsuarioSistema usuario = crearUsuarioBase(
+                email,
+                documento,
+                nombreRol,
+                tipoPerfilActual
+        );
+
+        // Arriba se creo pero aqui es que se guarda
         return usuarioSistemaRepository.save(usuario);
     }
 
+    // Aqui se crea el objeto pero no se guarda
     private UsuarioSistema crearUsuarioBase(
             String email,
             String documento,
@@ -171,7 +154,7 @@ public class UsuarioSistemaRegistroService {
         usuario.setActivo(true);
 
         // Nuevo modelo de normalización.
-        // Define cuál es el perfil real activo del usuario sin depender a futuro
+        // Define cuál es el perfil real activo del usuario sin depender
         // de asesor_id, estudiante_id, monitor_id, administrativo_id o conciliador_id.
         usuario.setTipoPerfilActual(tipoPerfilActual);
 
@@ -189,7 +172,7 @@ public class UsuarioSistemaRegistroService {
             throw new BusinessException("El asesor es obligatorio para crear el usuario del sistema");
         }
 
-        if (usuarioSistemaRepository.existsByAsesor_Id(asesor.getId())) {
+        if (asesor.getUsuarioSistema() != null) {
             throw new BusinessException("Ese asesor ya tiene usuario del sistema");
         }
     }
@@ -199,7 +182,7 @@ public class UsuarioSistemaRegistroService {
             throw new BusinessException("El estudiante es obligatorio para crear el usuario del sistema");
         }
 
-        if (usuarioSistemaRepository.existsByEstudiante_Id(estudiante.getId())) {
+        if (estudiante.getUsuarioSistema() != null) {
             throw new BusinessException("Ese estudiante ya tiene usuario del sistema");
         }
     }
@@ -209,7 +192,7 @@ public class UsuarioSistemaRegistroService {
             throw new BusinessException("El monitor es obligatorio para crear el usuario del sistema");
         }
 
-        if (usuarioSistemaRepository.existsByMonitor_Id(monitor.getId())) {
+        if (monitor.getUsuarioSistema() != null) {
             throw new BusinessException("Ese monitor ya tiene usuario del sistema");
         }
     }
@@ -219,7 +202,7 @@ public class UsuarioSistemaRegistroService {
             throw new BusinessException("El administrativo es obligatorio para crear el usuario del sistema");
         }
 
-        if (usuarioSistemaRepository.existsByAdministrativo_Id(administrativo.getId())) {
+        if (administrativo.getUsuarioSistema() != null) {
             throw new BusinessException("Ese administrativo ya tiene usuario del sistema");
         }
     }
@@ -229,37 +212,8 @@ public class UsuarioSistemaRegistroService {
             throw new BusinessException("El conciliador es obligatorio para crear el usuario del sistema");
         }
 
-        if (usuarioSistemaRepository.existsByConciliador_Id(conciliador.getId())) {
+        if (conciliador.getUsuarioSistema() != null) {
             throw new BusinessException("Ese conciliador ya tiene usuario del sistema");
-        }
-    }
-
-    // Garantiza que el usuario del sistema quede asociado exactamente a un perfil real.
-    private void validarUnSoloPerfil(UsuarioSistema usuario) {
-        int cantidadPerfiles = 0;
-
-        if (usuario.getAsesor() != null) {
-            cantidadPerfiles++;
-        }
-
-        if (usuario.getEstudiante() != null) {
-            cantidadPerfiles++;
-        }
-
-        if (usuario.getMonitor() != null) {
-            cantidadPerfiles++;
-        }
-
-        if (usuario.getAdministrativo() != null) {
-            cantidadPerfiles++;
-        }
-
-        if (usuario.getConciliador() != null) {
-            cantidadPerfiles++;
-        }
-
-        if (cantidadPerfiles != 1) {
-            throw new BusinessException("El usuario del sistema debe estar asociado exactamente a un perfil");
         }
     }
 }

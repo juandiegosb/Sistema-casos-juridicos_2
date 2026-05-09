@@ -27,19 +27,6 @@ public interface UsuarioSistemaRepository extends JpaRepository<UsuarioSistema, 
         @EntityGraph(attributePaths = { "rol", "rol.permisos" })
         List<UsuarioSistema> findByActivoTrue();
 
-        // Para validar que un perfil no tenga 2 usuarios asociados.
-        // Estos metodos se mantienen temporalmente mientras se termina la migracion
-        // desde las columnas viejas de usuario_sistema hacia usuario_sistema_id en cada perfil real.
-        boolean existsByAsesor_Id(Long asesorId);
-
-        boolean existsByEstudiante_Id(Long estudianteId);
-
-        boolean existsByMonitor_Id(Long monitorId);
-
-        boolean existsByAdministrativo_Id(Long administrativoId);
-
-        boolean existsByConciliador_Id(Long conciliadorId);
-
         @EntityGraph(attributePaths = { "rol", "rol.permisos" })
         Optional<UsuarioSistema> findWithRolAndPermisosById(Long id);
 
