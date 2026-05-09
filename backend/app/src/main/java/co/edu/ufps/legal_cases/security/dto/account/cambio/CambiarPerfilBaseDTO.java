@@ -3,6 +3,7 @@ package co.edu.ufps.legal_cases.security.dto.account.cambio;
 import lombok.Getter;
 import lombok.Setter;
 
+// Se usa para que sea la clase padre de cada tipo de perfil y que los demas la hereden
 @Getter
 @Setter
 public class CambiarPerfilBaseDTO {
