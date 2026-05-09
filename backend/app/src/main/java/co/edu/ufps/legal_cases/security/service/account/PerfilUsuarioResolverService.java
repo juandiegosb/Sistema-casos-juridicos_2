@@ -52,6 +52,7 @@ public class PerfilUsuarioResolverService {
             throw new BusinessException("El usuario del sistema no tiene tipo de perfil actual definido");
         }
 
+        // como el usuario del sistema tiene el tipo de perfil entonces por ese tipo sabe en que tabla buscar
         return switch (tipoPerfil) {
             case ESTUDIANTE -> obtenerEstudianteActivo(usuario.getId());
             case ASESOR -> obtenerAsesorActivo(usuario.getId());

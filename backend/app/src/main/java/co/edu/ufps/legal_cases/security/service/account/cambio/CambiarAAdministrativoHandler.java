@@ -45,7 +45,7 @@ public class CambiarAAdministrativoHandler
     public ResultadoCambioPerfil crearOActualizarPerfil(
             UsuarioSistema usuarioSistema,
             CambiarPerfilAAdministrativoDTO dto) {
-
+ 
         DatosPerfilCambioNormalizados datos =
                 perfilCambioDatosService.normalizarDatosBasicos(
                         dto,
@@ -53,21 +53,24 @@ public class CambiarAAdministrativoHandler
                         false
                 );
 
+        // Ya estan normalizados pero necesitamos traer los objetos del catalogo
         TipoDocumento tipoDocumento =
                 perfilCambioDatosService.obtenerTipoDocumentoOpcional(dto.getTipoDocumentoId());
 
         Sede sede =
                 perfilCambioDatosService.obtenerSedeOpcional(dto.getSedeId());
 
+        // Aqui o se obtiene el que ya existe o se crea uno
         Administrativo administrativo = administrativoRepository
                 .findByUsuarioSistema_Id(usuarioSistema.getId())
                 .orElseGet(Administrativo::new);
 
         Long idActual = administrativo.getId();
 
+        // Aqui se valida para el caso de que ya exista o sea nuevvo
         validarDuplicados(idActual, datos);
 
-        administrativo.setUsuarioSistema(usuarioSistema);
+        administrativo.setUsuarioSistema(usuarioSistema);   // La id del mismo usuario del sistema (es la misma porque cambio de rol, no de cuenta en usuario del sistema)
         administrativo.setNombre(datos.getNombre());
         administrativo.setTipoDocumento(tipoDocumento);
         administrativo.setDocumento(datos.getDocumento());
@@ -81,6 +84,7 @@ public class CambiarAAdministrativoHandler
 
         Administrativo administrativoGuardado = administrativoRepository.save(administrativo);
 
+        // Luego de guardado envia solo lo necesario para decir que este perfil es ahora el activo
         return new ResultadoCambioPerfil(
                 administrativoGuardado.getId(),
                 TipoPerfilUsuario.ADMINISTRATIVO
@@ -96,6 +100,7 @@ public class CambiarAAdministrativoHandler
         validarDuplicadosActualizacion(idActual, datos);
     }
 
+    // Aqui es estricto con los duplicados (porque no se pueden cruzar con una existente)
     private void validarDuplicadosCreacion(DatosPerfilCambioNormalizados datos) {
         if (datos.getDocumento() != null
                 && administrativoRepository.existsByDocumento(datos.getDocumento())) {
@@ -119,6 +124,8 @@ public class CambiarAAdministrativoHandler
         }
     }
 
+    // Aqui como se usa en cada metodo el "AndIdNot" es para revisar los demas menos en el que esta
+    // asi solo verifica para los demas pero pasa si mismo permite actualizar sin problema
     private void validarDuplicadosActualizacion(Long idActual, DatosPerfilCambioNormalizados datos) {
         if (datos.getDocumento() != null
                 && administrativoRepository.existsByDocumentoAndIdNot(datos.getDocumento(), idActual)) {
