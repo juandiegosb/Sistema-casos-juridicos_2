@@ -7,15 +7,15 @@ import co.edu.ufps.legal_cases.business.model.catalogo.Sede;
 import co.edu.ufps.legal_cases.business.model.catalogo.TipoDocumento;
 import co.edu.ufps.legal_cases.business.model.perfil.Administrativo;
 import co.edu.ufps.legal_cases.business.repository.perfil.AdministrativoRepository;
-import co.edu.ufps.legal_cases.common.exception.BusinessException;
 import co.edu.ufps.legal_cases.security.dto.account.cambio.CambiarPerfilAAdministrativoDTO;
 import co.edu.ufps.legal_cases.security.dto.account.cambio.DatosPerfilCambioNormalizados;
 import co.edu.ufps.legal_cases.security.dto.account.cambio.ResultadoCambioPerfil;
 import co.edu.ufps.legal_cases.security.model.account.TipoPerfilUsuario;
 import co.edu.ufps.legal_cases.security.model.account.UsuarioSistema;
 
-// Esto es un servicio concreto para:
-// crear, actualizar o reactivar el perfil administrativo de un usuario que esta cambiando de rol
+// Servicio concreto para cambiar un usuario al perfil ADMINISTRATIVO.
+// Se encarga de crear, actualizar o reactivar el perfil administrativo
+// de un usuario que está cambiando de rol.
 @Component
 @Transactional
 public class CambiarAAdministrativoHandler
@@ -23,12 +23,15 @@ public class CambiarAAdministrativoHandler
 
     private final AdministrativoRepository administrativoRepository;
     private final PerfilCambioDatosService perfilCambioDatosService;
+    private final PerfilCambioDuplicadosService perfilCambioDuplicadosService;
 
     public CambiarAAdministrativoHandler(
             AdministrativoRepository administrativoRepository,
-            PerfilCambioDatosService perfilCambioDatosService) {
+            PerfilCambioDatosService perfilCambioDatosService,
+            PerfilCambioDuplicadosService perfilCambioDuplicadosService) {
         this.administrativoRepository = administrativoRepository;
         this.perfilCambioDatosService = perfilCambioDatosService;
+        this.perfilCambioDuplicadosService = perfilCambioDuplicadosService;
     }
 
     @Override
@@ -45,7 +48,10 @@ public class CambiarAAdministrativoHandler
     public ResultadoCambioPerfil crearOActualizarPerfil(
             UsuarioSistema usuarioSistema,
             CambiarPerfilAAdministrativoDTO dto) {
- 
+
+        // Normaliza los datos comunes del perfil:
+        // nombre, documento, email, teléfono, usuario y código.
+        // El email se toma desde el UsuarioSistema porque la cuenta sigue siendo la misma.
         DatosPerfilCambioNormalizados datos =
                 perfilCambioDatosService.normalizarDatosBasicos(
                         dto,
@@ -53,24 +59,32 @@ public class CambiarAAdministrativoHandler
                         false
                 );
 
-        // Ya estan normalizados pero necesitamos traer los objetos del catalogo
+        // Los datos ya están normalizados, pero los catálogos deben consultarse
+        // como objetos reales para poder asignarlos a la entidad Administrativo.
         TipoDocumento tipoDocumento =
                 perfilCambioDatosService.obtenerTipoDocumentoOpcional(dto.getTipoDocumentoId());
 
         Sede sede =
                 perfilCambioDatosService.obtenerSedeOpcional(dto.getSedeId());
 
-        // Aqui o se obtiene el que ya existe o se crea uno
+        // Si el usuario ya tuvo un perfil administrativo, se reutiliza ese registro.
+        // Si nunca lo tuvo, se crea uno nuevo.
         Administrativo administrativo = administrativoRepository
                 .findByUsuarioSistema_Id(usuarioSistema.getId())
                 .orElseGet(Administrativo::new);
 
-        Long idActual = administrativo.getId();
+        // Valida duplicados usando el servicio centralizado.
+        // Si el administrativo es nuevo, valida contra todos.
+        // Si ya existe, permite conservar sus mismos datos y solo bloquea si
+        // documento, email, teléfono, usuario o código pertenecen a otro registro.
+        perfilCambioDuplicadosService.validarAdministrativo(
+                administrativo.getId(),
+                datos
+        );
 
-        // Aqui se valida para el caso de que ya exista o sea nuevvo
-        validarDuplicados(idActual, datos);
-
-        administrativo.setUsuarioSistema(usuarioSistema);   // La id del mismo usuario del sistema (es la misma porque cambio de rol, no de cuenta en usuario del sistema)
+        // Se asocia el perfil administrativo al mismo UsuarioSistema.
+        // Es la misma cuenta; lo que cambia es el perfil/rol activo, no el usuario de login.
+        administrativo.setUsuarioSistema(usuarioSistema);
         administrativo.setNombre(datos.getNombre());
         administrativo.setTipoDocumento(tipoDocumento);
         administrativo.setDocumento(datos.getDocumento());
@@ -84,68 +98,11 @@ public class CambiarAAdministrativoHandler
 
         Administrativo administrativoGuardado = administrativoRepository.save(administrativo);
 
-        // Luego de guardado envia solo lo necesario para decir que este perfil es ahora el activo
+        // Devuelve solo lo necesario para que el orquestador sepa
+        // cuál perfil quedó activo después del cambio.
         return new ResultadoCambioPerfil(
                 administrativoGuardado.getId(),
                 TipoPerfilUsuario.ADMINISTRATIVO
         );
-    }
-
-    private void validarDuplicados(Long idActual, DatosPerfilCambioNormalizados datos) {
-        if (idActual == null) {
-            validarDuplicadosCreacion(datos);
-            return;
-        }
-
-        validarDuplicadosActualizacion(idActual, datos);
-    }
-
-    // Aqui es estricto con los duplicados (porque no se pueden cruzar con una existente)
-    private void validarDuplicadosCreacion(DatosPerfilCambioNormalizados datos) {
-        if (datos.getDocumento() != null
-                && administrativoRepository.existsByDocumento(datos.getDocumento())) {
-            throw new BusinessException("Ya existe un administrativo con ese documento");
-        }
-
-        if (administrativoRepository.existsByEmailIgnoreCase(datos.getEmail())) {
-            throw new BusinessException("Ya existe un administrativo con ese email");
-        }
-
-        if (administrativoRepository.existsByTelefono(datos.getTelefono())) {
-            throw new BusinessException("Ya existe un administrativo con ese teléfono");
-        }
-
-        if (administrativoRepository.existsByUsuarioIgnoreCase(datos.getUsuario())) {
-            throw new BusinessException("Ya existe un administrativo con ese usuario");
-        }
-
-        if (administrativoRepository.existsByCodigoIgnoreCase(datos.getCodigo())) {
-            throw new BusinessException("Ya existe un administrativo con ese código");
-        }
-    }
-
-    // Aqui como se usa en cada metodo el "AndIdNot" es para revisar los demas menos en el que esta
-    // asi solo verifica para los demas pero pasa si mismo permite actualizar sin problema
-    private void validarDuplicadosActualizacion(Long idActual, DatosPerfilCambioNormalizados datos) {
-        if (datos.getDocumento() != null
-                && administrativoRepository.existsByDocumentoAndIdNot(datos.getDocumento(), idActual)) {
-            throw new BusinessException("Ya existe un administrativo con ese documento");
-        }
-
-        if (administrativoRepository.existsByEmailIgnoreCaseAndIdNot(datos.getEmail(), idActual)) {
-            throw new BusinessException("Ya existe un administrativo con ese email");
-        }
-
-        if (administrativoRepository.existsByTelefonoAndIdNot(datos.getTelefono(), idActual)) {
-            throw new BusinessException("Ya existe un administrativo con ese teléfono");
-        }
-
-        if (administrativoRepository.existsByUsuarioIgnoreCaseAndIdNot(datos.getUsuario(), idActual)) {
-            throw new BusinessException("Ya existe un administrativo con ese usuario");
-        }
-
-        if (administrativoRepository.existsByCodigoIgnoreCaseAndIdNot(datos.getCodigo(), idActual)) {
-            throw new BusinessException("Ya existe un administrativo con ese código");
-        }
     }
 }
