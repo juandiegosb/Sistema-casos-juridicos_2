@@ -11,6 +11,10 @@ import co.edu.ufps.legal_cases.common.exception.BusinessException;
 import co.edu.ufps.legal_cases.security.dto.account.PerfilUsuarioActual;
 import co.edu.ufps.legal_cases.security.dto.account.UsuarioSistemaDTO;
 import co.edu.ufps.legal_cases.security.dto.account.cambio.CambiarPerfilAAdministrativoDTO;
+import co.edu.ufps.legal_cases.security.dto.account.cambio.CambiarPerfilAAsesorDTO;
+import co.edu.ufps.legal_cases.security.dto.account.cambio.CambiarPerfilAConciliadorDTO;
+import co.edu.ufps.legal_cases.security.dto.account.cambio.CambiarPerfilAEstudianteDTO;
+import co.edu.ufps.legal_cases.security.dto.account.cambio.CambiarPerfilAMonitorDTO;
 import co.edu.ufps.legal_cases.security.dto.account.cambio.CambiarPerfilBaseDTO;
 import co.edu.ufps.legal_cases.security.dto.account.cambio.ResultadoCambioPerfil;
 import co.edu.ufps.legal_cases.security.model.access.Rol;
@@ -94,7 +98,7 @@ public class UsuarioCambioPerfilService {
                 usuario.getId(),
                 perfilAnterior.getTipoPerfil());
 
-        // Busca el handler correspondiente al perfil destino y se le pide que 
+        // Busca el handler correspondiente al perfil destino y se le pide que
         // cree o actualice el nuevo perfil
         ResultadoCambioPerfil resultadoCambio = obtenerHandler(tipoPerfilDestino, dto).crearOActualizarPerfil(usuario,
                 dto);
@@ -117,7 +121,8 @@ public class UsuarioCambioPerfilService {
         return usuarioSistemaService.obtenerPorId(usuario.getId());
     }
 
-    // En una especie de diccionario organiza por tipo de perfil el manejador de cada uno
+    // En una especie de diccionario organiza por tipo de perfil el manejador de
+    // cada uno
     private Map<TipoPerfilUsuario, PerfilCambioHandler<? extends CambiarPerfilBaseDTO>> construirMapaHandlers(
             List<PerfilCambioHandler<? extends CambiarPerfilBaseDTO>> handlers) {
 
@@ -139,8 +144,10 @@ public class UsuarioCambioPerfilService {
     }
 
     // Como se usa de forma generica se debe validar que exista un manejador de
-    // cambio y un dto con los datos para el cambio, tambien que el manejador de cambio
-    @SuppressWarnings("unchecked") // Esto es para que no muestre la advertencia por el cast, porque ya validé el tipo antes.
+    // cambio y un dto con los datos para el cambio, tambien que el manejador de
+    // cambio
+    @SuppressWarnings("unchecked") // Esto es para que no muestre la advertencia por el cast, porque ya validé el
+                                   // tipo antes.
     private <T extends CambiarPerfilBaseDTO> PerfilCambioHandler<T> obtenerHandler(
             TipoPerfilUsuario tipoPerfilDestino,
             T dto) {
@@ -262,5 +269,53 @@ public class UsuarioCambioPerfilService {
         usuario.setTipoPerfilActual(tipoPerfilNuevo);
 
         usuarioSistemaRepository.save(usuario);
+    }
+
+    public UsuarioSistemaDTO cambiarAEstudiante(
+            Long usuarioSistemaId,
+            CambiarPerfilAEstudianteDTO dto,
+            String cambiadoPorUsername) {
+
+        return cambiarPerfil(
+                usuarioSistemaId,
+                TipoPerfilUsuario.ESTUDIANTE,
+                dto,
+                cambiadoPorUsername);
+    }
+
+    public UsuarioSistemaDTO cambiarAAsesor(
+            Long usuarioSistemaId,
+            CambiarPerfilAAsesorDTO dto,
+            String cambiadoPorUsername) {
+
+        return cambiarPerfil(
+                usuarioSistemaId,
+                TipoPerfilUsuario.ASESOR,
+                dto,
+                cambiadoPorUsername);
+    }
+
+    public UsuarioSistemaDTO cambiarAMonitor(
+            Long usuarioSistemaId,
+            CambiarPerfilAMonitorDTO dto,
+            String cambiadoPorUsername) {
+
+        return cambiarPerfil(
+                usuarioSistemaId,
+                TipoPerfilUsuario.MONITOR,
+                dto,
+                cambiadoPorUsername);
+    }
+
+    public UsuarioSistemaDTO cambiarAConciliador(
+            Long usuarioSistemaId,
+            CambiarPerfilAConciliadorDTO dto,
+            String cambiadoPorUsername) {
+
+        return cambiarPerfil(
+                usuarioSistemaId,
+                TipoPerfilUsuario.CONCILIADOR,
+                dto,
+                cambiadoPorUsername);
     }
 }

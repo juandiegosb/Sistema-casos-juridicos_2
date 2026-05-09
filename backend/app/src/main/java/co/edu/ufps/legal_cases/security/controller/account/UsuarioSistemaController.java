@@ -8,11 +8,12 @@ import org.springframework.web.bind.annotation.*;
 
 import co.edu.ufps.legal_cases.security.dto.account.UsuarioSistemaDTO;
 import co.edu.ufps.legal_cases.security.dto.account.cambio.CambiarPerfilAAdministrativoDTO;
+import co.edu.ufps.legal_cases.security.dto.account.cambio.CambiarPerfilAAsesorDTO;
+import co.edu.ufps.legal_cases.security.dto.account.cambio.CambiarPerfilAConciliadorDTO;
+import co.edu.ufps.legal_cases.security.dto.account.cambio.CambiarPerfilAEstudianteDTO;
+import co.edu.ufps.legal_cases.security.dto.account.cambio.CambiarPerfilAMonitorDTO;
 import co.edu.ufps.legal_cases.security.service.account.UsuarioCambioPerfilService;
 import co.edu.ufps.legal_cases.security.service.account.UsuarioSistemaService;
-import org.springframework.web.bind.annotation.PatchMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.PathVariable;
 
 @RestController
 @RequestMapping("/api/usuarios-sistema")
@@ -22,8 +23,8 @@ public class UsuarioSistemaController {
     private final UsuarioSistemaService usuarioSistemaService;
     private final UsuarioCambioPerfilService usuarioCambioPerfilService;
 
-    public UsuarioSistemaController(UsuarioSistemaService usuarioSistemaService, 
-        UsuarioCambioPerfilService usuarioCambioPerfilService) {
+    public UsuarioSistemaController(UsuarioSistemaService usuarioSistemaService,
+            UsuarioCambioPerfilService usuarioCambioPerfilService) {
         this.usuarioSistemaService = usuarioSistemaService;
         this.usuarioCambioPerfilService = usuarioCambioPerfilService;
     }
@@ -51,6 +52,7 @@ public class UsuarioSistemaController {
     }
 
     // Endpoints para cambiar de roles
+    
     @PatchMapping("/{id}/perfil/administrativo")
     public UsuarioSistemaDTO cambiarAAdministrativo(
             @PathVariable Long id,
@@ -60,6 +62,62 @@ public class UsuarioSistemaController {
         String cambiadoPorUsername = authentication != null ? authentication.getName() : null;
 
         return usuarioCambioPerfilService.cambiarAAdministrativo(
+                id,
+                dto,
+                cambiadoPorUsername);
+    }
+
+    @PatchMapping("/{id}/perfil/estudiante")
+    public UsuarioSistemaDTO cambiarAEstudiante(
+            @PathVariable Long id,
+            @RequestBody CambiarPerfilAEstudianteDTO dto,
+            Authentication authentication) {
+
+        String cambiadoPorUsername = authentication != null ? authentication.getName() : null;
+
+        return usuarioCambioPerfilService.cambiarAEstudiante(
+                id,
+                dto,
+                cambiadoPorUsername);
+    }
+
+    @PatchMapping("/{id}/perfil/asesor")
+    public UsuarioSistemaDTO cambiarAAsesor(
+            @PathVariable Long id,
+            @RequestBody CambiarPerfilAAsesorDTO dto,
+            Authentication authentication) {
+
+        String cambiadoPorUsername = authentication != null ? authentication.getName() : null;
+
+        return usuarioCambioPerfilService.cambiarAAsesor(
+                id,
+                dto,
+                cambiadoPorUsername);
+    }
+
+    @PatchMapping("/{id}/perfil/monitor")
+    public UsuarioSistemaDTO cambiarAMonitor(
+            @PathVariable Long id,
+            @RequestBody CambiarPerfilAMonitorDTO dto,
+            Authentication authentication) {
+
+        String cambiadoPorUsername = authentication != null ? authentication.getName() : null;
+
+        return usuarioCambioPerfilService.cambiarAMonitor(
+                id,
+                dto,
+                cambiadoPorUsername);
+    }
+
+    @PatchMapping("/{id}/perfil/conciliador")
+    public UsuarioSistemaDTO cambiarAConciliador(
+            @PathVariable Long id,
+            @RequestBody CambiarPerfilAConciliadorDTO dto,
+            Authentication authentication) {
+
+        String cambiadoPorUsername = authentication != null ? authentication.getName() : null;
+
+        return usuarioCambioPerfilService.cambiarAConciliador(
                 id,
                 dto,
                 cambiadoPorUsername);
