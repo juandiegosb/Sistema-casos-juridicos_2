@@ -4,11 +4,11 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import co.edu.ufps.legal_cases.business.model.Administrativo;
-import co.edu.ufps.legal_cases.business.model.Asesor;
-import co.edu.ufps.legal_cases.business.model.Conciliador;
-import co.edu.ufps.legal_cases.business.model.Estudiante;
-import co.edu.ufps.legal_cases.business.model.Monitor;
+import co.edu.ufps.legal_cases.business.model.perfil.Administrativo;
+import co.edu.ufps.legal_cases.business.model.perfil.Asesor;
+import co.edu.ufps.legal_cases.business.model.perfil.Conciliador;
+import co.edu.ufps.legal_cases.business.model.perfil.Estudiante;
+import co.edu.ufps.legal_cases.business.model.perfil.Monitor;
 import co.edu.ufps.legal_cases.exception.BusinessException;
 import co.edu.ufps.legal_cases.security.model.Rol;
 import co.edu.ufps.legal_cases.security.model.TipoPerfilUsuario;
