@@ -1,5 +1,7 @@
 package co.edu.ufps.legal_cases.security.service.auth;
 
+import static co.edu.ufps.legal_cases.common.util.NormalizacionUtils.normalizarEmail;
+
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
@@ -22,8 +24,6 @@ import co.edu.ufps.legal_cases.security.model.auth.PasswordResetToken;
 import co.edu.ufps.legal_cases.security.repository.account.UsuarioSistemaRepository;
 import co.edu.ufps.legal_cases.security.repository.auth.PasswordResetTokenRepository;
 import co.edu.ufps.legal_cases.security.service.account.PerfilUsuarioResolverService;
-
-import static co.edu.ufps.legal_cases.util.NormalizacionUtils.normalizarEmail;
 
 @Service
 public class PasswordResetService {

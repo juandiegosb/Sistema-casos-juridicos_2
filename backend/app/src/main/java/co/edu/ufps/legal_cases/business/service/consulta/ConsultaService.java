@@ -1,5 +1,7 @@
 package co.edu.ufps.legal_cases.business.service.consulta;
 
+import static co.edu.ufps.legal_cases.common.util.NormalizacionUtils.normalizarTexto;
+
 import java.util.List;
 
 import org.springframework.stereotype.Service;
@@ -26,8 +28,6 @@ import co.edu.ufps.legal_cases.business.repository.perfil.EstudianteRepository;
 import co.edu.ufps.legal_cases.business.repository.perfil.MonitorRepository;
 import co.edu.ufps.legal_cases.business.repository.persona.PersonaRepository;
 import co.edu.ufps.legal_cases.exception.BusinessException;
-
-import static co.edu.ufps.legal_cases.util.NormalizacionUtils.normalizarTexto;
 
 @Service
 public class ConsultaService {

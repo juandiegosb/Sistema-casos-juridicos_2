@@ -1,5 +1,8 @@
 package co.edu.ufps.legal_cases.security.service.access;
 
+import static co.edu.ufps.legal_cases.common.util.ComparacionUtils.equalsIgnoreCase;
+import static co.edu.ufps.legal_cases.common.util.NormalizacionUtils.normalizarTexto;
+
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
@@ -17,9 +20,6 @@ import co.edu.ufps.legal_cases.security.model.access.Permiso;
 import co.edu.ufps.legal_cases.security.model.access.Rol;
 import co.edu.ufps.legal_cases.security.repository.access.PermisoRepository;
 import co.edu.ufps.legal_cases.security.repository.access.RolRepository;
-
-import static co.edu.ufps.legal_cases.util.ComparacionUtils.equalsIgnoreCase;
-import static co.edu.ufps.legal_cases.util.NormalizacionUtils.normalizarTexto;
 
 @Service
 public class RolService {

@@ -1,4 +1,4 @@
-package co.edu.ufps.legal_cases.security.config;
+package co.edu.ufps.legal_cases.config.security;
 
 import java.io.IOException;
 import java.time.LocalDateTime;

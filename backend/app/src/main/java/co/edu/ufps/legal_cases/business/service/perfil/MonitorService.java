@@ -1,5 +1,14 @@
 package co.edu.ufps.legal_cases.business.service.perfil;
 
+import static co.edu.ufps.legal_cases.common.util.ComparacionUtils.equalsIgnoreCase;
+import static co.edu.ufps.legal_cases.common.util.ComparacionUtils.mismoId;
+import static co.edu.ufps.legal_cases.common.util.NormalizacionUtils.normalizarCodigo;
+import static co.edu.ufps.legal_cases.common.util.NormalizacionUtils.normalizarEmail;
+import static co.edu.ufps.legal_cases.common.util.NormalizacionUtils.normalizarNumeroDocumento;
+import static co.edu.ufps.legal_cases.common.util.NormalizacionUtils.normalizarTelefono;
+import static co.edu.ufps.legal_cases.common.util.NormalizacionUtils.normalizarTexto;
+import static co.edu.ufps.legal_cases.common.util.NormalizacionUtils.normalizarUsuario;
+
 import java.util.List;
 import java.util.Objects;
 
@@ -16,15 +25,6 @@ import co.edu.ufps.legal_cases.exception.BusinessException;
 import co.edu.ufps.legal_cases.security.model.account.UsuarioSistema;
 import co.edu.ufps.legal_cases.security.service.account.UsuarioSistemaRegistroService;
 import jakarta.transaction.Transactional;
-
-import static co.edu.ufps.legal_cases.util.NormalizacionUtils.normalizarCodigo;
-import static co.edu.ufps.legal_cases.util.NormalizacionUtils.normalizarEmail;
-import static co.edu.ufps.legal_cases.util.NormalizacionUtils.normalizarNumeroDocumento;
-import static co.edu.ufps.legal_cases.util.NormalizacionUtils.normalizarTelefono;
-import static co.edu.ufps.legal_cases.util.NormalizacionUtils.normalizarTexto;
-import static co.edu.ufps.legal_cases.util.NormalizacionUtils.normalizarUsuario;
-import static co.edu.ufps.legal_cases.util.ComparacionUtils.equalsIgnoreCase;
-import static co.edu.ufps.legal_cases.util.ComparacionUtils.mismoId;
 
 @Service
 public class MonitorService {

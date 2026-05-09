@@ -1,5 +1,8 @@
 package co.edu.ufps.legal_cases.security.service.account;
 
+import static co.edu.ufps.legal_cases.common.util.NormalizacionUtils.normalizarEmail;
+import static co.edu.ufps.legal_cases.common.util.NormalizacionUtils.normalizarNumeroDocumento;
+
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -15,9 +18,6 @@ import co.edu.ufps.legal_cases.security.model.account.TipoPerfilUsuario;
 import co.edu.ufps.legal_cases.security.model.account.UsuarioSistema;
 import co.edu.ufps.legal_cases.security.repository.access.RolRepository;
 import co.edu.ufps.legal_cases.security.repository.account.UsuarioSistemaRepository;
-
-import static co.edu.ufps.legal_cases.util.NormalizacionUtils.normalizarEmail;
-import static co.edu.ufps.legal_cases.util.NormalizacionUtils.normalizarNumeroDocumento;
 
 // Service interno para crear usuarios del sistema a partir de perfiles reales del negocio.
 //Por esto no uso dto, sino directamente las entidades de negocio. 

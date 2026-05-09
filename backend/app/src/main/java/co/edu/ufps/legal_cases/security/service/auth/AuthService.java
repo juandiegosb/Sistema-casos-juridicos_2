@@ -1,5 +1,7 @@
 package co.edu.ufps.legal_cases.security.service.auth;
 
+import static co.edu.ufps.legal_cases.common.util.NormalizacionUtils.normalizarEmail;
+
 import java.util.Comparator;
 import java.util.List;
 
@@ -19,8 +21,6 @@ import co.edu.ufps.legal_cases.security.model.account.UsuarioSistema;
 import co.edu.ufps.legal_cases.security.repository.account.UsuarioSistemaRepository;
 import co.edu.ufps.legal_cases.security.service.account.PerfilUsuarioResolverService;
 import co.edu.ufps.legal_cases.security.service.jwt.JwtService;
-
-import static co.edu.ufps.legal_cases.util.NormalizacionUtils.normalizarEmail;
 
 @Service
 public class AuthService {

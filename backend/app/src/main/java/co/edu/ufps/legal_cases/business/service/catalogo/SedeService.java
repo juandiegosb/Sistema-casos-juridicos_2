@@ -1,5 +1,7 @@
 package co.edu.ufps.legal_cases.business.service.catalogo;
 
+import static co.edu.ufps.legal_cases.common.util.NormalizacionUtils.normalizarTexto;
+
 import java.util.List;
 
 import org.springframework.stereotype.Service;
@@ -8,8 +10,6 @@ import co.edu.ufps.legal_cases.business.dto.catalogo.SedeDTO;
 import co.edu.ufps.legal_cases.business.model.catalogo.Sede;
 import co.edu.ufps.legal_cases.business.repository.catalogo.SedeRepository;
 import co.edu.ufps.legal_cases.exception.BusinessException;
-
-import static co.edu.ufps.legal_cases.util.NormalizacionUtils.normalizarTexto;
 
 @Service
 public class SedeService {

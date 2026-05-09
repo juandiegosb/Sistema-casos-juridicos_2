@@ -1,5 +1,10 @@
 package co.edu.ufps.legal_cases.business.service.persona;
 
+import static co.edu.ufps.legal_cases.common.util.NormalizacionUtils.estaInformado;
+import static co.edu.ufps.legal_cases.common.util.NormalizacionUtils.normalizarNumeroDocumento;
+import static co.edu.ufps.legal_cases.common.util.NormalizacionUtils.normalizarTelefono;
+import static co.edu.ufps.legal_cases.common.util.NormalizacionUtils.normalizarTexto;
+
 import java.time.LocalDate;
 import java.time.Period;
 import java.util.List;
@@ -10,11 +15,6 @@ import co.edu.ufps.legal_cases.business.dto.persona.PersonaDTO;
 import co.edu.ufps.legal_cases.business.model.persona.Persona;
 import co.edu.ufps.legal_cases.business.repository.persona.PersonaRepository;
 import co.edu.ufps.legal_cases.exception.BusinessException;
-
-import static co.edu.ufps.legal_cases.util.NormalizacionUtils.estaInformado;
-import static co.edu.ufps.legal_cases.util.NormalizacionUtils.normalizarNumeroDocumento;
-import static co.edu.ufps.legal_cases.util.NormalizacionUtils.normalizarTelefono;
-import static co.edu.ufps.legal_cases.util.NormalizacionUtils.normalizarTexto;
 
 @Service
 public class PersonaService {

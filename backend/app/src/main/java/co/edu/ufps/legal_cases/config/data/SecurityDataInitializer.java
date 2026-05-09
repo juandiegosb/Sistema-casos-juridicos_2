@@ -1,4 +1,6 @@
-package co.edu.ufps.legal_cases.security.config;
+package co.edu.ufps.legal_cases.config.data;
+
+import static co.edu.ufps.legal_cases.common.util.NormalizacionUtils.normalizarTexto;
 
 import java.util.Set;
 
@@ -11,8 +13,6 @@ import co.edu.ufps.legal_cases.security.model.access.Permiso;
 import co.edu.ufps.legal_cases.security.model.access.Rol;
 import co.edu.ufps.legal_cases.security.repository.access.PermisoRepository;
 import co.edu.ufps.legal_cases.security.repository.access.RolRepository;
-
-import static co.edu.ufps.legal_cases.util.NormalizacionUtils.normalizarTexto;
 
 @Configuration
 public class SecurityDataInitializer {

@@ -1,4 +1,4 @@
-package co.edu.ufps.legal_cases.security.config;
+package co.edu.ufps.legal_cases.config.cors;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;

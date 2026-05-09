@@ -8,7 +8,8 @@ import co.edu.ufps.legal_cases.business.repository.catalogo.TipoRepository;
 import co.edu.ufps.legal_cases.exception.BusinessException;
 
 import org.springframework.stereotype.Service;
-import static co.edu.ufps.legal_cases.util.NormalizacionUtils.normalizarTexto;
+
+import static co.edu.ufps.legal_cases.common.util.NormalizacionUtils.normalizarTexto;
 
 import java.util.List;
 

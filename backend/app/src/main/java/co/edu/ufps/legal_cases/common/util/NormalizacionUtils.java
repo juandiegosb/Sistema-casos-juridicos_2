@@ -1,4 +1,4 @@
-package co.edu.ufps.legal_cases.util;
+package co.edu.ufps.legal_cases.common.util;
 
 public final class NormalizacionUtils {
 
