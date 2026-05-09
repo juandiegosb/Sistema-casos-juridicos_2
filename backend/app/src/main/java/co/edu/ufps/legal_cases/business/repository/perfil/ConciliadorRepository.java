@@ -34,4 +34,6 @@ public interface ConciliadorRepository extends JpaRepository<Conciliador, Long> 
     List<Conciliador> findByActivoTrue();
 
     Optional<Conciliador> findByUsuarioSistema_IdAndActivoTrue(Long usuarioSistemaId);
+
+    Optional<Conciliador> findByUsuarioSistema_Id(Long usuarioSistemaId);
 }
