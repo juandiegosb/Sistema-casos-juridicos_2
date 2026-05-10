@@ -30,7 +30,7 @@ import { TipoForm } from "@/components/forms/TipoForm"
 import { AreaForm } from "@/components/forms/AreaForm"
 import { RolePermissionsForm } from "@/components/forms/RolePermissionsForm"
 import { PermissionSidebar } from "@/components/navigation/PermissionSidebar"
-
+import { CambiarRolUsuarioForm } from "@/components/forms/CambiarRolUsuarioForm"
 
 export default function ConfiguracionCatalogos() {
   const { setTheme } = useTheme()
@@ -133,6 +133,13 @@ export default function ConfiguracionCatalogos() {
                       >
                         Permisos
                       </TabsTrigger>
+
+                      <TabsTrigger
+                        value="cambiar-rol"
+                        className="rounded-t-xl rounded-b-none border border-b-0 bg-muted/60 px-6 py-2 data-[state=active]:bg-background data-[state=active]:shadow-none whitespace-nowrap"
+                      >
+                        Cambiar Rol
+                      </TabsTrigger>
                     </TabsList>
 
                     <TabsContent value="tema" className="pt-4">
@@ -151,27 +158,10 @@ export default function ConfiguracionCatalogos() {
                       <RolePermissionsForm />
                     </TabsContent>
 
-                    <TabsContent value="cambiat-rol" className="pt-4">
-                     
+                    <TabsContent value="cambiar-rol" className="pt-4">
+                      <CambiarRolUsuarioForm />
                     </TabsContent>
                   </Tabs>
-
-                  {/* CONTENIDO */}
-                  <TabsContent value="tema" className="pt-4">
-                    <TemaForm />
-                  </TabsContent>
-
-                  <TabsContent value="tipo" className="pt-4">
-                    <TipoForm />
-                  </TabsContent>
-
-                  <TabsContent value="area" className="pt-4">
-                    <AreaForm />
-                  </TabsContent>
-
-                  <TabsContent value="permisos" className="pt-4">
-                    <RolePermissionsForm />
-                  </TabsContent>
 
                 </Tabs>
               </div>
