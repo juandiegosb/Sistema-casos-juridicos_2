@@ -12,14 +12,8 @@ import {
   SidebarSeparator,
 } from "@/components/ui/sidebar"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { LayoutDashboard } from "lucide-react"
+import { Power } from "lucide-react"
 import { useRouter, usePathname } from "next/navigation"
-import {
-  DropdownMenu,
-  DropdownMenuTrigger,
-  DropdownMenuContent,
-  DropdownMenuItem,
-} from "@/components/ui/dropdown-menu"
 import { API_URL_BASE } from "@/lib/config"
 
 export function AppSidebar({ mainItems = [], footerItems = [] }) {
@@ -154,35 +148,37 @@ export function AppSidebar({ mainItems = [], footerItems = [] }) {
 
             {/* USUARIO */}
             <SidebarMenuItem className="mt-6">
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <div className="flex items-center gap-3 p-2 rounded-lg cursor-pointer hover:bg-sidebar-accent/70">
+              <div className="flex items-center justify-between gap-3 p-2 rounded-lg hover:bg-sidebar-accent/70">
 
-                    <Avatar className="size-9">
-                      <AvatarImage src="https://github.com/shadcn.png" />
-                      <AvatarFallback>
-                        {name?.charAt(0).toUpperCase()}
-                      </AvatarFallback>
-                    </Avatar>
+                <div className="flex items-center gap-3 min-w-0">
+                  <Avatar className="size-9 shrink-0">
+                    <AvatarImage src="https://github.com/shadcn.png" />
+                    <AvatarFallback>
+                      {name?.charAt(0).toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
 
-                    <div className="flex flex-col text-sm leading-tight text-sidebar-foreground">
-                      <span className="font-medium">{name}</span>
-                      <span className="text-xs opacity-70">
-                        {email}
-                      </span>
-                    </div>
-
+                  <div className="flex flex-col text-sm leading-tight text-sidebar-foreground min-w-0">
+                    <span className="font-medium truncate">
+                      {name}
+                    </span>
+                    <span className="text-xs opacity-70 truncate">
+                      {email}
+                    </span>
                   </div>
-                </DropdownMenuTrigger>
+                </div>
 
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem onClick={handleLogout}>
-                    Cerrar sesión
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+                <button
+                  type="button"
+                  onClick={handleLogout}
+                  title="Cerrar sesión"
+                  aria-label="Cerrar sesión"
+                  className="flex size-9 shrink-0 items-center justify-center rounded-full text-sidebar-foreground transition hover:bg-red-500/20 hover:text-red-200"
+                >
+                  <Power className="size-5" />
+                </button>
+              </div>
             </SidebarMenuItem>
-
           </SidebarMenu>
         </SidebarFooter>
       </div>
