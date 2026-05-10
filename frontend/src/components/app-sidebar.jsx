@@ -82,7 +82,7 @@ export function AppSidebar({ mainItems = [], footerItems = [] }) {
   return (
     <Sidebar className="relative overflow-hidden border-r h-screen sticky top-0">
 
-      <div className="bg-gradient-to-b from-blue-600 via-indigo-600 to-indigo-800 h-full flex flex-col">
+      <div className="[background-image:var(--sidebar-gradient)] h-full flex flex-col">
 
         {/* HEADER */}
         <SidebarHeader className="p-4 flex items-center gap-3 text-sidebar-foreground">
@@ -116,12 +116,14 @@ export function AppSidebar({ mainItems = [], footerItems = [] }) {
                     className={`
                       rounded-lg transition-all
                       ${isActive
-                        ? "text-black dark:text-white font-medium"
-                        : "text-sidebar-foreground hover:bg-sidebar-accent/70"
+                        ? "!bg-white/15 !text-white font-semibold shadow-sm"
+                        : "!text-sidebar-foreground hover:!bg-white/10 hover:!text-white"
                       }
                     `}
                   >
-                    <span>{item.title}</span>
+                    <span className={isActive ? "!text-white" : "!text-sidebar-foreground"}>
+                      {item.title}
+                    </span>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               )

@@ -13,6 +13,12 @@ const SIDEBAR_PAGES = [
     authOnly: true,
   },
   {
+    title: "Recepcion",
+    tooltip: "Recepcion",
+    path: "/recepcion",
+    authOnly: true,
+  },
+  {
     title: "Nueva consulta",
     tooltip: "Nueva consulta",
     path: "/nuevaconsulta",
@@ -48,12 +54,6 @@ const SIDEBAR_PAGES = [
     tooltip: "Asesores y monitores",
     path: "/asesoresymonitores",
     requiredPermissions: ["Gestionar usuarios"],
-  },
-  {
-    title: "Recepcion",
-    tooltip: "Recepcion",
-    path: "/recepcion",
-    authOnly: true,
   },
 ];
 
