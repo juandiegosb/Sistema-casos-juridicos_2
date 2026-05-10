@@ -49,6 +49,12 @@ const SIDEBAR_PAGES = [
     path: "/asesoresymonitores",
     requiredPermissions: ["Gestionar usuarios"],
   },
+  {
+    title: "Recepcion",
+    tooltip: "Recepcion",
+    path: "/recepcion",
+    authOnly: true,
+  },
 ];
 
 function tieneTodosLosPermisos(userPermissions, requiredPermissions = []) {
