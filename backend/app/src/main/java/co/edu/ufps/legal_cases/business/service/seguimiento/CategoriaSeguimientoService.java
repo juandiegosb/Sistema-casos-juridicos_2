@@ -11,21 +11,16 @@ import co.edu.ufps.legal_cases.business.model.seguimiento.CategoriaSeguimiento;
 import co.edu.ufps.legal_cases.business.repository.seguimiento.CategoriaSeguimientoRepository;
 import co.edu.ufps.legal_cases.business.repository.seguimiento.SeguimientoRepository;
 import co.edu.ufps.legal_cases.common.exception.BusinessException;
+import lombok.RequiredArgsConstructor;
 
 import static co.edu.ufps.legal_cases.common.util.NormalizacionUtils.normalizarTexto;
 
 @Service
+@RequiredArgsConstructor
 public class CategoriaSeguimientoService {
 
     private final CategoriaSeguimientoRepository categoriaSeguimientoRepository;
     private final SeguimientoRepository seguimientoRepository;
-
-    public CategoriaSeguimientoService(
-            CategoriaSeguimientoRepository categoriaSeguimientoRepository,
-            SeguimientoRepository seguimientoRepository) {
-        this.categoriaSeguimientoRepository = categoriaSeguimientoRepository;
-        this.seguimientoRepository = seguimientoRepository;
-    }
 
     @Transactional(readOnly = true)
     public List<CategoriaSeguimientoDTO> listar() {
