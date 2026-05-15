@@ -13,6 +13,12 @@ const SIDEBAR_PAGES = [
     authOnly: true,
   },
   {
+    title: "Tareas",
+    tooltip: "Tareas",
+    path: "/tareas",
+    allowedRoles: ["Asesor", "Administrador", "Estudiante"],
+  },
+  {
     title: "Nueva consulta",
     tooltip: "Nueva consulta",
     path: "/nuevaconsulta",
@@ -25,11 +31,17 @@ const SIDEBAR_PAGES = [
     requiredPermissions: ["Gestionar consultas"],
   },
   {
-    title: "admin",
+    title: "Administración",
     tooltip: "Administración",
     path: "/admin",
     requiredPermissions: ["Gestionar catálogos", "Gestionar permisos"],
     match: "any",
+  },
+  {
+    title: "Recepcion",
+    tooltip: "Recepción de personas",
+    path: "/recepcion",
+    authOnly: true,
   },
   {
     title: "Roles",
@@ -51,6 +63,12 @@ const SIDEBAR_PAGES = [
   },
 ];
 
+function normalizar(value) {
+  return String(value || "")
+    .trim()
+    .toUpperCase();
+}
+
 function tieneTodosLosPermisos(userPermissions, requiredPermissions = []) {
   return requiredPermissions.every((permission) =>
     userPermissions.includes(permission)
@@ -63,11 +81,37 @@ function tieneAlgunPermiso(userPermissions, requiredPermissions = []) {
   );
 }
 
+function tienePerfilPermitido(user, allowedProfiles = []) {
+  if (!Array.isArray(allowedProfiles) || allowedProfiles.length === 0) {
+    return true;
+  }
+
+  const userProfile = normalizar(user?.tipoPerfil);
+  const perfilesPermitidos = allowedProfiles.map(normalizar);
+
+  return perfilesPermitidos.includes(userProfile);
+}
+
+function tieneRolPermitido(user, allowedRoles = []) {
+  if (!Array.isArray(allowedRoles) || allowedRoles.length === 0) {
+    return true;
+  }
+
+  const userRole = normalizar(user?.rolNombre);
+  const rolesPermitidos = allowedRoles.map(normalizar);
+
+  return rolesPermitidos.includes(userRole);
+}
+
 function puedeVerPagina(page, user) {
   if (!user) return false;
 
   if (page.authOnly) {
     return true;
+  }
+
+  if (!tieneRolPermitido(user, page.allowedRoles)) {
+    return false;
   }
 
   const userPermissions = Array.isArray(user.permisos) ? user.permisos : [];
