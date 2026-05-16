@@ -6,6 +6,7 @@ import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+
 import org.springframework.stereotype.Repository;
 
 import co.edu.ufps.legal_cases.business.model.consulta.Consulta;
@@ -14,22 +15,33 @@ import co.edu.ufps.legal_cases.business.model.consulta.Consulta;
 public interface ConsultaRepository extends JpaRepository<Consulta, Long> {
 
     // Hibernate no permite hacer JOIN FETCH de dos colecciones (bags) al mismo tiempo.
-    // Se usan dos queries separadas: una carga partes, la otra contrapartes.
-    // El service las llama en secuencia dentro de una misma transacción.
+    // Se usan queries separadas y el service las llama dentro de la misma transacción.
 
     @Query("""
-            SELECT DISTINCT c FROM Consulta c
+            SELECT DISTINCT c
+            FROM Consulta c
             LEFT JOIN FETCH c.partes
             WHERE c.id = :id
             """)
     Optional<Consulta> findByIdConPartes(@Param("id") Long id);
 
     @Query("""
-            SELECT DISTINCT c FROM Consulta c
+            SELECT DISTINCT c
+            FROM Consulta c
             LEFT JOIN FETCH c.contrapartes
             WHERE c.id = :id
             """)
     Optional<Consulta> findByIdConContrapartes(@Param("id") Long id);
+
+    // Carga los datos base que necesita seguimiento para calcular destinatarios.
+    @Query("""
+            SELECT DISTINCT c
+            FROM Consulta c
+            LEFT JOIN FETCH c.persona
+            LEFT JOIN FETCH c.estudiante
+            WHERE c.id = :id
+            """)
+    Optional<Consulta> findByIdConDatosNotificacionSeguimiento(@Param("id") Long id);
 
     @Query("""
             SELECT c FROM Consulta c
