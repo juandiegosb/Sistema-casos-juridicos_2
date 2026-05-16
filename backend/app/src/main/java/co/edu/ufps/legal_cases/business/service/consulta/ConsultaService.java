@@ -127,6 +127,14 @@ public class ConsultaService {
         consultaRepository.delete(consulta);
     }
 
+    @Transactional
+    public ConsultaDTO archivar(Long id) {
+        Consulta consulta = consultaRepository.findById(id)
+                .orElseThrow(() -> new BusinessException("Consulta no encontrada con id: " + id));
+        consulta.setEstado("Archivado");
+        return convertirADTO(consultaRepository.save(consulta));
+    }
+
     // -------------------------------------------------------------------------
     // Validaciones
     // -------------------------------------------------------------------------
@@ -310,6 +318,7 @@ public class ConsultaService {
                 c.getFecha(),
                 p != null ? p.getNombres() : null,
                 p != null ? p.getApellidos() : null,
-                p != null ? p.getNumeroDocumento() : null);
+                p != null ? p.getNumeroDocumento() : null,
+                c.getEstado());
     }
 }

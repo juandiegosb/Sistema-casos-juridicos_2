@@ -55,4 +55,9 @@ public class ConsultaController {
     public void eliminar(@PathVariable Long id) {
         consultaService.eliminar(id);
     }
+
+    @PatchMapping("/{id}/archivar")
+    public ConsultaDTO archivar(@PathVariable Long id) {
+        return consultaService.archivar(id);
+    }
 }

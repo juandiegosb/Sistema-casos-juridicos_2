@@ -43,9 +43,14 @@ public class PersonaController {
         return personaService.actualizar(id, personaDTO);
     }
 
-    @DeleteMapping("/{id}")
+    @GetMapping("/activos")
+    public List<PersonaDTO> listarActivos() {
+        return personaService.listarActivos();
+    }
+
+    @PatchMapping("/{id}/desactivar")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void eliminar(@PathVariable Long id) {
-        personaService.eliminar(id);
+    public void desactivar(@PathVariable Long id) {
+        personaService.desactivar(id);
     }
 }

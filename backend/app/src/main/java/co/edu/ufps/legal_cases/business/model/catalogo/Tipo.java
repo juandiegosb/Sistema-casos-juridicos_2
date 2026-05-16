@@ -31,4 +31,6 @@ public class Tipo {
     @ManyToOne
     @JoinColumn(name = "tema_id", nullable = false)
     private Tema tema;
+    @Column(name = "activo", nullable = false)
+    private Boolean activo = true;
 }

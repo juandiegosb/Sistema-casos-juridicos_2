@@ -42,9 +42,14 @@ public class AreaController {
         return areaService.actualizar(id, areaDTO);
     }
 
-    @DeleteMapping("/{id}")
+    @GetMapping("/activos")
+    public List<AreaDTO> listarActivos() {
+        return areaService.listarActivos();
+    }
+
+    @PatchMapping("/{id}/desactivar")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void eliminar(@PathVariable Long id) {
-        areaService.eliminar(id);
+    public void desactivar(@PathVariable Long id) {
+        areaService.desactivar(id);
     }
 }

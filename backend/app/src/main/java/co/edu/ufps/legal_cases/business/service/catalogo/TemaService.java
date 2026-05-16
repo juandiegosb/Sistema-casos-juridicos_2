@@ -31,6 +31,14 @@ public class TemaService {
                 .toList();
     }
 
+    public List<TemaDTO> listarActivos() {
+        return temaRepository.findAll()
+                .stream()
+                .filter(t -> Boolean.TRUE.equals(t.getActivo()))
+                .map(this::convertirADTO)
+                .toList();
+    }
+
     public List<TemaDTO> listarPorArea(Long areaId) {
         return temaRepository.findByAreaId(areaId)
                 .stream()
@@ -101,21 +109,14 @@ public class TemaService {
         return convertirADTO(temaActualizado);
     }
 
-    public void eliminar(Long id) {
+    public void desactivar(Long id) {
         Tema tema = temaRepository.findById(id)
                 .orElseThrow(() -> new BusinessException("Tema no encontrado con id: " + id));
-
-        if (tema.getTipos() != null && !tema.getTipos().isEmpty()) {
-            throw new BusinessException("No se puede eliminar el tema porque tiene tipos asociados");
-        }
-
-        temaRepository.delete(tema);
+        tema.setActivo(false);
+        temaRepository.save(tema);
     }
 
     private TemaDTO convertirADTO(Tema tema) {
-        return new TemaDTO(
-                tema.getId(),
-                tema.getNombre(),
-                tema.getArea().getId());
+        return new TemaDTO(tema.getId(), tema.getNombre(), tema.getArea().getId(), tema.getActivo());
     }
 }

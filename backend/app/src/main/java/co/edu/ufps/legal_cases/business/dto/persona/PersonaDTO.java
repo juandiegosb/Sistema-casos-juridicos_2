@@ -221,4 +221,6 @@ public class PersonaDTO {
     @NotBlank(message = "La relacion con la universidad es obligatoria")
     @Size(max = 150, message = "La relacion con la universidad no puede superar los 150 caracteres")
     private String relacionConUniversidad;
+
+    private Boolean activo;
 }

@@ -42,4 +42,26 @@ public interface ConsultaRepository extends JpaRepository<Consulta, Long> {
             ORDER BY c.fecha DESC
             """)
     List<Consulta> buscar(@Param("search") String search);
+
+    // Búsqueda filtrada por rol del usuario autenticado.
+    // Los parámetros de filtro son opcionales: si vienen null, esa condición se ignora.
+    // ADMINISTRATIVO y CONCILIADOR pasan todos null → ven todas las consultas.
+    @Query("""
+            SELECT c FROM Consulta c
+            JOIN c.persona p
+            WHERE (:search IS NULL OR :search = ''
+               OR LOWER(c.descripcion)       LIKE LOWER(CONCAT('%', :search, '%'))
+               OR LOWER(p.nombres)           LIKE LOWER(CONCAT('%', :search, '%'))
+               OR LOWER(p.apellidos)         LIKE LOWER(CONCAT('%', :search, '%'))
+               OR LOWER(p.numeroDocumento)   LIKE LOWER(CONCAT('%', :search, '%')))
+              AND (:estudianteId IS NULL OR c.estudiante.id = :estudianteId)
+              AND (:asesorId     IS NULL OR c.asesor.id     = :asesorId)
+              AND (:monitorId    IS NULL OR c.monitor.id    = :monitorId)
+            ORDER BY c.fecha DESC
+            """)
+    List<Consulta> buscarFiltrado(
+            @Param("search") String search,
+            @Param("estudianteId") Long estudianteId,
+            @Param("asesorId") Long asesorId,
+            @Param("monitorId") Long monitorId);
 }

@@ -5,7 +5,7 @@ import {
   SidebarInset,
   SidebarTrigger,
 } from "@/components/ui/sidebar"
-import { AppSidebar } from "@/components/app-sidebar"
+import { PermissionSidebar } from "@/components/navigation/PermissionSidebar"
 import { TooltipProvider } from "@/components/ui/tooltip"
 import { Moon, Sun } from "lucide-react"
 import { useTheme } from "next-themes"

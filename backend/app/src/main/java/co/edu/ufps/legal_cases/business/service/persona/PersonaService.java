@@ -32,6 +32,14 @@ public class PersonaService {
                 .toList();
     }
 
+    public List<PersonaDTO> listarActivos() {
+        return personaRepository.findAll()
+                .stream()
+                .filter(p -> Boolean.TRUE.equals(p.getActivo()))
+                .map(this::convertirADTO)
+                .toList();
+    }
+
     public PersonaDTO obtenerPorId(Long id) {
         Persona persona = personaRepository.findById(id)
                 .orElseThrow(() -> new BusinessException("Persona no encontrada con id: " + id));
@@ -78,11 +86,11 @@ public class PersonaService {
         return convertirADTO(personaGuardada);
     }
 
-    public void eliminar(Long id) {
+    public void desactivar(Long id) {
         Persona persona = personaRepository.findById(id)
                 .orElseThrow(() -> new BusinessException("Persona no encontrada con id: " + id));
-
-        personaRepository.delete(persona);
+        persona.setActivo(false);
+        personaRepository.save(persona);
     }
 
     private boolean esMenorDeEdad(LocalDate fechaNacimiento) {
@@ -124,60 +132,62 @@ public class PersonaService {
     }
 
     private PersonaDTO convertirADTO(Persona persona) {
-        return new PersonaDTO(
-                persona.getId(),
-                persona.getTipoUsuario(),
-                persona.getTipoDocumento(),
-                persona.getNumeroDocumento(),
-                persona.getFechaExpedicion(),
-                persona.getCiudadExpedicion(),
-                persona.getNombres(),
-                persona.getApellidos(),
-                persona.getNombreIdentitario(),
-                persona.getPronombre(),
-                persona.getSexo(),
-                persona.getGenero(),
-                persona.getOrientacionSexual(),
-                persona.getFechaNacimiento(),
-                persona.getTelefono(),
-                persona.getCorreo(),
-                persona.getNacionalidad(),
-                persona.getEstadoCivil(),
-                persona.getEscolaridad(),
-                persona.getGrupoEtnico(),
-                persona.getCondicionActual(),
-                persona.getSabeLeerEscribir(),
-                persona.getDiscapacidad(),
-                persona.getCaracterizacionPcd(),
-                persona.getNecesitaAjustePcd(),
-                persona.getDepartamento(),
-                persona.getMunicipio(),
-                persona.getBarrio(),
-                persona.getDireccion(),
-                persona.getComuna(),
-                persona.getLocalidad(),
-                persona.getEstrato(),
-                persona.getTipoVivienda(),
-                persona.getZona(),
-                persona.getTenencia(),
-                persona.getNumeroPersonasACargo(),
-                persona.getIngresosAdicionales(),
-                persona.getEnergiaElectrica(),
-                persona.getAcueducto(),
-                persona.getAlcantarillado(),
-                persona.getOcupacion(),
-                persona.getEmpresa(),
-                persona.getSalario(),
-                persona.getCargo(),
-                persona.getDireccionEmpresa(),
-                persona.getTelefonoEmpresa(),
-                persona.getNombreCompletoAcudiente(),
-                persona.getRelacionAcudiente(),
-                persona.getTelefonoAcudiente(),
-                persona.getCorreoAcudiente(),
-                persona.getDireccionAcudiente(),
-                persona.getComoSeEntero(),
-                persona.getRelacionConUniversidad());
+        PersonaDTO dto = new PersonaDTO();
+        dto.setId(persona.getId());
+        dto.setTipoUsuario(persona.getTipoUsuario());
+        dto.setTipoDocumento(persona.getTipoDocumento());
+        dto.setNumeroDocumento(persona.getNumeroDocumento());
+        dto.setFechaExpedicion(persona.getFechaExpedicion());
+        dto.setCiudadExpedicion(persona.getCiudadExpedicion());
+        dto.setNombres(persona.getNombres());
+        dto.setApellidos(persona.getApellidos());
+        dto.setNombreIdentitario(persona.getNombreIdentitario());
+        dto.setPronombre(persona.getPronombre());
+        dto.setSexo(persona.getSexo());
+        dto.setGenero(persona.getGenero());
+        dto.setOrientacionSexual(persona.getOrientacionSexual());
+        dto.setFechaNacimiento(persona.getFechaNacimiento());
+        dto.setTelefono(persona.getTelefono());
+        dto.setCorreo(persona.getCorreo());
+        dto.setNacionalidad(persona.getNacionalidad());
+        dto.setEstadoCivil(persona.getEstadoCivil());
+        dto.setEscolaridad(persona.getEscolaridad());
+        dto.setGrupoEtnico(persona.getGrupoEtnico());
+        dto.setCondicionActual(persona.getCondicionActual());
+        dto.setSabeLeerEscribir(persona.getSabeLeerEscribir());
+        dto.setDiscapacidad(persona.getDiscapacidad());
+        dto.setCaracterizacionPcd(persona.getCaracterizacionPcd());
+        dto.setNecesitaAjustePcd(persona.getNecesitaAjustePcd());
+        dto.setDepartamento(persona.getDepartamento());
+        dto.setMunicipio(persona.getMunicipio());
+        dto.setBarrio(persona.getBarrio());
+        dto.setDireccion(persona.getDireccion());
+        dto.setComuna(persona.getComuna());
+        dto.setLocalidad(persona.getLocalidad());
+        dto.setEstrato(persona.getEstrato());
+        dto.setTipoVivienda(persona.getTipoVivienda());
+        dto.setZona(persona.getZona());
+        dto.setTenencia(persona.getTenencia());
+        dto.setNumeroPersonasACargo(persona.getNumeroPersonasACargo());
+        dto.setIngresosAdicionales(persona.getIngresosAdicionales());
+        dto.setEnergiaElectrica(persona.getEnergiaElectrica());
+        dto.setAcueducto(persona.getAcueducto());
+        dto.setAlcantarillado(persona.getAlcantarillado());
+        dto.setOcupacion(persona.getOcupacion());
+        dto.setEmpresa(persona.getEmpresa());
+        dto.setSalario(persona.getSalario());
+        dto.setCargo(persona.getCargo());
+        dto.setDireccionEmpresa(persona.getDireccionEmpresa());
+        dto.setTelefonoEmpresa(persona.getTelefonoEmpresa());
+        dto.setNombreCompletoAcudiente(persona.getNombreCompletoAcudiente());
+        dto.setRelacionAcudiente(persona.getRelacionAcudiente());
+        dto.setTelefonoAcudiente(persona.getTelefonoAcudiente());
+        dto.setCorreoAcudiente(persona.getCorreoAcudiente());
+        dto.setDireccionAcudiente(persona.getDireccionAcudiente());
+        dto.setComoSeEntero(persona.getComoSeEntero());
+        dto.setRelacionConUniversidad(persona.getRelacionConUniversidad());
+        dto.setActivo(persona.getActivo());
+        return dto;
     }
 
     private Persona convertirAEntidad(PersonaDTO dto) {

@@ -31,8 +31,10 @@ public class Area {
     @Column(name = "nombre", nullable = false, unique = true, length = 50)
     private String nombre;
 
+    @Column(name = "activo", nullable = false)
+    private Boolean activo = true;
+
     @JsonIgnore
-    // Permite acceder a los temas asociados a un área
     @OneToMany(mappedBy = "area")
     private List<Tema> temas;
 }

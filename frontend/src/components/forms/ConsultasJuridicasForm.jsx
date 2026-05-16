@@ -27,13 +27,11 @@ export function ConsultasJuridicasForm() {
   const [loading, setLoading] = useState(false);
   const [searchText, setSearchText] = useState("");
 
-  // Estado para edición inline
   const [mostrarFormEdicion, setMostrarFormEdicion] = useState(false);
   const [idEditando, setIdEditando] = useState(null);
   const [form, setForm] = useState(VACIOS);
   const [guardando, setGuardando] = useState(false);
 
-  // Catálogos (necesarios para el formulario de edición)
   const [personas, setPersonas] = useState([]);
   const [sedes, setSedes] = useState([]);
   const [areas, setAreas] = useState([]);
@@ -45,16 +43,13 @@ export function ConsultasJuridicasForm() {
   const [archivosCaso, setArchivosCaso] = useState([]);
   const [cargandoArchivos, setCargandoArchivos] = useState(false);
 
-
   useEffect(() => {
     cargarConsultas();
     cargarCatalogos();
   }, []);
 
-  // Temas dependen del área seleccionada (solo si el usuario cambia el área manualmente)
   const prevAreaId = React.useRef(null);
   useEffect(() => {
-    // Ignorar si el área no cambió realmente (p.ej. al cargar edición)
     if (prevAreaId.current === form.areaId) return;
     prevAreaId.current = form.areaId;
     if (form.areaId) {
@@ -68,7 +63,6 @@ export function ConsultasJuridicasForm() {
     }
   }, [form.areaId]);
 
-  // Tipos dependen del tema seleccionado (solo si el usuario cambia el tema manualmente)
   const prevTemaId = React.useRef(null);
   useEffect(() => {
     if (prevTemaId.current === form.temaId) return;
@@ -142,7 +136,6 @@ export function ConsultasJuridicasForm() {
       if (res.status === 401) { router.push("/"); return; }
       const data = await res.json();
 
-      // Cargar temas y tipos antes de mostrar el form para que los selects tengan opciones
       if (data.areaId) {
         const temasRes = await fetch(`${API_URL_BASE}/temas/area/${data.areaId}`, { credentials: "include" });
         const temasData = await temasRes.json();
@@ -173,12 +166,8 @@ export function ConsultasJuridicasForm() {
         asesorId: data.asesorId ?? "",
         monitorId: data.monitorId ?? "",
         estudianteId: data.estudianteId ?? "",
-        partesIds: Array.isArray(data.partesIds)
-          ? data.partesIds.map(Number)
-          : [],
-        contrapartesIds: Array.isArray(data.contrapartesIds)
-          ? data.contrapartesIds.map(Number)
-          : [],
+        partesIds: Array.isArray(data.partesIds) ? data.partesIds.map(Number) : [],
+        contrapartesIds: Array.isArray(data.contrapartesIds) ? data.contrapartesIds.map(Number) : [],
       });
       setIdEditando(id);
       setMostrarFormEdicion(true);
@@ -188,16 +177,13 @@ export function ConsultasJuridicasForm() {
     }
   }
 
-    async function cargarArchivosCaso(consultaId) {
+  async function cargarArchivosCaso(consultaId) {
     setCargandoArchivos(true);
     try {
       const res = await fetch(`${FILE_STORAGE_API_URL_BASE}/files/list/${consultaId}`, {
         credentials: "include",
       });
-      if (!res.ok) {
-        setArchivosCaso([]);
-        return;
-      }
+      if (!res.ok) { setArchivosCaso([]); return; }
       const data = await res.json();
       setArchivosCaso(Array.isArray(data) ? data : []);
     } catch (error) {
@@ -212,29 +198,17 @@ export function ConsultasJuridicasForm() {
     try {
       const response = await fetch(
         `${FILE_STORAGE_API_URL_BASE}/files/download/${idEditando}/${encodeURIComponent(fileName)}`,
-        {
-          method: 'GET',
-          credentials: 'include',
-        }
+        { method: 'GET', credentials: 'include' }
       );
-
-      if (!response.ok) {
-        throw new Error('Error descargando archivo');
-      }
-
+      if (!response.ok) throw new Error('Error descargando archivo');
       const blob = await response.blob();
-
       const url = window.URL.createObjectURL(blob);
-
       const a = document.createElement('a');
       a.href = url;
       a.download = fileName;
-
       document.body.appendChild(a);
       a.click();
-
       a.remove();
-
       window.URL.revokeObjectURL(url);
     } catch (error) {
       console.error(error);
@@ -283,18 +257,18 @@ export function ConsultasJuridicasForm() {
     }
   }
 
-  async function handleEliminar(id) {
-    if (!confirm("¿Estás seguro de eliminar esta consulta?")) return;
+  async function handleArchivar(id) {
+    if (!confirm("¿Archivar esta consulta? El registro quedará como Archivado.")) return;
     try {
-      const res = await fetch(`${API_URL_BASE}/consultas/${id}`, {
-        method: "DELETE",
+      const res = await fetch(`${API_URL_BASE}/consultas/${id}/archivar`, {
+        method: "PATCH",
         credentials: "include",
       });
-      if (res.status === 204) {
-        toast.success("Consulta eliminada");
+      if (res.ok) {
+        toast.success("Consulta archivada");
         cargarConsultas(searchText);
       } else {
-        toast.error("Error al eliminar");
+        toast.error("Error al archivar");
       }
     } catch {
       toast.error("Error de conexión");
@@ -328,7 +302,6 @@ export function ConsultasJuridicasForm() {
 
           <form onSubmit={handleGuardar} className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-
               <C label="Fecha *"><input type="date" name="fecha" value={form.fecha} onChange={handleChange} required className={ic} /></C>
               <C label="Estado *">
                 <select name="estado" value={form.estado} onChange={handleChange} required className={ic}>
@@ -337,7 +310,6 @@ export function ConsultasJuridicasForm() {
                 </select>
               </C>
               <C label="Trámite *"><input name="tramite" value={form.tramite} onChange={handleChange} required placeholder="Ej: Conciliación" className={ic} /></C>
-
               <C label="Sede *">
                 <select name="sedeId" value={form.sedeId} onChange={handleChange} required className={ic}>
                   <option value="">Seleccione</option>
@@ -364,7 +336,6 @@ export function ConsultasJuridicasForm() {
               </C>
               <C label="Tipo de violencia"><input name="tipoViolencia" value={form.tipoViolencia} onChange={handleChange} placeholder="Opcional" className={ic} /></C>
               <C label="Resultado"><input name="resultado" value={form.resultado} onChange={handleChange} placeholder="Opcional" className={ic} /></C>
-
               <C label="Asesor">
                 <select name="asesorId" value={form.asesorId} onChange={handleChange} className={ic}>
                   <option value="">Sin asignar</option>
@@ -385,7 +356,6 @@ export function ConsultasJuridicasForm() {
               </C>
             </div>
 
-            {/* PARTE PRINCIPAL */}
             <C label="Parte principal *">
               <PersonaMultiSelect
                 single
@@ -400,7 +370,6 @@ export function ConsultasJuridicasForm() {
               />
             </C>
 
-            {/* PARTES adicionales (dropdown con búsqueda) */}
             <C label="Partes adicionales">
               <PersonaMultiSelect
                 personas={personas.filter(p => {
@@ -413,7 +382,6 @@ export function ConsultasJuridicasForm() {
               />
             </C>
 
-            {/* CONTRAPARTES (dropdown con búsqueda) */}
             <C label="Contrapartes">
               <PersonaMultiSelect
                 personas={personas.filter(p => {
@@ -426,7 +394,6 @@ export function ConsultasJuridicasForm() {
               />
             </C>
 
-            {/* TEXTOS LARGOS */}
             <C label="Descripción *"><textarea name="descripcion" value={form.descripcion} onChange={handleChange} required rows={3} placeholder="Resumen de la consulta" className={ic} /></C>
             <C label="Hechos *"><textarea name="hechos" value={form.hechos} onChange={handleChange} required rows={3} placeholder="Descripción de los hechos" className={ic} /></C>
             <C label="Pretensiones *"><textarea name="pretensiones" value={form.pretensiones} onChange={handleChange} required rows={3} placeholder="Qué solicita el consultante" className={ic} /></C>
@@ -444,11 +411,7 @@ export function ConsultasJuridicasForm() {
                   {archivosCaso.map(fileName => (
                     <li key={fileName} className="flex items-center justify-between rounded-md border px-3 py-2 text-sm">
                       <span className="truncate">{fileName}</span>
-                      <button
-                        type="button"
-                        onClick={() => descargarArchivo(fileName)}
-                        className="text-primary hover:underline"
-                      >
+                      <button type="button" onClick={() => descargarArchivo(fileName)} className="text-primary hover:underline">
                         Descargar
                       </button>
                     </li>
@@ -474,7 +437,7 @@ export function ConsultasJuridicasForm() {
         <table className="min-w-full">
           <thead className="bg-muted">
             <tr>
-              {["ID", "Consulta", "Fecha", "Nombre", "Apellido", "Cédula", "Acciones"].map(h => (
+              {["ID", "Consulta", "Fecha", "Nombre", "Apellido", "Cédula", "Estado", "Acciones"].map(h => (
                 <th key={h} className="px-4 py-3 text-left text-xs font-medium">{h}</th>
               ))}
             </tr>
@@ -482,7 +445,7 @@ export function ConsultasJuridicasForm() {
           <tbody>
             {rows.length === 0 ? (
               <tr>
-                <td colSpan={7} className="text-center py-8 text-sm text-muted-foreground">
+                <td colSpan={8} className="text-center py-8 text-sm text-muted-foreground">
                   {loading ? "Cargando..." : "Sin resultados. Usa el buscador o crea una nueva consulta."}
                 </td>
               </tr>
@@ -495,9 +458,27 @@ export function ConsultasJuridicasForm() {
                 <td className="px-4 py-3 text-sm">{row.apellido}</td>
                 <td className="px-4 py-3 text-sm">{row.cedula}</td>
                 <td className="px-4 py-3 text-sm">
+                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                    row.estado === "Archivado" ? "bg-gray-100 text-gray-600" :
+                    row.estado === "Cerrado"   ? "bg-red-100 text-red-600" :
+                    row.estado === "Urgente"   ? "bg-orange-100 text-orange-600" :
+                    row.estado === "Activo"    ? "bg-green-100 text-green-600" :
+                    "bg-blue-100 text-blue-600"
+                  }`}>
+                    {row.estado ?? "Sin estado"}
+                  </span>
+                </td>
+                <td className="px-4 py-3 text-sm">
                   <div className="flex gap-2">
                     <Button size="sm" variant="outline" onClick={() => abrirEditar(row.id)}>Editar</Button>
-                    <Button size="sm" variant="destructive" onClick={() => handleEliminar(row.id)}>Eliminar</Button>
+                    <Button
+                      size="sm"
+                      variant="destructive"
+                      onClick={() => handleArchivar(row.id)}
+                      disabled={row.estado === "Archivado"}
+                    >
+                      {row.estado === "Archivado" ? "Archivado" : "Archivar"}
+                    </Button>
                   </div>
                 </td>
               </tr>

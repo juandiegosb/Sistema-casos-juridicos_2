@@ -31,4 +31,6 @@ public class ConsultaBusquedaDTO {
 
     /** Número de documento de la persona (campo "cedula" en el frontend). */
     private String cedula;
+
+    private String estado;
 }
