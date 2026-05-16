@@ -36,4 +36,6 @@ public class SeguimientoResponseDTO {
     private String autorUsername;
 
     private LocalDateTime fechaCreacion;
+
+    private LocalDateTime fechaActualizacion;
 }
