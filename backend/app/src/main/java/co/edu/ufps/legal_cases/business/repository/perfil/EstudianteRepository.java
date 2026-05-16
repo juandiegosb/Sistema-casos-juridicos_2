@@ -38,4 +38,6 @@ public interface EstudianteRepository extends JpaRepository<Estudiante, Long> {
     List<Estudiante> findByAsesorId(Long asesorId);
 
     Optional<Estudiante> findByUsuarioSistema_IdAndActivoTrue(Long usuarioSistemaId);
+
+    Optional<Estudiante> findByUsuarioSistema_Id(Long usuarioSistemaId);
 }

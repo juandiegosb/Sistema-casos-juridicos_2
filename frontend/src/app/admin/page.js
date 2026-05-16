@@ -28,9 +28,9 @@ import {
 import { TemaForm } from "@/components/forms/TemaForm"
 import { TipoForm } from "@/components/forms/TipoForm"
 import { AreaForm } from "@/components/forms/AreaForm"
-import { RolePermissionsForm } from "@/components/forms/RolePermissionsForm"  
-
-
+import { RolePermissionsForm } from "@/components/forms/RolePermissionsForm"
+import { PermissionSidebar } from "@/components/navigation/PermissionSidebar"
+import { CambiarRolUsuarioForm } from "@/components/forms/CambiarRolUsuarioForm"
 
 export default function ConfiguracionCatalogos() {
   const { setTheme } = useTheme()
@@ -104,29 +104,64 @@ export default function ConfiguracionCatalogos() {
                 <Tabs defaultValue="tema" className="space-y-6">
 
                   {/* NAV */}
-                  <TabsList className="grid grid-cols-3 bg-muted/50 p-1 rounded-xl">
-                    <TabsTrigger value="tema">Tema</TabsTrigger>
-                    <TabsTrigger value="tipo">Tipo</TabsTrigger>
-                    <TabsTrigger value="area">Área</TabsTrigger>
-                    <TabsTrigger value="permisos">Permisos</TabsTrigger>
-                  </TabsList>
+                  <Tabs defaultValue="tema" className="space-y-6">
+                    <TabsList className="flex w-full items-end justify-start gap-1 rounded-none bg-transparent p-0 border-b overflow-x-auto">
+                      <TabsTrigger
+                        value="tema"
+                        className="rounded-t-xl rounded-b-none border border-b-0 bg-muted/60 px-6 py-2 data-[state=active]:bg-background data-[state=active]:shadow-none whitespace-nowrap"
+                      >
+                        Tema
+                      </TabsTrigger>
 
-                  {/* CONTENIDO */}
-                  <TabsContent value="tema" className="pt-4">
-                    <TemaForm />
-                  </TabsContent>
+                      <TabsTrigger
+                        value="tipo"
+                        className="rounded-t-xl rounded-b-none border border-b-0 bg-muted/60 px-6 py-2 data-[state=active]:bg-background data-[state=active]:shadow-none whitespace-nowrap"
+                      >
+                        Tipo
+                      </TabsTrigger>
 
-                  <TabsContent value="tipo" className="pt-4">
-                    <TipoForm />
-                  </TabsContent>
+                      <TabsTrigger
+                        value="area"
+                        className="rounded-t-xl rounded-b-none border border-b-0 bg-muted/60 px-6 py-2 data-[state=active]:bg-background data-[state=active]:shadow-none whitespace-nowrap"
+                      >
+                        Área
+                      </TabsTrigger>
 
-                  <TabsContent value="area" className="pt-4">
-                    <AreaForm />
-                  </TabsContent>
+                      <TabsTrigger
+                        value="permisos-rol"
+                        className="rounded-t-xl rounded-b-none border border-b-0 bg-muted/60 px-6 py-2 data-[state=active]:bg-background data-[state=active]:shadow-none whitespace-nowrap"
+                      >
+                        Permisos
+                      </TabsTrigger>
 
-                  <TabsContent value="permisos" className="pt-4">
-                    <RolePermissionsForm />
-                  </TabsContent>
+                      <TabsTrigger
+                        value="cambiar-rol"
+                        className="rounded-t-xl rounded-b-none border border-b-0 bg-muted/60 px-6 py-2 data-[state=active]:bg-background data-[state=active]:shadow-none whitespace-nowrap"
+                      >
+                        Cambiar Rol
+                      </TabsTrigger>
+                    </TabsList>
+
+                    <TabsContent value="tema" className="pt-4">
+                      <TemaForm />
+                    </TabsContent>
+
+                    <TabsContent value="tipo" className="pt-4">
+                      <TipoForm />
+                    </TabsContent>
+
+                    <TabsContent value="area" className="pt-4">
+                      <AreaForm />
+                    </TabsContent>
+
+                    <TabsContent value="permisos-rol" className="pt-4">
+                      <RolePermissionsForm />
+                    </TabsContent>
+
+                    <TabsContent value="cambiar-rol" className="pt-4">
+                      <CambiarRolUsuarioForm />
+                    </TabsContent>
+                  </Tabs>
 
                 </Tabs>
               </div>

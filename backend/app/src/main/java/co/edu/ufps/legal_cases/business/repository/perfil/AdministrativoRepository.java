@@ -36,4 +36,6 @@ public interface AdministrativoRepository extends JpaRepository<Administrativo, 
     List<Administrativo> findByDirectoraTrue();
 
     Optional<Administrativo> findByUsuarioSistema_IdAndActivoTrue(Long usuarioSistemaId);
+
+    Optional<Administrativo> findByUsuarioSistema_Id(Long usuarioSistemaId);
 }

@@ -38,4 +38,6 @@ public interface AsesorRepository extends JpaRepository<Asesor, Long> {
     Optional<Asesor> findByIdAndActivoTrue(Long id);
 
     Optional<Asesor> findByUsuarioSistema_IdAndActivoTrue(Long usuarioSistemaId);
+
+    Optional<Asesor> findByUsuarioSistema_Id(Long usuarioSistemaId);
 }

@@ -13,6 +13,12 @@ const SIDEBAR_PAGES = [
     authOnly: true,
   },
   {
+    title: "Recepcion",
+    tooltip: "Recepcion",
+    path: "/recepcion",
+    authOnly: true,
+  },
+  {
     title: "Nueva consulta",
     tooltip: "Nueva consulta",
     path: "/nuevaconsulta",
