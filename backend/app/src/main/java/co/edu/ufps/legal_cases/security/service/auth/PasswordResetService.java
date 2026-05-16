@@ -25,8 +25,10 @@ import co.edu.ufps.legal_cases.security.model.auth.PasswordResetToken;
 import co.edu.ufps.legal_cases.security.repository.account.UsuarioSistemaRepository;
 import co.edu.ufps.legal_cases.security.repository.auth.PasswordResetTokenRepository;
 import co.edu.ufps.legal_cases.security.service.account.PerfilUsuarioResolverService;
+import lombok.RequiredArgsConstructor;
 
 @Service
+@RequiredArgsConstructor
 public class PasswordResetService {
 
     // Para generar tokens de recuperacion seguros
@@ -37,25 +39,12 @@ public class PasswordResetService {
     private final PasswordEncoder passwordEncoder;
     private final EmailService emailService;
     private final PerfilUsuarioResolverService perfilUsuarioResolverService;
-    private final String resetPasswordUrl;
-    private final long expirationMinutes;
+    private final EmailTemplateService emailTemplateService;
 
-    public PasswordResetService(
-            UsuarioSistemaRepository usuarioSistemaRepository,
-            PasswordResetTokenRepository passwordResetTokenRepository,
-            PasswordEncoder passwordEncoder,
-            EmailService emailService,
-            PerfilUsuarioResolverService perfilUsuarioResolverService,
-            @Value("${app.frontend.reset-password-url}") String resetPasswordUrl,
-            @Value("${app.password-reset.expiration-minutes}") long expirationMinutes) {
-        this.usuarioSistemaRepository = usuarioSistemaRepository;
-        this.passwordResetTokenRepository = passwordResetTokenRepository;
-        this.passwordEncoder = passwordEncoder;
-        this.emailService = emailService;
-        this.perfilUsuarioResolverService = perfilUsuarioResolverService;
-        this.resetPasswordUrl = resetPasswordUrl;
-        this.expirationMinutes = expirationMinutes;
-    }
+    @Value("${app.frontend.reset-password-url}")
+    private final String resetPasswordUrl;
+    @Value("${app.password-reset.expiration-minutes}")
+    private final long expirationMinutes;
 
     @Transactional
     public void solicitarRecuperacion(SolicitarRecuperacionPasswordDTO dto) {
@@ -65,7 +54,8 @@ public class PasswordResetService {
             throw new BusinessException("El correo es obligatorio");
         }
 
-        // Busca el usuario con rol cargado para poder validar si puede recuperar contraseña.
+        // Busca el usuario con rol cargado para poder validar si puede recuperar
+        // contraseña.
         // El perfil real ya no se carga desde usuario_sistema, ahora se resuelve con
         // PerfilUsuarioResolverService usando tipo_perfil_actual y usuario_sistema_id
         // en la tabla real.
@@ -101,7 +91,14 @@ public class PasswordResetService {
         // Construye el enlace del frontend con el token como parametro
         String enlace = construirEnlace(token);
 
-        emailService.enviarRecuperacionPassword(usuario.getUsername(), enlace);
+        String html = emailTemplateService.construirRecuperacionPassword(enlace);
+
+        emailService.enviarHtml(
+                usuario.getUsername(),
+                null,   // No se envia el nombre del destinatario
+                "Recuperación de contraseña",
+                html,
+                "recuperación de contraseña");
     }
 
     @Transactional
