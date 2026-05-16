@@ -36,10 +36,10 @@ export default function SeguimientosPage() {
 
               <div className="flex flex-col leading-tight">
                 <span className="text-sm text-muted-foreground">
-                  Panel / Seguimientos
+                  Control Tareas
                 </span>
                 <span className="font-semibold">
-                  Seguimientos de consultas
+                  Organizacion de tareas y seguimiento de proyectos
                 </span>
               </div>
             </div>
