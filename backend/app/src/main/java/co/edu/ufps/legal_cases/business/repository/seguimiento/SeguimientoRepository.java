@@ -13,6 +13,8 @@ public interface SeguimientoRepository extends JpaRepository<Seguimiento, Long> 
 
     List<Seguimiento> findByConsulta_IdOrderByFechaCreacionDesc(Long consultaId);
 
+    List<Seguimiento> findByConsulta_IdAndNotificarEstudianteTrueOrderByFechaCreacionDesc(Long consultaId);
+
     List<Seguimiento> findByAutor_IdOrderByFechaCreacionDesc(Long autorId);
 
     boolean existsByCategoriaSeguimiento_Id(Long categoriaSeguimientoId);

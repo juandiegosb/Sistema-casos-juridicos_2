@@ -2,6 +2,7 @@ package co.edu.ufps.legal_cases.business.controller.seguimiento;
 
 import java.util.List;
 
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -16,38 +17,41 @@ import org.springframework.web.bind.annotation.RestController;
 import co.edu.ufps.legal_cases.business.dto.seguimiento.CategoriaSeguimientoDTO;
 import co.edu.ufps.legal_cases.business.service.seguimiento.CategoriaSeguimientoService;
 import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
 
 @RestController
 @RequestMapping("/api/seguimientos/categorias")
+@RequiredArgsConstructor
 public class CategoriaSeguimientoController {
 
     private final CategoriaSeguimientoService categoriaSeguimientoService;
 
-    public CategoriaSeguimientoController(CategoriaSeguimientoService categoriaSeguimientoService) {
-        this.categoriaSeguimientoService = categoriaSeguimientoService;
-    }
-
     @GetMapping
+    @PreAuthorize("hasAuthority('Gestionar categorías de seguimiento')")
     public List<CategoriaSeguimientoDTO> listar() {
         return categoriaSeguimientoService.listar();
     }
 
     @GetMapping("/activas")
+    @PreAuthorize("hasAnyAuthority('Ver seguimientos', 'Crear seguimientos', 'Gestionar categorías de seguimiento')")
     public List<CategoriaSeguimientoDTO> listarActivas() {
         return categoriaSeguimientoService.listarActivas();
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasAuthority('Gestionar categorías de seguimiento')")
     public CategoriaSeguimientoDTO obtenerPorId(@PathVariable Long id) {
         return categoriaSeguimientoService.obtenerPorId(id);
     }
 
     @PostMapping
+    @PreAuthorize("hasAuthority('Gestionar categorías de seguimiento')")
     public CategoriaSeguimientoDTO crear(@Valid @RequestBody CategoriaSeguimientoDTO dto) {
         return categoriaSeguimientoService.crear(dto);
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize("hasAuthority('Gestionar categorías de seguimiento')")
     public CategoriaSeguimientoDTO actualizar(
             @PathVariable Long id,
             @Valid @RequestBody CategoriaSeguimientoDTO dto) {
@@ -55,6 +59,7 @@ public class CategoriaSeguimientoController {
     }
 
     @PatchMapping("/{id}/estado")
+    @PreAuthorize("hasAuthority('Gestionar categorías de seguimiento')")
     public CategoriaSeguimientoDTO cambiarEstado(
             @PathVariable Long id,
             @RequestParam Boolean activo) {
@@ -62,6 +67,7 @@ public class CategoriaSeguimientoController {
     }
 
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasAuthority('Gestionar categorías de seguimiento')")
     public void eliminar(@PathVariable Long id) {
         categoriaSeguimientoService.eliminar(id);
     }
