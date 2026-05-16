@@ -14,6 +14,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.PrePersist;
+import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
 import lombok.Getter;
 import lombok.Setter;
@@ -31,26 +32,28 @@ public class Seguimiento {
     @Column(name = "descripcion", nullable = false, length = 200)
     private String descripcion;
 
+    // Fecha límite del seguimiento.
     // Si es null, no se programa recordatorio por fecha de entrega.
     @Column(name = "fecha_entrega")
     private LocalDate fechaEntrega;
 
-    // Cantidad de días antes de fecha_entrega para notificar por correo.
+    // Cantidad de días antes de la fecha de entrega para enviar recordatorio.
     @Column(name = "dias_notificacion")
     private Integer diasNotificacion;
 
-    // Si es true, se notifica por correo a las partes involucradas de la consulta.
-    // Ejemplo: asesor, monitor u otros actores permitidos según la regla de negocio.
+    // Si es true, el seguimiento debe notificar por correo a las partes externas
+    // de la consulta: persona principal, partes y contrapartes.
     @Column(name = "notificar_partes", nullable = false)
     private Boolean notificarPartes = false;
 
-    // Si es true, también se notifica al estudiante.
-    // Si es false, el estudiante no recibe correo por este seguimiento.
+    // Si es true, el seguimiento debe notificarse al estudiante y también
+    // puede mostrarse al estudiante en pantalla.
+    // Si es false, el estudiante no recibe correo ni debe ver este seguimiento.
     @Column(name = "notificar_estudiante", nullable = false)
     private Boolean notificarEstudiante = false;
 
     // Si es true, el seguimiento representa una alerta disciplinaria
-    // asociada a un incumplimiento del estudiante.
+    // asociada a un incumplimiento grave del estudiante.
     @Column(name = "alerta_disciplinaria", nullable = false)
     private Boolean alertaDisciplinaria = false;
 
@@ -62,6 +65,8 @@ public class Seguimiento {
     @JoinColumn(name = "consulta", nullable = false)
     private Consulta consulta;
 
+    // Usuario del sistema que creó el seguimiento.
+    // Normalmente será asesor o monitor.
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "autor", nullable = false)
     private UsuarioSistema autor;
@@ -69,11 +74,34 @@ public class Seguimiento {
     @Column(name = "fecha_creacion", nullable = false)
     private LocalDateTime fechaCreacion;
 
+    @Column(name = "fecha_actualizacion")
+    private LocalDateTime fechaActualizacion;
+
     @PrePersist
     public void prePersist() {
+        LocalDateTime ahora = LocalDateTime.now();
+
         if (fechaCreacion == null) {
-            fechaCreacion = LocalDateTime.now();
+            fechaCreacion = ahora;
         }
+
+        if (notificarPartes == null) {
+            notificarPartes = false;
+        }
+
+        if (notificarEstudiante == null) {
+            notificarEstudiante = false;
+        }
+
+        if (alertaDisciplinaria == null) {
+            alertaDisciplinaria = false;
+        }
+    }
+
+    // Para actualizar la fecha actual en la que se hizo modificacion
+    @PreUpdate
+    public void preUpdate() {
+        fechaActualizacion = LocalDateTime.now();
 
         if (notificarPartes == null) {
             notificarPartes = false;

@@ -11,21 +11,27 @@ import co.edu.ufps.legal_cases.business.model.seguimiento.Seguimiento;
 @Repository
 public interface SeguimientoRepository extends JpaRepository<Seguimiento, Long> {
 
+    // Lista todos los seguimientos de una consulta.
+    // Lo usarían asesor, monitor o administrativos según permisos.
     List<Seguimiento> findByConsulta_IdOrderByFechaCreacionDesc(Long consultaId);
 
+    // Lista únicamente los seguimientos visibles para el estudiante.
+    // En tu regla actual, notificarEstudiante = true significa:
+    // se notifica al estudiante y también se le puede mostrar.
+    List<Seguimiento> findByConsulta_IdAndNotificarEstudianteTrueOrderByFechaCreacionDesc(Long consultaId);
+
+    // Lista seguimientos creados por un usuario del sistema.
     List<Seguimiento> findByAutor_IdOrderByFechaCreacionDesc(Long autorId);
 
+    // Se usa para evitar eliminar categorías que ya tienen seguimientos asociados.
     boolean existsByCategoriaSeguimiento_Id(Long categoriaSeguimientoId);
 
+    // Sirve para validar o consultar si una consulta tiene seguimientos.
     boolean existsByConsulta_Id(Long consultaId);
 
-    // Para notificaciones
-    // Permite buscar seguimientos con fecha de entrega, días de notificación y marcados para notificar a partes.
-    List<Seguimiento> findByFechaEntregaIsNotNullAndDiasNotificacionIsNotNullAndNotificarPartesTrue();
-
-    // Para alertas disciplinarias.
+    // Lista seguimientos marcados como alerta disciplinaria.
     List<Seguimiento> findByAlertaDisciplinariaTrueOrderByFechaCreacionDesc();
 
-    // Para consultar seguimientos por fecha de entrega.
+    // Lista seguimientos por fecha de entrega.
     List<Seguimiento> findByFechaEntregaOrderByFechaCreacionDesc(LocalDate fechaEntrega);
 }
