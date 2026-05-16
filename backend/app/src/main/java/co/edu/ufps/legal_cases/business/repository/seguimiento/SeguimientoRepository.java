@@ -21,10 +21,6 @@ public interface SeguimientoRepository extends JpaRepository<Seguimiento, Long> 
 
     boolean existsByConsulta_Id(Long consultaId);
 
-    // Para notificaciones
-    // Permite buscar seguimientos con fecha de entrega, días de notificación y marcados para notificar a partes.
-    List<Seguimiento> findByFechaEntregaIsNotNullAndDiasNotificacionIsNotNullAndNotificarPartesTrue();
-
     // Para alertas disciplinarias.
     List<Seguimiento> findByAlertaDisciplinariaTrueOrderByFechaCreacionDesc();
 
