@@ -4,6 +4,7 @@ import java.util.List;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import co.edu.ufps.legal_cases.business.dto.consulta.ConsultaBusquedaDTO;
@@ -23,15 +24,17 @@ public class ConsultaController {
     }
 
     /**
-     * Búsqueda de consultas jurídicas.
-     * El frontend llama: GET /consultas?search=texto
-     * Retorna una lista de ConsultaBusquedaDTO con los campos:
-     * id, consulta, fecha, nombre, apellido, cedula.
+     * Búsqueda de consultas jurídicas filtrada por rol del usuario autenticado.
+     * - Estudiante: solo ve sus propias consultas
+     * - Asesor: ve las consultas de sus estudiantes
+     * - Monitor: ve las consultas donde está asignado
+     * - Administrativo/Conciliador: ve todas
      */
     @GetMapping
     public List<ConsultaBusquedaDTO> buscar(
-            @RequestParam(required = false, defaultValue = "") String search) {
-        return consultaService.buscar(search);
+            @RequestParam(required = false, defaultValue = "") String search,
+            Authentication authentication) {
+        return consultaService.buscarSegunRol(search, authentication);
     }
 
     @GetMapping("/{id}")

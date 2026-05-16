@@ -78,6 +78,14 @@ public class EstudianteService {
                 .toList();
     }
 
+    // Solo estudiantes activos de un asesor específico
+    public List<EstudianteDTO> listarActivosPorAsesor(Long asesorId) {
+        return estudianteRepository.findByAsesorIdAndActivoTrue(asesorId)
+                .stream()
+                .map(this::convertirADTO)
+                .toList();
+    }
+
     public EstudianteDTO obtenerPorId(Long id) {
         Estudiante estudiante = estudianteRepository.findById(id)
                 .orElseThrow(() -> new BusinessException("Estudiante no encontrado con id: " + id));
@@ -101,11 +109,8 @@ public class EstudianteService {
         validarCamposObligatorios(nombre, documento, email, telefono, usuario, codigo);
         validarDuplicadosCreacion(documento, email, telefono, usuario, codigo);
 
-        //En estos metodos valido que efectivamente existan esas entidades relacionadas
         TipoDocumento tipoDocumento = obtenerTipoDocumento(dto.getTipoDocumentoId());
         Sede sede = obtenerSede(dto.getSedeId());
-
-        // Regla de negocio: todo estudiante debe estar asociado a un asesor existente y activo.
         Asesor asesor = obtenerAsesor(dto.getAsesorId());
 
         Estudiante estudiante = new Estudiante();
@@ -123,12 +128,8 @@ public class EstudianteService {
 
         Estudiante estudianteGuardado = estudianteRepository.save(estudiante);
 
-        //Aqui estoy creando el usuario ante el sistema
-        // También se conserva temporalmente la relación vieja UsuarioSistema.estudiante.
         UsuarioSistema usuarioSistema = usuarioSistemaRegistroService.crearParaEstudiante(estudianteGuardado);
 
-        // Nueva relación normalizada.
-        // Ahora el perfil real estudiante apunta al usuario del sistema.
         estudianteGuardado.setUsuarioSistema(usuarioSistema);
 
         Estudiante estudianteActualizado = estudianteRepository.save(estudianteGuardado);
@@ -163,16 +164,16 @@ public class EstudianteService {
 
         boolean sinCambios =
                 equalsIgnoreCase(existente.getNombre(), nombre)
-                && mismoId(existente.getTipoDocumento(), tipoDocumento, TipoDocumento::getId)
-                && Objects.equals(existente.getDocumento(), documento)
-                && equalsIgnoreCase(existente.getEmail(), email)
-                && Objects.equals(existente.getTelefono(), telefono)
-                && equalsIgnoreCase(existente.getUsuario(), usuario)
-                && mismoId(existente.getSede(), sede, Sede::getId)
-                && equalsIgnoreCase(existente.getCodigo(), codigo)
-                && mismoId(existente.getAsesor(), asesor, Asesor::getId)
-                && Objects.equals(existente.getActivo(), nuevoActivo)
-                && Objects.equals(existente.getConciliacion(), nuevaConciliacion);
+                        && mismoId(existente.getTipoDocumento(), tipoDocumento, TipoDocumento::getId)
+                        && Objects.equals(existente.getDocumento(), documento)
+                        && equalsIgnoreCase(existente.getEmail(), email)
+                        && Objects.equals(existente.getTelefono(), telefono)
+                        && equalsIgnoreCase(existente.getUsuario(), usuario)
+                        && mismoId(existente.getSede(), sede, Sede::getId)
+                        && equalsIgnoreCase(existente.getCodigo(), codigo)
+                        && mismoId(existente.getAsesor(), asesor, Asesor::getId)
+                        && Objects.equals(existente.getActivo(), nuevoActivo)
+                        && Objects.equals(existente.getConciliacion(), nuevaConciliacion);
 
         if (sinCambios) {
             throw new BusinessException("No hay cambios para actualizar");
@@ -229,7 +230,6 @@ public class EstudianteService {
         Estudiante estudiante = estudianteRepository.findById(id)
                 .orElseThrow(() -> new BusinessException("Estudiante no encontrado con id: " + id));
 
-        // A futuro conviene validar si el estudiante está asociado a consultas o conciliaciones antes de eliminar.
         estudianteRepository.delete(estudiante);
     }
 
