@@ -26,6 +26,7 @@ export function ConsultasJuridicasForm() {
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(false);
   const [searchText, setSearchText] = useState("");
+  const [esAdministrativo, setEsAdministrativo] = useState(false);
 
   const [mostrarFormEdicion, setMostrarFormEdicion] = useState(false);
   const [idEditando, setIdEditando] = useState(null);
@@ -44,8 +45,20 @@ export function ConsultasJuridicasForm() {
   const [cargandoArchivos, setCargandoArchivos] = useState(false);
 
   useEffect(() => {
-    cargarConsultas();
-    cargarCatalogos();
+    async function init() {
+      try {
+        const res = await fetch(`${API_URL_BASE}/auth/me`, { credentials: "include" });
+        if (res.status === 401) { router.push("/"); return; }
+        const user = await res.json();
+        const tipoPerfil = user.tipoPerfil?.toUpperCase();
+        setEsAdministrativo(tipoPerfil === "ADMINISTRATIVO" || tipoPerfil === null || tipoPerfil === undefined);
+      } catch {
+        // si falla, no mostrar el botón por seguridad
+      }
+      cargarConsultas();
+      cargarCatalogos();
+    }
+    init();
   }, []);
 
   const prevAreaId = React.useRef(null);
@@ -471,14 +484,16 @@ export function ConsultasJuridicasForm() {
                 <td className="px-4 py-3 text-sm">
                   <div className="flex gap-2">
                     <Button size="sm" variant="outline" onClick={() => abrirEditar(row.id)}>Editar</Button>
-                    <Button
-                      size="sm"
-                      variant="destructive"
-                      onClick={() => handleArchivar(row.id)}
-                      disabled={row.estado === "Archivado"}
-                    >
-                      {row.estado === "Archivado" ? "Archivado" : "Archivar"}
-                    </Button>
+                    {esAdministrativo && (
+                      <Button
+                        size="sm"
+                        variant="destructive"
+                        onClick={() => handleArchivar(row.id)}
+                        disabled={row.estado === "Archivado"}
+                      >
+                        {row.estado === "Archivado" ? "Archivado" : "Archivar"}
+                      </Button>
+                    )}
                   </div>
                 </td>
               </tr>
