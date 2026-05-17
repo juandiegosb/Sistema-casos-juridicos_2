@@ -19,6 +19,12 @@ const SIDEBAR_PAGES = [
     authOnly: true,
   },
   {
+  title: "Personas",
+  tooltip: "Personas",
+  path: "/personas",
+  requiredPermissions: ["Gestionar usuarios"],
+  },
+  {
     title: "Tareas",
     tooltip: "Tareas",
     path: "/tareas",
