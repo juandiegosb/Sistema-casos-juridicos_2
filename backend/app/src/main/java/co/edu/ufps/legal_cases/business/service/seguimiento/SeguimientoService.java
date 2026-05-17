@@ -45,6 +45,16 @@ public class SeguimientoService {
     }
 
     @Transactional(readOnly = true)
+    public List<SeguimientoResponseDTO> listarVisiblesParaEstudiantePorConsulta(Long consultaId) {
+        obtenerConsulta(consultaId);
+
+        return seguimientoRepository.findByConsulta_IdAndNotificarEstudianteTrueOrderByFechaCreacionDesc(consultaId)
+                .stream()
+                .map(this::convertirAResponseDTO)
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
     public List<SeguimientoResponseDTO> listarPorAutor(Long autorId) {
         if (autorId == null) {
             throw new BusinessException("El id del autor es obligatorio");
@@ -93,13 +103,6 @@ public class SeguimientoService {
         seguimiento.setAutor(autor);
 
         Seguimiento seguimientoGuardado = seguimientoRepository.save(seguimiento);
-
-        // Fase posterior:
-        // Si seguimientoGuardado.getNotificarPartes() es true,
-        // se podrá invocar aquí un servicio de notificaciones por correo.
-        //
-        // Si seguimientoGuardado.getAlertaDisciplinaria() es true,
-        // se podrá conectar con un módulo de alertas disciplinarias.
 
         return convertirAResponseDTO(seguimientoGuardado);
     }
@@ -155,9 +158,7 @@ public class SeguimientoService {
         validarDatosSeguimiento(
                 descripcion,
                 dto.getFechaEntrega(),
-                dto.getDiasNotificacion(),
-                dto.getNotificarPartes(),
-                dto.getNotificarEstudiante()
+                dto.getDiasNotificacion()
         );
 
         CategoriaSeguimiento categoria = obtenerCategoriaActiva(dto.getCategoriaSeguimientoId());
@@ -178,9 +179,7 @@ public class SeguimientoService {
     private void validarDatosSeguimiento(
             String descripcion,
             LocalDate fechaEntrega,
-            Integer diasNotificacion,
-            Boolean notificarPartes,
-            Boolean notificarEstudiante) {
+            Integer diasNotificacion) {
 
         if (descripcion == null || descripcion.isBlank()) {
             throw new BusinessException("La descripción del seguimiento es obligatoria");
@@ -200,10 +199,6 @@ public class SeguimientoService {
 
         if (diasNotificacion != null && fechaEntrega == null) {
             throw new BusinessException("No se pueden definir días de notificación sin fecha de entrega");
-        }
-
-        if (Boolean.TRUE.equals(notificarEstudiante) && !Boolean.TRUE.equals(notificarPartes)) {
-            throw new BusinessException("No se puede notificar al estudiante si no se notifican las partes");
         }
     }
 
@@ -292,6 +287,7 @@ public class SeguimientoService {
         dto.setAutorUsername(seguimiento.getAutor().getUsername());
 
         dto.setFechaCreacion(seguimiento.getFechaCreacion());
+        dto.setFechaActualizacion(seguimiento.getFechaActualizacion());
 
         return dto;
     }

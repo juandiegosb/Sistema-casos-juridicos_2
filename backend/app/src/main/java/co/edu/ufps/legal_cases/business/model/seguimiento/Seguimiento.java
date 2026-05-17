@@ -41,19 +41,16 @@ public class Seguimiento {
     @Column(name = "dias_notificacion")
     private Integer diasNotificacion;
 
-    // Si es true, el seguimiento debe notificar por correo a las partes externas
-    // de la consulta: persona principal, partes y contrapartes.
+    // Si es true, el seguimiento debe notificar por correo a las partes externas.
     @Column(name = "notificar_partes", nullable = false)
     private Boolean notificarPartes = false;
 
     // Si es true, el seguimiento debe notificarse al estudiante y también
     // puede mostrarse al estudiante en pantalla.
-    // Si es false, el estudiante no recibe correo ni debe ver este seguimiento.
     @Column(name = "notificar_estudiante", nullable = false)
     private Boolean notificarEstudiante = false;
 
-    // Si es true, el seguimiento representa una alerta disciplinaria
-    // asociada a un incumplimiento grave del estudiante.
+    // Si es true, el seguimiento representa una alerta disciplinaria.
     @Column(name = "alerta_disciplinaria", nullable = false)
     private Boolean alertaDisciplinaria = false;
 
@@ -85,24 +82,16 @@ public class Seguimiento {
             fechaCreacion = ahora;
         }
 
-        if (notificarPartes == null) {
-            notificarPartes = false;
-        }
-
-        if (notificarEstudiante == null) {
-            notificarEstudiante = false;
-        }
-
-        if (alertaDisciplinaria == null) {
-            alertaDisciplinaria = false;
-        }
+        normalizarBooleanos();
     }
 
-    // Para actualizar la fecha actual en la que se hizo modificacion
     @PreUpdate
     public void preUpdate() {
         fechaActualizacion = LocalDateTime.now();
+        normalizarBooleanos();
+    }
 
+    private void normalizarBooleanos() {
         if (notificarPartes == null) {
             notificarPartes = false;
         }
