@@ -25,10 +25,8 @@ import co.edu.ufps.legal_cases.security.model.auth.PasswordResetToken;
 import co.edu.ufps.legal_cases.security.repository.account.UsuarioSistemaRepository;
 import co.edu.ufps.legal_cases.security.repository.auth.PasswordResetTokenRepository;
 import co.edu.ufps.legal_cases.security.service.account.PerfilUsuarioResolverService;
-import lombok.RequiredArgsConstructor;
 
 @Service
-@RequiredArgsConstructor
 public class PasswordResetService {
 
     // Para generar tokens de recuperacion seguros
@@ -41,10 +39,28 @@ public class PasswordResetService {
     private final PerfilUsuarioResolverService perfilUsuarioResolverService;
     private final EmailTemplateService emailTemplateService;
 
-    @Value("${app.frontend.reset-password-url}")
     private final String resetPasswordUrl;
-    @Value("${app.password-reset.expiration-minutes}")
     private final long expirationMinutes;
+
+    public PasswordResetService(
+            UsuarioSistemaRepository usuarioSistemaRepository,
+            PasswordResetTokenRepository passwordResetTokenRepository,
+            PasswordEncoder passwordEncoder,
+            EmailService emailService,
+            PerfilUsuarioResolverService perfilUsuarioResolverService,
+            EmailTemplateService emailTemplateService,
+            @Value("${app.frontend.reset-password-url}") String resetPasswordUrl,
+            @Value("${app.password-reset.expiration-minutes}") long expirationMinutes) {
+
+        this.usuarioSistemaRepository = usuarioSistemaRepository;
+        this.passwordResetTokenRepository = passwordResetTokenRepository;
+        this.passwordEncoder = passwordEncoder;
+        this.emailService = emailService;
+        this.perfilUsuarioResolverService = perfilUsuarioResolverService;
+        this.emailTemplateService = emailTemplateService;
+        this.resetPasswordUrl = resetPasswordUrl;
+        this.expirationMinutes = expirationMinutes;
+    }
 
     @Transactional
     public void solicitarRecuperacion(SolicitarRecuperacionPasswordDTO dto) {
@@ -95,7 +111,7 @@ public class PasswordResetService {
 
         emailService.enviarHtml(
                 usuario.getUsername(),
-                null,   // No se envia el nombre del destinatario
+                null, // No se envia el nombre del destinatario
                 "Recuperación de contraseña",
                 html,
                 "recuperación de contraseña");
