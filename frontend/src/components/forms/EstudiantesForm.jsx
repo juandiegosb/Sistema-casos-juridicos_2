@@ -33,7 +33,13 @@ export function EstudiantesForm() {
           return;
         }
 
-        const estudiantesRes = await fetch(`${API_URL_BASE}/estudiantes/activos`, {
+        // Si es asesor, traer solo sus estudiantes activos
+        let url = `${API_URL_BASE}/estudiantes/activos`;
+        if (usuario.tipoPerfil === "ASESOR" && usuario.perfilId) {
+          url = `${API_URL_BASE}/estudiantes/activos/asesor/${usuario.perfilId}`;
+        }
+
+        const estudiantesRes = await fetch(url, {
           credentials: "include",
         });
 

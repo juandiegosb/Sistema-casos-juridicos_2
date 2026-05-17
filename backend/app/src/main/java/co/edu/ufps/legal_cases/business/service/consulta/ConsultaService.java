@@ -4,6 +4,7 @@ import static co.edu.ufps.legal_cases.common.util.NormalizacionUtils.normalizarT
 
 import java.util.List;
 
+import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -28,6 +29,11 @@ import co.edu.ufps.legal_cases.business.repository.perfil.EstudianteRepository;
 import co.edu.ufps.legal_cases.business.repository.perfil.MonitorRepository;
 import co.edu.ufps.legal_cases.business.repository.persona.PersonaRepository;
 import co.edu.ufps.legal_cases.common.exception.BusinessException;
+import co.edu.ufps.legal_cases.security.dto.account.PerfilUsuarioActual;
+import co.edu.ufps.legal_cases.security.model.account.TipoPerfilUsuario;
+import co.edu.ufps.legal_cases.security.model.account.UsuarioSistema;
+import co.edu.ufps.legal_cases.security.repository.account.UsuarioSistemaRepository;
+import co.edu.ufps.legal_cases.security.service.account.PerfilUsuarioResolverService;
 
 @Service
 public class ConsultaService {
@@ -41,6 +47,8 @@ public class ConsultaService {
     private final AsesorRepository asesorRepository;
     private final MonitorRepository monitorRepository;
     private final EstudianteRepository estudianteRepository;
+    private final PerfilUsuarioResolverService perfilUsuarioResolverService;
+    private final UsuarioSistemaRepository usuarioSistemaRepository;
 
     public ConsultaService(
             ConsultaRepository consultaRepository,
@@ -51,7 +59,9 @@ public class ConsultaService {
             TipoRepository tipoRepository,
             AsesorRepository asesorRepository,
             MonitorRepository monitorRepository,
-            EstudianteRepository estudianteRepository) {
+            EstudianteRepository estudianteRepository,
+            PerfilUsuarioResolverService perfilUsuarioResolverService,
+            UsuarioSistemaRepository usuarioSistemaRepository) {
         this.consultaRepository = consultaRepository;
         this.personaRepository = personaRepository;
         this.sedeRepository = sedeRepository;
@@ -61,6 +71,8 @@ public class ConsultaService {
         this.asesorRepository = asesorRepository;
         this.monitorRepository = monitorRepository;
         this.estudianteRepository = estudianteRepository;
+        this.perfilUsuarioResolverService = perfilUsuarioResolverService;
+        this.usuarioSistemaRepository = usuarioSistemaRepository;
     }
 
     /**
@@ -75,6 +87,57 @@ public class ConsultaService {
                 .toList();
     }
 
+    /**
+     * Busca consultas filtrando según el rol del usuario autenticado.
+     * - Estudiante: solo sus consultas
+     * - Asesor: consultas de sus estudiantes
+     * - Monitor: consultas donde está asignado
+     * - Administrativo/Conciliador: todas
+     */
+    public List<ConsultaBusquedaDTO> buscarSegunRol(String search, Authentication authentication) {
+        String termino = normalizarTexto(search);
+
+        if (authentication == null) {
+            return consultaRepository.buscar(termino)
+                    .stream().map(this::convertirABusquedaDTO).toList();
+        }
+
+        String username = authentication.getName();
+        UsuarioSistema usuario = usuarioSistemaRepository
+                .findWithRolPermisosAndPerfilByUsername(username)
+                .orElse(null);
+
+        if (usuario == null) {
+            return consultaRepository.buscar(termino)
+                    .stream().map(this::convertirABusquedaDTO).toList();
+        }
+
+        PerfilUsuarioActual perfil = null;
+        try {
+            perfil = perfilUsuarioResolverService.obtenerPerfilActivoObligatorio(usuario);
+        } catch (Exception e) {
+            // Si no tiene perfil asociado, ve todas las consultas
+        }
+
+        Long estudianteId = null;
+        Long asesorId = null;
+        Long monitorId = null;
+
+        if (perfil != null) {
+            if (perfil.getTipoPerfil() == TipoPerfilUsuario.ESTUDIANTE) {
+                estudianteId = perfil.getPerfilId();
+            } else if (perfil.getTipoPerfil() == TipoPerfilUsuario.ASESOR) {
+                asesorId = perfil.getPerfilId();
+            } else if (perfil.getTipoPerfil() == TipoPerfilUsuario.MONITOR) {
+                monitorId = perfil.getPerfilId();
+            }
+            // ADMINISTRATIVO y CONCILIADOR pasan null → ven todas
+        }
+
+        return consultaRepository.buscarFiltrado(termino, estudianteId, asesorId, monitorId)
+                .stream().map(this::convertirABusquedaDTO).toList();
+    }
+
     public List<ConsultaDTO> listar() {
         return consultaRepository.findAll()
                 .stream()
@@ -84,10 +147,9 @@ public class ConsultaService {
 
     @Transactional(readOnly = true)
     public ConsultaDTO obtenerPorId(Long id) {
-        // Dos queries separadas para evitar MultipleBagFetchException
         Consulta consulta = consultaRepository.findByIdConPartes(id)
                 .orElseThrow(() -> new BusinessException("Consulta no encontrada con id: " + id));
-        consultaRepository.findByIdConContrapartes(id); // inicializa contrapartes en la misma sesión
+        consultaRepository.findByIdConContrapartes(id);
         return convertirADTO(consulta);
     }
 
@@ -96,26 +158,20 @@ public class ConsultaService {
         if (dto.getId() != null) {
             throw new BusinessException("El id no debe enviarse en la creación");
         }
-
         validarCamposObligatorios(dto);
-
         Consulta consulta = construirDesdeDTO(new Consulta(), dto);
         return convertirADTO(consultaRepository.save(consulta));
     }
 
     @Transactional
     public ConsultaDTO actualizar(Long id, ConsultaDTO dto) {
-        // Dos queries separadas para evitar MultipleBagFetchException
         Consulta existente = consultaRepository.findByIdConPartes(id)
                 .orElseThrow(() -> new BusinessException("Consulta no encontrada con id: " + id));
-        consultaRepository.findByIdConContrapartes(id); // inicializa contrapartes en la misma sesión
-
+        consultaRepository.findByIdConContrapartes(id);
         validarCamposObligatorios(dto);
-
         if (dto.getId() != null && !dto.getId().equals(existente.getId())) {
             throw new BusinessException("No se permite cambiar el id de la consulta");
         }
-
         construirDesdeDTO(existente, dto);
         return convertirADTO(consultaRepository.save(existente));
     }
@@ -140,39 +196,17 @@ public class ConsultaService {
     // -------------------------------------------------------------------------
 
     private void validarCamposObligatorios(ConsultaDTO dto) {
-        if (dto.getFecha() == null) {
-            throw new BusinessException("La fecha es obligatoria");
-        }
-        if (normalizarTexto(dto.getDescripcion()) == null) {
-            throw new BusinessException("La descripción es obligatoria");
-        }
-        if (normalizarTexto(dto.getHechos()) == null) {
-            throw new BusinessException("Los hechos son obligatorios");
-        }
-        if (normalizarTexto(dto.getPretensiones()) == null) {
-            throw new BusinessException("Las pretensiones son obligatorias");
-        }
-        if (normalizarTexto(dto.getConceptoJuridico()) == null) {
-            throw new BusinessException("El concepto jurídico es obligatorio");
-        }
-        if (normalizarTexto(dto.getTramite()) == null) {
-            throw new BusinessException("El trámite es obligatorio");
-        }
-        if (normalizarTexto(dto.getEstado()) == null) {
-            throw new BusinessException("El estado es obligatorio");
-        }
-        if (dto.getPersonaId() == null) {
-            throw new BusinessException("La persona es obligatoria");
-        }
-        if (dto.getSedeId() == null) {
-            throw new BusinessException("La sede es obligatoria");
-        }
-        if (dto.getAreaId() == null) {
-            throw new BusinessException("El área es obligatoria");
-        }
-        if (dto.getTemaId() == null) {
-            throw new BusinessException("El tema es obligatorio");
-        }
+        if (dto.getFecha() == null) throw new BusinessException("La fecha es obligatoria");
+        if (normalizarTexto(dto.getDescripcion()) == null) throw new BusinessException("La descripción es obligatoria");
+        if (normalizarTexto(dto.getHechos()) == null) throw new BusinessException("Los hechos son obligatorios");
+        if (normalizarTexto(dto.getPretensiones()) == null) throw new BusinessException("Las pretensiones son obligatorias");
+        if (normalizarTexto(dto.getConceptoJuridico()) == null) throw new BusinessException("El concepto jurídico es obligatorio");
+        if (normalizarTexto(dto.getTramite()) == null) throw new BusinessException("El trámite es obligatorio");
+        if (normalizarTexto(dto.getEstado()) == null) throw new BusinessException("El estado es obligatorio");
+        if (dto.getPersonaId() == null) throw new BusinessException("La persona es obligatoria");
+        if (dto.getSedeId() == null) throw new BusinessException("La sede es obligatoria");
+        if (dto.getAreaId() == null) throw new BusinessException("El área es obligatoria");
+        if (dto.getTemaId() == null) throw new BusinessException("El tema es obligatorio");
     }
 
     // -------------------------------------------------------------------------
@@ -248,22 +282,18 @@ public class ConsultaService {
         consulta.setMonitor(obtenerMonitor(dto.getMonitorId()));
         consulta.setEstudiante(obtenerEstudiante(dto.getEstudianteId()));
 
-        // Partes adicionales
         if (dto.getPartesIds() != null) {
             List<Persona> partes = dto.getPartesIds().stream()
-                    .map(this::obtenerPersona)
-                    .toList();
+                    .map(this::obtenerPersona).toList();
             consulta.getPartes().clear();
             consulta.getPartes().addAll(partes);
         } else {
             consulta.getPartes().clear();
         }
 
-        // Contrapartes
         if (dto.getContrapartesIds() != null) {
             List<Persona> contrapartes = dto.getContrapartesIds().stream()
-                    .map(this::obtenerPersona)
-                    .toList();
+                    .map(this::obtenerPersona).toList();
             consulta.getContrapartes().clear();
             consulta.getContrapartes().addAll(contrapartes);
         } else {
@@ -294,19 +324,16 @@ public class ConsultaService {
         dto.setAsesorId(c.getAsesor() != null ? c.getAsesor().getId() : null);
         dto.setMonitorId(c.getMonitor() != null ? c.getMonitor().getId() : null);
         dto.setEstudianteId(c.getEstudiante() != null ? c.getEstudiante().getId() : null);
-
-        // Mapear IDs de partes y contrapartes
         dto.setPartesIds(
-            c.getPartes() != null
-                ? c.getPartes().stream().map(Persona::getId).toList()
-                : List.of()
+                c.getPartes() != null
+                        ? c.getPartes().stream().map(Persona::getId).toList()
+                        : List.of()
         );
         dto.setContrapartesIds(
-            c.getContrapartes() != null
-                ? c.getContrapartes().stream().map(Persona::getId).toList()
-                : List.of()
+                c.getContrapartes() != null
+                        ? c.getContrapartes().stream().map(Persona::getId).toList()
+                        : List.of()
         );
-
         return dto;
     }
 
