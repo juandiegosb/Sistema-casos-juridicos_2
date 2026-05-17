@@ -17,21 +17,23 @@ import co.edu.ufps.legal_cases.business.model.seguimiento.Seguimiento;
 @Repository
 public interface SeguimientoRepository extends JpaRepository<Seguimiento, Long> {
 
-    List<Seguimiento> findByConsulta_IdOrderByFechaCreacionDesc(Long consultaId);
+    Optional<Seguimiento> findByIdAndActivoTrue(Long id);
 
-    List<Seguimiento> findByConsulta_IdAndNotificarEstudianteTrueOrderByFechaCreacionDesc(Long consultaId);
+    List<Seguimiento> findByConsulta_IdAndActivoTrueOrderByFechaCreacionDesc(Long consultaId);
 
-    List<Seguimiento> findByAutor_IdOrderByFechaCreacionDesc(Long autorId);
+    List<Seguimiento> findByConsulta_IdAndNotificarEstudianteTrueAndActivoTrueOrderByFechaCreacionDesc(Long consultaId);
+
+    List<Seguimiento> findByAutor_IdAndActivoTrueOrderByFechaCreacionDesc(Long autorId);
 
     boolean existsByCategoriaSeguimiento_Id(Long categoriaSeguimientoId);
 
     boolean existsByConsulta_Id(Long consultaId);
 
     // Para alertas disciplinarias.
-    List<Seguimiento> findByAlertaDisciplinariaTrueOrderByFechaCreacionDesc();
+    List<Seguimiento> findByAlertaDisciplinariaTrueAndActivoTrueOrderByFechaCreacionDesc();
 
     // Para consultar seguimientos por fecha de entrega.
-    List<Seguimiento> findByFechaEntregaOrderByFechaCreacionDesc(LocalDate fechaEntrega);
+    List<Seguimiento> findByFechaEntregaAndActivoTrueOrderByFechaCreacionDesc(LocalDate fechaEntrega);
 
     @Query("""
             SELECT new co.edu.ufps.legal_cases.business.dto.seguimiento.DatosNotificacionSeguimientoDTO(
@@ -42,11 +44,12 @@ public interface SeguimientoRepository extends JpaRepository<Seguimiento, Long> 
             )
             FROM Seguimiento s
             WHERE s.id = :seguimientoId
+            AND s.activo = true
             """)
     Optional<DatosNotificacionSeguimientoDTO> findDatosNotificacionById(
             @Param("seguimientoId") Long seguimientoId);
 
-    // Para enviar datos al servicio de correo sin exponer toda la entidad de seguimiento
+    // Para enviar datos al servicio de correo sin exponer toda la entidad de seguimiento.
     @Query("""
             SELECT new co.edu.ufps.legal_cases.business.dto.seguimiento.DatosCorreoSeguimientoDTO(
                 s.id,
@@ -61,6 +64,7 @@ public interface SeguimientoRepository extends JpaRepository<Seguimiento, Long> 
             )
             FROM Seguimiento s
             WHERE s.id = :seguimientoId
+            AND s.activo = true
             """)
     Optional<DatosCorreoSeguimientoDTO> findDatosCorreoById(@Param("seguimientoId") Long seguimientoId);
 }
