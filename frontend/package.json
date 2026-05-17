@@ -14,10 +14,13 @@
     "test:headed": "playwright test --headed"
   },
   "dependencies": {
+    "@fullcalendar/core": "^6.1.20",
+    "@fullcalendar/daygrid": "^6.1.20",
+    "@fullcalendar/react": "^6.1.20",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "lucide-react": "^1.8.0",
-    "next": "16.2.3",
+    "next": "^16.2.6",
     "next-themes": "^0.4.6",
     "radix-ui": "^1.4.3",
     "react": "19.2.4",
