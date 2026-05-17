@@ -21,7 +21,7 @@ import co.edu.ufps.legal_cases.security.model.account.UsuarioSistema;
 // Este servicio se encarga de buscar el perfil activo por la id del usuario del sistema
 // que se esta autenticando con ayuda del TipoPerfilUsuario que esta en el usuario de sistema
 @Service
-@Transactional(readOnly = true)
+@Transactional(readOnly = true, noRollbackFor = BusinessException.class)
 public class PerfilUsuarioResolverService {
 
     private final EstudianteRepository estudianteRepository;
