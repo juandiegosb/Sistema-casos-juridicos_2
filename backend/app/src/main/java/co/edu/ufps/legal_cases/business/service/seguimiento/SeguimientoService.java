@@ -33,12 +33,13 @@ public class SeguimientoService {
     private final CategoriaSeguimientoRepository categoriaSeguimientoRepository;
     private final ConsultaRepository consultaRepository;
     private final UsuarioSistemaRepository usuarioSistemaRepository;
+    private final SeguimientoNotificacionService seguimientoNotificacionService;
 
     @Transactional(readOnly = true)
     public List<SeguimientoResponseDTO> listarPorConsulta(Long consultaId) {
         obtenerConsulta(consultaId);
 
-        return seguimientoRepository.findByConsulta_IdOrderByFechaCreacionDesc(consultaId)
+        return seguimientoRepository.findByConsulta_IdAndActivoTrueOrderByFechaCreacionDesc(consultaId)
                 .stream()
                 .map(this::convertirAResponseDTO)
                 .toList();
@@ -48,7 +49,7 @@ public class SeguimientoService {
     public List<SeguimientoResponseDTO> listarVisiblesParaEstudiantePorConsulta(Long consultaId) {
         obtenerConsulta(consultaId);
 
-        return seguimientoRepository.findByConsulta_IdAndNotificarEstudianteTrueOrderByFechaCreacionDesc(consultaId)
+        return seguimientoRepository.findByConsulta_IdAndNotificarEstudianteTrueAndActivoTrueOrderByFechaCreacionDesc(consultaId)
                 .stream()
                 .map(this::convertirAResponseDTO)
                 .toList();
@@ -60,7 +61,7 @@ public class SeguimientoService {
             throw new BusinessException("El id del autor es obligatorio");
         }
 
-        return seguimientoRepository.findByAutor_IdOrderByFechaCreacionDesc(autorId)
+        return seguimientoRepository.findByAutor_IdAndActivoTrueOrderByFechaCreacionDesc(autorId)
                 .stream()
                 .map(this::convertirAResponseDTO)
                 .toList();
@@ -68,7 +69,7 @@ public class SeguimientoService {
 
     @Transactional(readOnly = true)
     public List<SeguimientoResponseDTO> listarAlertasDisciplinarias() {
-        return seguimientoRepository.findByAlertaDisciplinariaTrueOrderByFechaCreacionDesc()
+        return seguimientoRepository.findByAlertaDisciplinariaTrueAndActivoTrueOrderByFechaCreacionDesc()
                 .stream()
                 .map(this::convertirAResponseDTO)
                 .toList();
@@ -80,7 +81,7 @@ public class SeguimientoService {
             throw new BusinessException("La fecha de entrega es obligatoria");
         }
 
-        return seguimientoRepository.findByFechaEntregaOrderByFechaCreacionDesc(fechaEntrega)
+        return seguimientoRepository.findByFechaEntregaAndActivoTrueOrderByFechaCreacionDesc(fechaEntrega)
                 .stream()
                 .map(this::convertirAResponseDTO)
                 .toList();
@@ -102,7 +103,14 @@ public class SeguimientoService {
         aplicarDatos(seguimiento, datos);
         seguimiento.setAutor(autor);
 
+        // Todo seguimiento nuevo inicia activo para permitir borrado logico despues.
+        seguimiento.setActivo(true);
+
         Seguimiento seguimientoGuardado = seguimientoRepository.save(seguimiento);
+
+        // Despues de guardar el seguimiento se crean/envian las notificaciones
+        // inmediatas y se programan los recordatorios que apliquen.
+        seguimientoNotificacionService.sincronizarNotificaciones(seguimientoGuardado.getId());
 
         return convertirAResponseDTO(seguimientoGuardado);
     }
@@ -121,13 +129,29 @@ public class SeguimientoService {
 
         aplicarDatos(seguimiento, datos);
 
-        return convertirAResponseDTO(seguimientoRepository.save(seguimiento));
+        Seguimiento seguimientoGuardado = seguimientoRepository.save(seguimiento);
+
+        // Al actualizar se vuelven a sincronizar las notificaciones:
+        // - inmediatas pendientes
+        // - recordatorios pendientes
+        // - cancelaciones si alguna bandera ya no aplica
+        seguimientoNotificacionService.sincronizarNotificaciones(seguimientoGuardado.getId());
+
+        return convertirAResponseDTO(seguimientoGuardado);
     }
 
     @Transactional
     public void eliminar(Long id) {
         Seguimiento seguimiento = buscarPorId(id);
-        seguimientoRepository.delete(seguimiento);
+
+        // Primero se cancelan las notificaciones pendientes.
+        // Las enviadas se conservan como historial.
+        seguimientoNotificacionService.cancelarNotificacionesPendientes(seguimiento.getId());
+
+        // Borrado logico para no perder historial ni romper las notificaciones asociadas.
+        seguimiento.setActivo(false);
+
+        seguimientoRepository.save(seguimiento);
     }
 
     private void validarCreacion(SeguimientoRequestDTO dto) {
@@ -158,8 +182,7 @@ public class SeguimientoService {
         validarDatosSeguimiento(
                 descripcion,
                 dto.getFechaEntrega(),
-                dto.getDiasNotificacion()
-        );
+                dto.getDiasNotificacion());
 
         CategoriaSeguimiento categoria = obtenerCategoriaActiva(dto.getCategoriaSeguimientoId());
         Consulta consulta = obtenerConsulta(dto.getConsultaId());
@@ -172,8 +195,7 @@ public class SeguimientoService {
                 valorBooleano(dto.getNotificarEstudiante()),
                 valorBooleano(dto.getAlertaDisciplinaria()),
                 categoria,
-                consulta
-        );
+                consulta);
     }
 
     private void validarDatosSeguimiento(
@@ -229,7 +251,7 @@ public class SeguimientoService {
             throw new BusinessException("El id del seguimiento es obligatorio");
         }
 
-        return seguimientoRepository.findById(id)
+        return seguimientoRepository.findByIdAndActivoTrue(id)
                 .orElseThrow(() -> new BusinessException("Seguimiento no encontrado con id: " + id));
     }
 
@@ -300,7 +322,6 @@ public class SeguimientoService {
             Boolean notificarEstudiante,
             Boolean alertaDisciplinaria,
             CategoriaSeguimiento categoria,
-            Consulta consulta
-    ) {
+            Consulta consulta) {
     }
 }

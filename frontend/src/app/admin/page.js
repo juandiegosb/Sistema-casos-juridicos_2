@@ -29,7 +29,7 @@ import { TemaForm } from "@/components/forms/TemaForm"
 import { TipoForm } from "@/components/forms/TipoForm"
 import { AreaForm } from "@/components/forms/AreaForm"
 import { RolePermissionsForm } from "@/components/forms/RolePermissionsForm"  
-
+import { PermissionSidebar } from "@/components/navigation/PermissionSidebar"
 
 
 export default function ConfiguracionCatalogos() {

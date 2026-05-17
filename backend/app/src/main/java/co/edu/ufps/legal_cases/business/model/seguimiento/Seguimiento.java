@@ -54,6 +54,10 @@ public class Seguimiento {
     @Column(name = "alerta_disciplinaria", nullable = false)
     private Boolean alertaDisciplinaria = false;
 
+    // Permite hacer borrado logico sin perder historial.
+    @Column(name = "activo", nullable = false)
+    private Boolean activo = true;
+
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "categoria_seguimiento", nullable = false)
     private CategoriaSeguimiento categoriaSeguimiento;
@@ -102,6 +106,10 @@ public class Seguimiento {
 
         if (alertaDisciplinaria == null) {
             alertaDisciplinaria = false;
+        }
+
+        if (activo == null) {
+            activo = true;
         }
     }
 }

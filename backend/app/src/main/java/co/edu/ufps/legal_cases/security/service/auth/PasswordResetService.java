@@ -17,6 +17,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import co.edu.ufps.legal_cases.common.exception.BusinessException;
+import co.edu.ufps.legal_cases.common.service.EmailService;
 import co.edu.ufps.legal_cases.security.dto.auth.RestablecerPasswordDTO;
 import co.edu.ufps.legal_cases.security.dto.auth.SolicitarRecuperacionPasswordDTO;
 import co.edu.ufps.legal_cases.security.model.account.UsuarioSistema;
@@ -36,6 +37,8 @@ public class PasswordResetService {
     private final PasswordEncoder passwordEncoder;
     private final EmailService emailService;
     private final PerfilUsuarioResolverService perfilUsuarioResolverService;
+    private final EmailTemplateService emailTemplateService;
+
     private final String resetPasswordUrl;
     private final long expirationMinutes;
 
@@ -45,13 +48,16 @@ public class PasswordResetService {
             PasswordEncoder passwordEncoder,
             EmailService emailService,
             PerfilUsuarioResolverService perfilUsuarioResolverService,
+            EmailTemplateService emailTemplateService,
             @Value("${app.frontend.reset-password-url}") String resetPasswordUrl,
             @Value("${app.password-reset.expiration-minutes}") long expirationMinutes) {
+
         this.usuarioSistemaRepository = usuarioSistemaRepository;
         this.passwordResetTokenRepository = passwordResetTokenRepository;
         this.passwordEncoder = passwordEncoder;
         this.emailService = emailService;
         this.perfilUsuarioResolverService = perfilUsuarioResolverService;
+        this.emailTemplateService = emailTemplateService;
         this.resetPasswordUrl = resetPasswordUrl;
         this.expirationMinutes = expirationMinutes;
     }
@@ -64,7 +70,8 @@ public class PasswordResetService {
             throw new BusinessException("El correo es obligatorio");
         }
 
-        // Busca el usuario con rol cargado para poder validar si puede recuperar contraseña.
+        // Busca el usuario con rol cargado para poder validar si puede recuperar
+        // contraseña.
         // El perfil real ya no se carga desde usuario_sistema, ahora se resuelve con
         // PerfilUsuarioResolverService usando tipo_perfil_actual y usuario_sistema_id
         // en la tabla real.
@@ -100,7 +107,14 @@ public class PasswordResetService {
         // Construye el enlace del frontend con el token como parametro
         String enlace = construirEnlace(token);
 
-        emailService.enviarRecuperacionPassword(usuario.getUsername(), enlace);
+        String html = emailTemplateService.construirRecuperacionPassword(enlace);
+
+        emailService.enviarHtml(
+                usuario.getUsername(),
+                null, // No se envia el nombre del destinatario
+                "Recuperación de contraseña",
+                html,
+                "recuperación de contraseña");
     }
 
     @Transactional
