@@ -1,0 +1,30 @@
+package co.edu.ufps.legal_cases.business.dto.seguimiento;
+
+import java.time.LocalDate;
+
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+
+// dto interno para enviar solo lo necesario de seguimientoal servicio de correo
+@Getter
+@AllArgsConstructor
+public class DatosCorreoSeguimientoDTO {
+
+    private Long seguimientoId;
+
+    private String descripcion;
+
+    private String categoria;
+
+    private Long consultaId;
+
+    private LocalDate fechaEntrega;
+
+    private Integer diasNotificacion;
+
+    private Boolean notificarPartes;
+
+    private Boolean notificarEstudiante;
+
+    private Boolean alertaDisciplinaria;
+}

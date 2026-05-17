@@ -9,10 +9,12 @@ import org.thymeleaf.TemplateEngine;
 import org.thymeleaf.context.Context;
 
 import co.edu.ufps.legal_cases.business.dto.seguimiento.SeguimientoDestinatarioDTO;
+import co.edu.ufps.legal_cases.business.model.seguimiento.MomentoNotificacionSeguimiento;
 import co.edu.ufps.legal_cases.business.model.seguimiento.TipoNotificacionSeguimiento;
 import co.edu.ufps.legal_cases.common.service.EmailService;
 import lombok.RequiredArgsConstructor;
 
+// Este servicio envia correos como notificacion de seguimientos
 @Service
 @RequiredArgsConstructor
 public class SeguimientoCorreoService {
@@ -26,6 +28,7 @@ public class SeguimientoCorreoService {
     public void enviar(
             List<SeguimientoDestinatarioDTO> destinatarios,
             TipoNotificacionSeguimiento tipoNotificacion,
+            MomentoNotificacionSeguimiento momentoNotificacion,
             String descripcion,
             String categoria,
             Long consultaId,
@@ -35,89 +38,116 @@ public class SeguimientoCorreoService {
             return;
         }
 
-        // Envia a cada destinatario de forma individual con correo personalizado
+        // Envia el correo a cada destinatario encontrado.
         for (SeguimientoDestinatarioDTO destinatario : destinatarios) {
             enviarADestinatario(
                     destinatario,
                     tipoNotificacion,
+                    momentoNotificacion,
                     descripcion,
                     categoria,
                     consultaId,
-                    fechaEntrega
-            );
+                    fechaEntrega);
         }
     }
 
     private void enviarADestinatario(
             SeguimientoDestinatarioDTO destinatario,
             TipoNotificacionSeguimiento tipoNotificacion,
+            MomentoNotificacionSeguimiento momentoNotificacion,
             String descripcion,
             String categoria,
             Long consultaId,
             LocalDate fechaEntrega) {
 
-        String asunto = construirAsunto(tipoNotificacion);
+        // El asunto cambia segun el tipo y si es inmediato o recordatorio.
+        String asunto = construirAsunto(tipoNotificacion, momentoNotificacion);
 
+        // Construye el html usando la plantilla de seguimiento.
         String html = construirHtml(
                 destinatario.getNombre(),
                 asunto,
                 tipoNotificacion,
+                momentoNotificacion,
                 descripcion,
                 categoria,
                 consultaId,
-                fechaEntrega
-        );
+                fechaEntrega);
 
-        // Usa el servicio de correo para enviar el mensaje
+        // El envio real lo hace el servicio comun de correo.
         emailService.enviarHtml(
                 destinatario.getEmail(),
                 destinatario.getNombre(),
                 asunto,
                 html,
-                "seguimiento"
-        );
+                "seguimiento");
     }
 
     private String construirHtml(
             String nombreDestinatario,
             String tituloCorreo,
             TipoNotificacionSeguimiento tipoNotificacion,
+            MomentoNotificacionSeguimiento momentoNotificacion,
             String descripcion,
             String categoria,
             Long consultaId,
             LocalDate fechaEntrega) {
 
-        // Para enviarle a la plantilla la informacion para las veriables dinamicas
         Context context = new Context();
+
         context.setVariable("nombreSistema", nombreSistema);
         context.setVariable("nombreDestinatario", nombreDestinatario);
         context.setVariable("tituloCorreo", tituloCorreo);
-        context.setVariable("mensajePrincipal", construirMensajePrincipal(tipoNotificacion));
+        context.setVariable("mensajePrincipal", construirMensajePrincipal(tipoNotificacion, momentoNotificacion));
         context.setVariable("mensajeAdvertencia", construirMensajeAdvertencia(tipoNotificacion));
         context.setVariable("descripcion", descripcion);
         context.setVariable("categoria", categoria);
         context.setVariable("consultaId", consultaId);
         context.setVariable("fechaEntrega", fechaEntrega);
 
-        // Envia la ruta donde esta la plantilla en resources/templates
+        // La ruta donde esta la plantilla de html
         return templateEngine.process("emails/notificacion-seguimiento", context);
     }
 
-    private String construirAsunto(TipoNotificacionSeguimiento tipoNotificacion) {
+    private String construirAsunto(
+            TipoNotificacionSeguimiento tipoNotificacion,
+            MomentoNotificacionSeguimiento momentoNotificacion) {
+
+        if (MomentoNotificacionSeguimiento.RECORDATORIO.equals(momentoNotificacion)) {
+            return switch (tipoNotificacion) {
+                case PARTES -> "Recordatorio de seguimiento de su consulta";
+                case ESTUDIANTE -> "Recordatorio de seguimiento pendiente";
+                case ALERTA_DISCIPLINARIA -> "Recordatorio de alerta disciplinaria";
+                case AUTOR -> "Recordatorio de seguimiento pendiente";
+            };
+        }
+
         return switch (tipoNotificacion) {
             case PARTES -> "Nuevo seguimiento de su consulta";
             case ESTUDIANTE -> "Nuevo seguimiento de la consulta";
             case ALERTA_DISCIPLINARIA -> "Alerta disciplinaria de seguimiento";
-            case RECORDATORIO_AUTOR -> "Recordatorio de seguimiento pendiente";
+            case AUTOR -> "Nuevo seguimiento registrado";
         };
     }
 
-    private String construirMensajePrincipal(TipoNotificacionSeguimiento tipoNotificacion) {
+    private String construirMensajePrincipal(
+            TipoNotificacionSeguimiento tipoNotificacion,
+            MomentoNotificacionSeguimiento momentoNotificacion) {
+
+        if (MomentoNotificacionSeguimiento.RECORDATORIO.equals(momentoNotificacion)) {
+            return switch (tipoNotificacion) {
+                case PARTES -> "Este es un recordatorio sobre un seguimiento pendiente relacionado con su consulta.";
+                case ESTUDIANTE -> "Este es un recordatorio sobre un seguimiento que debes revisar en el sistema.";
+                case ALERTA_DISCIPLINARIA -> "Este es un recordatorio sobre una alerta disciplinaria pendiente de revisión.";
+                case AUTOR -> "Este es un recordatorio de un seguimiento que tienes pendiente.";
+            };
+        }
+
         return switch (tipoNotificacion) {
             case PARTES -> "Se ha registrado un seguimiento relacionado con su consulta.";
             case ESTUDIANTE -> "Se ha registrado un seguimiento que debes revisar en el sistema.";
             case ALERTA_DISCIPLINARIA -> "Se ha registrado un seguimiento marcado como alerta disciplinaria.";
-            case RECORDATORIO_AUTOR -> "Este es un recordatorio de un seguimiento que tienes pendiente.";
+            case AUTOR -> "Se ha registrado un seguimiento asociado a tu usuario.";
         };
     }
 

@@ -2,14 +2,15 @@ package co.edu.ufps.legal_cases.business.model.seguimiento;
 
 public enum TipoNotificacionSeguimiento {
 
-    // Para persona principal, partes y contrapartes
+    // Para persona principal, partes y contrapartes.
     PARTES,
 
+    // Para el estudiante asociado a la consulta.
     ESTUDIANTE,
 
-    // Para notificar a administrativos
+    // Para notificar a administrativos.
     ALERTA_DISCIPLINARIA,
 
-    // Recordar a la persona que creo el seguimiento
-    RECORDATORIO_AUTOR
+    // Para recordar a la persona que creo el seguimiento.
+    AUTOR
 }

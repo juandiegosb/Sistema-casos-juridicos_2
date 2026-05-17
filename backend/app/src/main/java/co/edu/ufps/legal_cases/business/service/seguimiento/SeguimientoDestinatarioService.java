@@ -21,6 +21,8 @@ import co.edu.ufps.legal_cases.business.repository.seguimiento.SeguimientoReposi
 import co.edu.ufps.legal_cases.common.exception.BusinessException;
 import lombok.RequiredArgsConstructor;
 
+// Este servicio obtiene los destinatarios a notificar en un seguimiento.
+// No decide si es inmediata o recordatorio, porque eso depende del momento de la notificación.
 @Service
 @Transactional(readOnly = true)
 @RequiredArgsConstructor
@@ -38,17 +40,22 @@ public class SeguimientoDestinatarioService {
 
         validarTipoNotificacion(tipoNotificacion);
 
-        // Obtiene los datos del seguimiento
+        // Obtiene los datos mínimos del seguimiento.
         DatosNotificacionSeguimientoDTO datos = obtenerDatosNotificacion(seguimientoId);
 
+        // El tipo define a quién se le envía:
+        // PARTES -> persona principal, partes y contrapartes.
+        // ESTUDIANTE -> estudiante de la consulta.
+        // ALERTA_DISCIPLINARIA -> administrativos activos.
+        // AUTOR -> usuario que creó el seguimiento.
         List<SeguimientoDestinatarioDTO> candidatos = switch (tipoNotificacion) {
             case PARTES -> obtenerDestinatariosPartes(datos.getConsultaId());
             case ESTUDIANTE -> obtenerDestinatarioEstudiante(datos.getConsultaId());
             case ALERTA_DISCIPLINARIA -> administrativoRepository.findDestinatariosActivos();
-            case RECORDATORIO_AUTOR -> obtenerDestinatarioAutor(datos);
+            case AUTOR -> obtenerDestinatarioAutor(datos);
         };
 
-        // Al final luego de obtener los candidatos a notificar (destinararios) se validan
+        // Al final se limpian correos vacíos, inválidos y duplicados.
         return limpiarDestinatarios(candidatos);
     }
 
@@ -57,7 +64,7 @@ public class SeguimientoDestinatarioService {
             throw new BusinessException("El id del seguimiento es obligatorio");
         }
 
-        // Trae los datos del seguimiento para el objeto que se creo en el metodo publico
+        // Trae solo los datos necesarios para calcular destinatarios.
         return seguimientoRepository.findDatosNotificacionById(seguimientoId)
                 .orElseThrow(() -> new BusinessException("Seguimiento no encontrado con id: " + seguimientoId));
     }
@@ -65,14 +72,20 @@ public class SeguimientoDestinatarioService {
     private List<SeguimientoDestinatarioDTO> obtenerDestinatariosPartes(Long consultaId) {
         List<SeguimientoDestinatarioDTO> destinatarios = new ArrayList<>();
 
+        // Agrega la persona principal de la consulta.
         destinatarios.addAll(consultaRepository.findDestinatarioPersonaPrincipalByConsultaId(consultaId));
+
+        // Agrega las partes adicionales.
         destinatarios.addAll(consultaRepository.findDestinatariosPartesByConsultaId(consultaId));
+
+        // Agrega las contrapartes.
         destinatarios.addAll(consultaRepository.findDestinatariosContrapartesByConsultaId(consultaId));
 
         return destinatarios;
     }
 
     private List<SeguimientoDestinatarioDTO> obtenerDestinatarioEstudiante(Long consultaId) {
+        // Si la consulta no tiene estudiante activo, retorna lista vacía.
         return consultaRepository.findDestinatarioEstudianteByConsultaId(consultaId)
                 .map(List::of)
                 .orElseGet(List::of);
@@ -83,14 +96,24 @@ public class SeguimientoDestinatarioService {
             return List.of();
         }
 
-        // Aqui se tiene que ver si el que hizo el seguimiento es asesor o monitor
+        // El autor puede ser asesor o monitor.
+        // Se busca primero como asesor y luego como monitor.
         return asesorRepository.findDestinatarioByUsuarioSistemaId(datos.getAutorUsuarioSistemaId())
                 .or(() -> monitorRepository.findDestinatarioByUsuarioSistemaId(datos.getAutorUsuarioSistemaId()))
                 .map(List::of)
-                .orElseGet(() -> List.of(new SeguimientoDestinatarioDTO(
-                        datos.getAutorEmail(),
-                        datos.getAutorEmail()
-                )));
+                .orElseGet(() -> crearDestinatarioAutorConCorreo(datos));
+    }
+
+    private List<SeguimientoDestinatarioDTO> crearDestinatarioAutorConCorreo(DatosNotificacionSeguimientoDTO datos) {
+        // Si no se encuentra el perfil real del autor, se usa el correo del usuario sistema.
+        if (datos.getAutorEmail() == null || datos.getAutorEmail().isBlank()) {
+            return List.of();
+        }
+
+        return List.of(new SeguimientoDestinatarioDTO(
+                datos.getAutorEmail(),
+                datos.getAutorEmail()
+        ));
     }
 
     private List<SeguimientoDestinatarioDTO> limpiarDestinatarios(
@@ -98,7 +121,7 @@ public class SeguimientoDestinatarioService {
 
         Map<String, SeguimientoDestinatarioDTO> destinatariosPorEmail = new LinkedHashMap<>();
 
-        // De la lista de destinararios que se tiene se depura para retornar la lista final
+        // Depura la lista final para evitar correos vacíos o repetidos.
         for (SeguimientoDestinatarioDTO candidato : candidatos) {
             agregarSiEsValido(destinatariosPorEmail, candidato);
         }
@@ -106,7 +129,7 @@ public class SeguimientoDestinatarioService {
         return new ArrayList<>(destinatariosPorEmail.values());
     }
 
-    // Aqui se validan los datos del destinatario y se agrega al mapa
+    // Valida el correo del destinatario y lo agrega al mapa si no está repetido.
     private void agregarSiEsValido(
             Map<String, SeguimientoDestinatarioDTO> destinatariosPorEmail,
             SeguimientoDestinatarioDTO candidato) {

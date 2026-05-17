@@ -21,17 +21,18 @@ import lombok.Getter;
 import lombok.Setter;
 
 @Entity
-// Esta restriccion asegura que no existan 2 notificaciones del mismo tipo y seguimiento
-// porque cada seguimiento puede generar notificaciones para cada actor
-@Table(
-        name = "seguimiento_notificacion",
-        uniqueConstraints = {
-                @UniqueConstraint(
-                        name = "uk_seguimiento_notificacion_tipo",
-                        columnNames = {"seguimiento_id", "tipo_notificacion"}
-                )
-        }
-)
+// Esta restriccion asegura que no existan 2 notificaciones iguales para el mismo seguimiento.
+// Se usa tipo + momento porque una misma persona puede tener correo inmediato y recordatorio.
+@Table(name = "seguimiento_notificacion", uniqueConstraints = {
+        @UniqueConstraint(
+                name = "uk_seguimiento_notificacion_tipo_momento",
+                columnNames = {
+                        "seguimiento_id",
+                        "tipo_notificacion",
+                        "momento_notificacion"
+                }
+        )
+})
 @Getter
 @Setter
 public class SeguimientoNotificacion {
@@ -45,11 +46,18 @@ public class SeguimientoNotificacion {
     @JoinColumn(name = "seguimiento_id", nullable = false)
     private Seguimiento seguimiento;
 
+    // Define a quien va dirigida la notificacion.
     @Enumerated(EnumType.STRING)
     @Column(name = "tipo_notificacion", nullable = false, length = 40)
     private TipoNotificacionSeguimiento tipoNotificacion;
 
+    // Define si se envia inmediatamente o como recordatorio.
+    @Enumerated(EnumType.STRING)
+    @Column(name = "momento_notificacion", nullable = false, length = 30)
+    private MomentoNotificacionSeguimiento momentoNotificacion;
+
     // Fecha en la que el scheduler debe enviar el correo.
+    // Para notificaciones inmediatas queda con la fecha actual.
     @Column(name = "fecha_programada", nullable = false)
     private LocalDate fechaProgramada;
 
@@ -71,6 +79,12 @@ public class SeguimientoNotificacion {
     @Column(name = "fecha_actualizacion")
     private LocalDateTime fechaActualizacion;
 
+    @Column(name = "activa", nullable = false)
+    private Boolean activa = true;
+
+    @Column(name = "fecha_cancelacion")
+    private LocalDateTime fechaCancelacion;
+
     @PrePersist
     public void prePersist() {
         if (fechaCreacion == null) {
@@ -86,10 +100,14 @@ public class SeguimientoNotificacion {
         normalizarEstado();
     }
 
-    // Para asegurarse de que los campos no queden nulos
+    // Para asegurarse de que los campos de estado no queden nulos.
     private void normalizarEstado() {
         if (enviada == null) {
             enviada = false;
+        }
+
+        if (activa == null) {
+            activa = true;
         }
 
         if (intentos == null) {
