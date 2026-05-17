@@ -12,10 +12,8 @@ export function AsesoresYMonitoresForm() {
   const [asesores, setAsesores] = useState([]);
   const [monitores, setMonitores] = useState([]);
   const [busqueda, setBusqueda] = useState("");
-
   const [cargando, setCargando] = useState(true);
 
-  // Verificar sesión y permisos
   useEffect(() => {
     const verificarYcargar = async () => {
       try {
@@ -31,20 +29,14 @@ export function AsesoresYMonitoresForm() {
 
         const usuario = await res.json();
 
-        // Validar permiso
         if (!usuario.permisos?.includes("Gestionar usuarios")) {
           router.push("/inicio");
           return;
         }
 
-        // Cargar datos si pasa validación
         const [asesoresRes, monitoresRes] = await Promise.all([
-          fetch(`${API_URL_BASE}/asesores/activos`, {
-            credentials: "include",
-          }),
-          fetch(`${API_URL_BASE}/monitores/activos`, {
-            credentials: "include",
-          }),
+          fetch(`${API_URL_BASE}/asesores/activos`, { credentials: "include" }),
+          fetch(`${API_URL_BASE}/monitores/activos`, { credentials: "include" }),
         ]);
 
         if (asesoresRes.status === 401 || monitoresRes.status === 401) {
@@ -73,18 +65,34 @@ export function AsesoresYMonitoresForm() {
     verificarYcargar();
   }, [router]);
 
-  // evitar render mientras valida
+  async function desactivar(id, rol) {
+    if (!confirm(`¿Desactivar este ${rol.toLowerCase()}?`)) return;
+    const endpoint = rol === "Asesor" ? "asesores" : "monitores";
+    const res = await fetch(`${API_URL_BASE}/${endpoint}/${id}/activo?activo=false`, {
+      method: "PATCH",
+      credentials: "include",
+    });
+    if (res.ok) {
+      toast.success(`${rol} desactivado`);
+      if (rol === "Asesor") {
+        setAsesores(prev => prev.map(a => a.id === id ? { ...a, activo: false } : a));
+      } else {
+        setMonitores(prev => prev.map(m => m.id === id ? { ...m, activo: false } : m));
+      }
+    } else {
+      toast.error("Error al desactivar");
+    }
+  }
+
   if (cargando) {
     return <div className="text-center mt-10">Cargando...</div>;
   }
 
-  // Unificar con rol
   const usuarios = [
     ...asesores.map(a => ({ ...a, rol: "Asesor" })),
     ...monitores.map(m => ({ ...m, rol: "Monitor" }))
   ];
 
-  // Filtro
   const filtrados = usuarios.filter(u =>
     `${u.nombre} ${u.documento} ${u.email}`
       .toLowerCase()
@@ -113,6 +121,8 @@ export function AsesoresYMonitoresForm() {
               <th className="p-3">Teléfono</th>
               <th className="p-3">Código</th>
               <th className="p-3">Rol</th>
+              <th className="p-3">Estado</th>
+              <th className="p-3">Acciones</th>
             </tr>
           </thead>
 
@@ -131,6 +141,28 @@ export function AsesoresYMonitoresForm() {
                   <span className="px-2 py-1 text-xs rounded bg-primary/10 text-primary">
                     {u.rol}
                   </span>
+                </td>
+                <td className="p-3">
+                  <span className={`text-xs px-2 py-1 rounded ${
+                    u.activo
+                      ? "bg-blue-100 text-blue-700"
+                      : "bg-red-100 text-red-700"
+                  }`}>
+                    {u.activo ? "Activo" : "Inactivo"}
+                  </span>
+                </td>
+                <td className="p-3">
+                  <button
+                    onClick={() => desactivar(u.id, u.rol)}
+                    disabled={!u.activo}
+                    className={`text-xs px-3 py-1 rounded ${
+                      u.activo
+                        ? "bg-red-100 text-red-700 hover:bg-red-200"
+                        : "bg-gray-100 text-gray-400 cursor-not-allowed"
+                    }`}
+                  >
+                    {u.activo ? "Desactivar" : "Inactivo"}
+                  </button>
                 </td>
               </tr>
             ))}

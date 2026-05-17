@@ -46,9 +46,14 @@ public class TipoController {
         return tipoService.actualizar(id, tipoDTO);
     }
 
-    @DeleteMapping("/{id}")
+    @GetMapping("/activos")
+    public List<TipoDTO> listarActivos() {
+        return tipoService.listarActivos();
+    }
+
+    @PatchMapping("/{id}/desactivar")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void eliminar(@PathVariable Long id) {
-        tipoService.eliminar(id);
+    public void desactivar(@PathVariable Long id) {
+        tipoService.desactivar(id);
     }
 }

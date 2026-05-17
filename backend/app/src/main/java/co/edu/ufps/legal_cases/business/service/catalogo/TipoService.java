@@ -31,6 +31,14 @@ public class TipoService {
                 .toList();
     }
 
+    public List<TipoDTO> listarActivos() {
+        return tipoRepository.findAll()
+                .stream()
+                .filter(t -> Boolean.TRUE.equals(t.getActivo()))
+                .map(this::convertirADTO)
+                .toList();
+    }
+
     public List<TipoDTO> listarPorTema(Long temaId) {
         return tipoRepository.findByTemaId(temaId)
                 .stream()
@@ -101,17 +109,14 @@ public class TipoService {
         return convertirADTO(tipoActualizado);
     }
 
-    public void eliminar(Long id) {
+    public void desactivar(Long id) {
         Tipo tipo = tipoRepository.findById(id)
                 .orElseThrow(() -> new BusinessException("Tipo no encontrado con id: " + id));
-
-        tipoRepository.delete(tipo);
+        tipo.setActivo(false);
+        tipoRepository.save(tipo);
     }
 
     private TipoDTO convertirADTO(Tipo tipo) {
-        return new TipoDTO(
-                tipo.getId(),
-                tipo.getNombre(),
-                tipo.getTema().getId());
+        return new TipoDTO(tipo.getId(), tipo.getNombre(), tipo.getTema().getId(), tipo.getActivo());
     }
 }

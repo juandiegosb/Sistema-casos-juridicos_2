@@ -119,7 +119,7 @@
   --sidebar-border: #1a3d86;
   --sidebar-ring: #5f93e8;
   --sidebar-gradient: linear-gradient(180deg, #0b1b45 0%, #06112f 45%, #030a1f 100%);
-} 
+}
 
 @layer base {
   * {

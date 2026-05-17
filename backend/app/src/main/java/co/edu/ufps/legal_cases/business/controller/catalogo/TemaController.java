@@ -46,9 +46,14 @@ public class TemaController {
         return temaService.actualizar(id, temaDTO);
     }
 
-    @DeleteMapping("/{id}")
+    @GetMapping("/activos")
+    public List<TemaDTO> listarActivos() {
+        return temaService.listarActivos();
+    }
+
+    @PatchMapping("/{id}/desactivar")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void eliminar(@PathVariable Long id) {
-        temaService.eliminar(id);
+    public void desactivar(@PathVariable Long id) {
+        temaService.desactivar(id);
     }
 }

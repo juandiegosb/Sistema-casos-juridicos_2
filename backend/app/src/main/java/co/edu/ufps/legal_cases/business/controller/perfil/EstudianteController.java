@@ -33,6 +33,12 @@ public class EstudianteController {
         return estudianteService.listarActivos();
     }
 
+    // Solo activos de un asesor específico
+    @GetMapping("/activos/asesor/{asesorId}")
+    public List<EstudianteDTO> listarActivosPorAsesor(@PathVariable Long asesorId) {
+        return estudianteService.listarActivosPorAsesor(asesorId);
+    }
+
     // Por ID
     @GetMapping("/{id}")
     public EstudianteDTO obtenerPorId(@PathVariable Long id) {

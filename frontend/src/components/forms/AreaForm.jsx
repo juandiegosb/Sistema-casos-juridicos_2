@@ -6,91 +6,166 @@ import { FormInput } from "./parts/FormInput"
 import { Button } from "@/components/ui/button"
 import { useRouter } from "next/navigation"
 import { API_URL_BASE } from "@/lib/config"
-import { useApiForm } from "@/hooks/useApiForm"
+import { toast } from "sonner"
 
 export function AreaForm() {
   const router = useRouter()
   const [checking, setChecking] = useState(true)
+  const [areas, setAreas] = useState([])
+  const [editandoId, setEditandoId] = useState(null)
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
-  const {
-    register,
-    handleSubmit,
-    reset,
-    formState: { errors },
-  } = useForm({
-    defaultValues: {
-      nombre: "",
-    },
-  })
-
-  const { submit, isSubmitting } = useApiForm({
-    endpoint: `${API_URL_BASE}/areas`,
-    onSuccess: () => {
-      reset()
-    },
+  const { register, handleSubmit, reset, formState: { errors } } = useForm({
+    defaultValues: { nombre: "" },
   })
 
   useEffect(() => {
     async function verificar() {
       try {
-        const res = await fetch(`${API_URL_BASE}/auth/me`, {
-          method: "GET",
-          credentials: "include",
-        })
-
-        if (res.status === 401) {
-          router.push("/")
-          return
-        }
-
+        const res = await fetch(`${API_URL_BASE}/auth/me`, { credentials: "include" })
+        if (res.status === 401) { router.push("/"); return }
         const user = await res.json()
-
-        if (!user.permisos?.includes("Gestionar catálogos")) {
-          router.push("/inicio")
-          return
-        }
-
+        if (!user.permisos?.includes("Gestionar catálogos")) { router.push("/inicio"); return }
+        await cargarAreas()
       } catch {
         router.push("/")
       } finally {
         setChecking(false)
       }
     }
-
     verificar()
   }, [router])
 
-  const onSubmit = async (data) => {
-    await submit(data)
+  async function cargarAreas() {
+    const res = await fetch(`${API_URL_BASE}/areas`, { credentials: "include" })
+    const data = await res.json()
+    setAreas(Array.isArray(data) ? data : [])
   }
 
-  if (checking) {
-    return <div className="text-center mt-10">Cargando...</div>
+  function abrirEditar(area) {
+    setEditandoId(area.id)
+    reset({ nombre: area.nombre })
   }
+
+  function cancelarEdicion() {
+    setEditandoId(null)
+    reset({ nombre: "" })
+  }
+
+  async function desactivar(id) {
+    if (!confirm("¿Desactivar esta área?")) return
+    const res = await fetch(`${API_URL_BASE}/areas/${id}/desactivar`, {
+      method: "PATCH",
+      credentials: "include",
+    })
+    if (res.ok || res.status === 204) {
+      toast.success("Área desactivada")
+      cargarAreas()
+    } else {
+      toast.error("Error al desactivar")
+    }
+  }
+
+  const onSubmit = async (data) => {
+    setIsSubmitting(true)
+    try {
+      const url = editandoId ? `${API_URL_BASE}/areas/${editandoId}` : `${API_URL_BASE}/areas`
+      const method = editandoId ? "PUT" : "POST"
+      const res = await fetch(url, {
+        method,
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify(data),
+      })
+      if (res.ok) {
+        toast.success(editandoId ? "Área actualizada" : "Área creada")
+        setEditandoId(null)
+        reset({ nombre: "" })
+        cargarAreas()
+      } else {
+        const err = await res.json()
+        toast.error(err.message ?? "Error al guardar")
+      }
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  if (checking) return <div className="text-center mt-10">Cargando...</div>
 
   return (
-    <div className="space-y-6 p-6 bg-card rounded-xl border">
-      <div>
-        <h2 className="text-2xl font-bold">Registro de Área</h2>
-        <p className="text-muted-foreground">
-          Complete la siguiente información
-        </p>
+    <div className="space-y-6">
+      <div className="space-y-6 p-6 bg-card rounded-xl border">
+        <div>
+          <h2 className="text-2xl font-bold">{editandoId ? "Editar Área" : "Registro de Área"}</h2>
+          <p className="text-muted-foreground">Complete la siguiente información</p>
+        </div>
+
+        <FormInput
+          name="nombre"
+          label="Nombre del área"
+          register={register}
+          errors={errors}
+          rules={{ required: "El nombre es obligatorio" }}
+        />
+
+        <div className="flex gap-3">
+          <Button onClick={handleSubmit(onSubmit)} disabled={isSubmitting}>
+            {isSubmitting ? "Guardando..." : editandoId ? "Actualizar área" : "Guardar área"}
+          </Button>
+          {editandoId && (
+            <Button variant="outline" type="button" onClick={cancelarEdicion}>Cancelar</Button>
+          )}
+        </div>
       </div>
 
-      <FormInput
-        name="nombre"
-        label="Nombre del área"
-        register={register}
-        errors={errors}
-        rules={{ required: "El nombre es obligatorio" }}
-      />
-
-      <Button
-        onClick={handleSubmit(onSubmit)}
-        disabled={isSubmitting}
-      >
-        {isSubmitting ? "Guardando..." : "Guardar área"}
-      </Button>
+      <div className="overflow-hidden rounded-lg border bg-card">
+        <table className="min-w-full">
+          <thead className="bg-muted">
+            <tr>
+              {["ID", "Nombre", "Estado", "Acciones"].map(h => (
+                <th key={h} className="px-4 py-3 text-left text-xs font-medium">{h}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {areas.length === 0 ? (
+              <tr>
+                <td colSpan={4} className="text-center py-8 text-sm text-muted-foreground">
+                  Sin áreas registradas.
+                </td>
+              </tr>
+            ) : areas.map(area => (
+              <tr key={area.id} className="border-t hover:bg-muted/50">
+                <td className="px-4 py-3 text-sm">{area.id}</td>
+                <td className="px-4 py-3 text-sm">{area.nombre}</td>
+                <td className="px-4 py-3 text-sm">
+                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                    area.activo ? "bg-green-100 text-green-600" : "bg-gray-100 text-gray-500"
+                  }`}>
+                    {area.activo ? "Activo" : "Inactivo"}
+                  </span>
+                </td>
+                <td className="px-4 py-3 text-sm">
+                  <div className="flex gap-2">
+                    <Button size="sm" variant="outline" onClick={() => abrirEditar(area)}>
+                      Editar
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="destructive"
+                      onClick={() => desactivar(area.id)}
+                      disabled={!area.activo}
+                    >
+                      {area.activo ? "Desactivar" : "Inactivo"}
+                    </Button>
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   )
 }

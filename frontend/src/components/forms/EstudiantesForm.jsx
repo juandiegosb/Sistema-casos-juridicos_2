@@ -13,7 +13,6 @@ export function EstudiantesForm() {
   const [busqueda, setBusqueda] = useState("");
   const [cargando, setCargando] = useState(true);
 
-  // Validar sesión + permisos y luego cargar datos
   useEffect(() => {
     const verificarYCargar = async () => {
       try {
@@ -34,8 +33,13 @@ export function EstudiantesForm() {
           return;
         }
 
-        // Cargar estudiantes
-        const estudiantesRes = await fetch(`${API_URL_BASE}/estudiantes/activos`, {
+        // Si es asesor, traer solo sus estudiantes activos
+        let url = `${API_URL_BASE}/estudiantes/activos`;
+        if (usuario.tipoPerfil === "ASESOR" && usuario.perfilId) {
+          url = `${API_URL_BASE}/estudiantes/activos/asesor/${usuario.perfilId}`;
+        }
+
+        const estudiantesRes = await fetch(url, {
           credentials: "include",
         });
 
@@ -73,6 +77,20 @@ export function EstudiantesForm() {
     verificarYCargar();
   }, [router]);
 
+  async function desactivar(id) {
+    if (!confirm("¿Desactivar este estudiante?")) return;
+    const res = await fetch(`${API_URL_BASE}/estudiantes/${id}/activo?activo=false`, {
+      method: "PATCH",
+      credentials: "include",
+    });
+    if (res.ok) {
+      toast.success("Estudiante desactivado");
+      setEstudiantes(prev => prev.map(e => e.id === id ? { ...e, activo: false } : e));
+    } else {
+      toast.error("Error al desactivar");
+    }
+  }
+
   if (cargando) {
     return <div className="text-center mt-10">Cargando...</div>;
   }
@@ -104,6 +122,7 @@ export function EstudiantesForm() {
               <th className="p-3">Código</th>
               <th className="p-3">Conciliación</th>
               <th className="p-3">Estado</th>
+              <th className="p-3">Acciones</th>
             </tr>
           </thead>
 
@@ -137,6 +156,20 @@ export function EstudiantesForm() {
                   }`}>
                     {e.activo ? "Activo" : "Inactivo"}
                   </span>
+                </td>
+
+                <td className="p-3">
+                  <button
+                    onClick={() => desactivar(e.id)}
+                    disabled={!e.activo}
+                    className={`text-xs px-3 py-1 rounded ${
+                      e.activo
+                        ? "bg-red-100 text-red-700 hover:bg-red-200"
+                        : "bg-gray-100 text-gray-400 cursor-not-allowed"
+                    }`}
+                  >
+                    {e.activo ? "Desactivar" : "Inactivo"}
+                  </button>
                 </td>
 
               </tr>

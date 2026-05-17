@@ -185,4 +185,7 @@ public class Persona {
 
     @Column(name = "relacion_con_universidad", nullable = false, length = 150)
     private String relacionConUniversidad;
+
+    @Column(name = "activo", nullable = false)
+    private Boolean activo = true;
 }

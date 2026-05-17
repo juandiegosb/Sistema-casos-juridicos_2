@@ -13,6 +13,12 @@ const SIDEBAR_PAGES = [
     authOnly: true,
   },
   {
+    title: "Recepcion",
+    tooltip: "Recepcion",
+    path: "/recepcion",
+    authOnly: true,
+  },
+  {
     title: "Tareas",
     tooltip: "Tareas",
     path: "/tareas",
@@ -36,12 +42,6 @@ const SIDEBAR_PAGES = [
     path: "/admin",
     requiredPermissions: ["Gestionar catálogos", "Gestionar permisos"],
     match: "any",
-  },
-  {
-    title: "Recepcion",
-    tooltip: "Recepción de personas",
-    path: "/recepcion",
-    authOnly: true,
   },
   {
     title: "Roles",
@@ -85,10 +85,8 @@ function tienePerfilPermitido(user, allowedProfiles = []) {
   if (!Array.isArray(allowedProfiles) || allowedProfiles.length === 0) {
     return true;
   }
-
   const userProfile = normalizar(user?.tipoPerfil);
   const perfilesPermitidos = allowedProfiles.map(normalizar);
-
   return perfilesPermitidos.includes(userProfile);
 }
 
@@ -96,37 +94,23 @@ function tieneRolPermitido(user, allowedRoles = []) {
   if (!Array.isArray(allowedRoles) || allowedRoles.length === 0) {
     return true;
   }
-
   const userRole = normalizar(user?.rolNombre);
   const rolesPermitidos = allowedRoles.map(normalizar);
-
   return rolesPermitidos.includes(userRole);
 }
 
 function puedeVerPagina(page, user) {
   if (!user) return false;
-
-  if (page.authOnly) {
-    return true;
-  }
-
-  if (!tieneRolPermitido(user, page.allowedRoles)) {
-    return false;
-  }
+  if (page.authOnly) return true;
+  if (!tieneRolPermitido(user, page.allowedRoles)) return false;
 
   const userPermissions = Array.isArray(user.permisos) ? user.permisos : [];
   const requiredPermissions = Array.isArray(page.requiredPermissions)
     ? page.requiredPermissions
     : [];
 
-  if (requiredPermissions.length === 0) {
-    return true;
-  }
-
-  if (page.match === "any") {
-    return tieneAlgunPermiso(userPermissions, requiredPermissions);
-  }
-
+  if (requiredPermissions.length === 0) return true;
+  if (page.match === "any") return tieneAlgunPermiso(userPermissions, requiredPermissions);
   return tieneTodosLosPermisos(userPermissions, requiredPermissions);
 }
 
@@ -136,7 +120,6 @@ function filtrarPaginasPorPermisos(pages, user) {
 
 export function PermissionSidebar() {
   const router = useRouter();
-
   const [user, setUser] = React.useState(null);
   const [loading, setLoading] = React.useState(true);
 
@@ -153,9 +136,7 @@ export function PermissionSidebar() {
           return;
         }
 
-        if (!res.ok) {
-          return;
-        }
+        if (!res.ok) return;
 
         const data = await res.json();
         setUser(data);
@@ -174,6 +155,5 @@ export function PermissionSidebar() {
   }
 
   const mainItems = filtrarPaginasPorPermisos(SIDEBAR_PAGES, user);
-
   return <AppSidebar mainItems={mainItems} footerItems={[]} />;
 }

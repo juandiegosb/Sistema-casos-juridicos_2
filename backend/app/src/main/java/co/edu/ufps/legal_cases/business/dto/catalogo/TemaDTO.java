@@ -24,4 +24,6 @@ public class TemaDTO {
     @NotNull(message = "El área es obligatoria")
     private Long areaId;
 
+    private Boolean activo;
+
 }
