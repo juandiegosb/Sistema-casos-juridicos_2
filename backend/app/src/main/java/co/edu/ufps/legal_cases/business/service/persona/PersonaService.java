@@ -36,6 +36,7 @@ public class PersonaService {
         return personaRepository.findAll()
                 .stream()
                 .filter(p -> Boolean.TRUE.equals(p.getActivo()))
+                .sorted((a, b) -> Long.compare(a.getId(), b.getId()))
                 .map(this::convertirADTO)
                 .toList();
     }
@@ -90,6 +91,13 @@ public class PersonaService {
         Persona persona = personaRepository.findById(id)
                 .orElseThrow(() -> new BusinessException("Persona no encontrada con id: " + id));
         persona.setActivo(false);
+        personaRepository.save(persona);
+    }
+
+    public void reactivar(Long id) {
+        Persona persona = personaRepository.findById(id)
+                .orElseThrow(() -> new BusinessException("Persona no encontrada con id: " + id));
+        persona.setActivo(true);
         personaRepository.save(persona);
     }
 

@@ -252,7 +252,11 @@ export function EliminacionForm() {
   }
 
   async function reactivarActivo(endpoint, id) {
-    const res = await fetch(`${API_URL_BASE}${endpoint}/${id}/activo?activo=true`, {
+    const url = endpoint === "/personas"
+      ? `${API_URL_BASE}${endpoint}/${id}/reactivar`
+      : `${API_URL_BASE}${endpoint}/${id}/activo?activo=true`;
+
+    const res = await fetch(url, {
       method: "PATCH",
       credentials: "include",
     });

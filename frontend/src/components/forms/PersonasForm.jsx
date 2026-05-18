@@ -171,7 +171,7 @@ export function PersonasForm() {
         fetch(`${API_URL_BASE}/auth/me`, {
           credentials: "include",
         }),
-        fetch(`${API_URL_BASE}/personas`, {
+        fetch(`${API_URL_BASE}/personas/activos`, {
           credentials: "include",
         }),
       ]);
@@ -315,7 +315,7 @@ export function PersonasForm() {
       setMensaje("");
 
       const res = await fetch(
-        `${API_URL_BASE}/personas/${personaADesactivar.id}/activo?activo=false`,
+        `${API_URL_BASE}/personas/${personaADesactivar.id}/desactivar`,
         {
           method: "PATCH",
           credentials: "include",

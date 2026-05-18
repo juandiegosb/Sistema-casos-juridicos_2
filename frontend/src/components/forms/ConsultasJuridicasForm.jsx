@@ -111,7 +111,7 @@ export function ConsultasJuridicasForm() {
   async function cargarCatalogos() {
     try {
       const [pR, sR, aR, asR, moR, esR] = await Promise.all([
-        fetch(`${API_URL_BASE}/personas`, { credentials: "include" }).then(r => r.json()),
+        fetch(`${API_URL_BASE}/personas/activos`, { credentials: "include" }).then(r => r.json()),
         fetch(`${API_URL_BASE}/sedes`, { credentials: "include" }).then(r => r.json()),
         fetch(`${API_URL_BASE}/areas`, { credentials: "include" }).then(r => r.json()),
         fetch(`${API_URL_BASE}/asesores/activos`, { credentials: "include" }).then(r => r.json()),

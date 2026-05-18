@@ -145,7 +145,7 @@ export function CambiarRolUsuarioForm() {
     try {
       setLoading(true);
       const [usuariosRes, tiposRes, sedesRes, asesoresRes, areasRes] = await Promise.all([
-        fetch(`${API_URL_BASE}/usuarios-sistema`, { credentials: "include" }),
+        fetch(`${API_URL_BASE}/usuarios-sistema/activos`, { credentials: "include" }),
         fetch(`${API_URL_BASE}/tipos-documento`, { credentials: "include" }),
         fetch(`${API_URL_BASE}/sedes`, { credentials: "include" }),
         fetch(`${API_URL_BASE}/asesores/activos`, { credentials: "include" }),
