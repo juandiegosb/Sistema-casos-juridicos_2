@@ -17,7 +17,7 @@ const SECCIONES = [
   {
     id: "consultas",
     titulo: "Consultas",
-    endpoint: "/consultas",
+    endpoint: "/consultas/archivadas",
     tipo: "consulta",
     reactivar: "consulta",
   },

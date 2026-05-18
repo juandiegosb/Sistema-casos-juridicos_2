@@ -63,4 +63,9 @@ public class ConsultaController {
     public ConsultaDTO archivar(@PathVariable Long id) {
         return consultaService.archivar(id);
     }
+
+    @GetMapping("/archivadas")
+    public List<ConsultaBusquedaDTO> listarArchivadas() {
+        return consultaService.listarArchivadas();
+    }
 }

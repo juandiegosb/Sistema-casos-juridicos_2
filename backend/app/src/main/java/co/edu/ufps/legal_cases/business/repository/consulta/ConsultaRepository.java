@@ -15,43 +15,40 @@ import co.edu.ufps.legal_cases.business.model.consulta.Consulta;
 @Repository
 public interface ConsultaRepository extends JpaRepository<Consulta, Long> {
 
-        // Hibernate no permite hacer JOIN FETCH de dos colecciones al mismo tiempo.
-        // Por eso partes y contrapartes se cargan en consultas separadas.
-        @Query("""
+    @Query("""
                         SELECT DISTINCT c
                         FROM Consulta c
                         LEFT JOIN FETCH c.partes
                         WHERE c.id = :id
                         """)
-        Optional<Consulta> findByIdConPartes(@Param("id") Long id);
+    Optional<Consulta> findByIdConPartes(@Param("id") Long id);
 
-        @Query("""
+    @Query("""
                         SELECT DISTINCT c
                         FROM Consulta c
                         LEFT JOIN FETCH c.contrapartes
                         WHERE c.id = :id
                         """)
-        Optional<Consulta> findByIdConContrapartes(@Param("id") Long id);
+    Optional<Consulta> findByIdConContrapartes(@Param("id") Long id);
 
-        @Query("""
+    @Query("""
                         SELECT c FROM Consulta c
                         JOIN c.persona p
-                        WHERE :search IS NULL OR :search = ''
+                        WHERE LOWER(c.estado) <> 'archivado'
+                          AND (:search IS NULL OR :search = ''
                            OR LOWER(c.descripcion)       LIKE LOWER(CONCAT('%', :search, '%'))
                            OR LOWER(p.nombres)           LIKE LOWER(CONCAT('%', :search, '%'))
                            OR LOWER(p.apellidos)         LIKE LOWER(CONCAT('%', :search, '%'))
-                           OR LOWER(p.numeroDocumento)   LIKE LOWER(CONCAT('%', :search, '%'))
+                           OR LOWER(p.numeroDocumento)   LIKE LOWER(CONCAT('%', :search, '%')))
                         ORDER BY c.fecha DESC
                         """)
-        List<Consulta> buscar(@Param("search") String search);
+    List<Consulta> buscar(@Param("search") String search);
 
-        // Búsqueda filtrada por rol del usuario autenticado.
-        // Los parámetros de filtro son opcionales: si vienen null, esa condición se ignora.
-        // ADMINISTRATIVO y CONCILIADOR pasan todos null → ven todas las consultas.
-        @Query("""
+    @Query("""
                         SELECT c FROM Consulta c
                         JOIN c.persona p
-                        WHERE (:search IS NULL OR :search = ''
+                        WHERE LOWER(c.estado) <> 'archivado'
+                          AND (:search IS NULL OR :search = ''
                            OR LOWER(c.descripcion)       LIKE LOWER(CONCAT('%', :search, '%'))
                            OR LOWER(p.nombres)           LIKE LOWER(CONCAT('%', :search, '%'))
                            OR LOWER(p.apellidos)         LIKE LOWER(CONCAT('%', :search, '%'))
@@ -61,14 +58,13 @@ public interface ConsultaRepository extends JpaRepository<Consulta, Long> {
                           AND (:monitorId    IS NULL OR c.monitor.id    = :monitorId)
                         ORDER BY c.fecha DESC
                         """)
-        List<Consulta> buscarFiltrado(
-                        @Param("search") String search,
-                        @Param("estudianteId") Long estudianteId,
-                        @Param("asesorId") Long asesorId,
-                        @Param("monitorId") Long monitorId);
+    List<Consulta> buscarFiltrado(
+            @Param("search") String search,
+            @Param("estudianteId") Long estudianteId,
+            @Param("asesorId") Long asesorId,
+            @Param("monitorId") Long monitorId);
 
-        // Destinatario principal de la consulta.
-        @Query("""
+    @Query("""
                         SELECT new co.edu.ufps.legal_cases.business.dto.seguimiento.SeguimientoDestinatarioDTO(
                             p.correo,
                             TRIM(CONCAT(CONCAT(COALESCE(p.nombres, ''), ' '), COALESCE(p.apellidos, '')))
@@ -79,11 +75,10 @@ public interface ConsultaRepository extends JpaRepository<Consulta, Long> {
                         AND p.correo IS NOT NULL
                         AND TRIM(p.correo) <> ''
                         """)
-        List<SeguimientoDestinatarioDTO> findDestinatarioPersonaPrincipalByConsultaId(
-                        @Param("consultaId") Long consultaId);
+    List<SeguimientoDestinatarioDTO> findDestinatarioPersonaPrincipalByConsultaId(
+            @Param("consultaId") Long consultaId);
 
-        // Partes adicionales de la consulta.
-        @Query("""
+    @Query("""
                         SELECT new co.edu.ufps.legal_cases.business.dto.seguimiento.SeguimientoDestinatarioDTO(
                             p.correo,
                             TRIM(CONCAT(CONCAT(COALESCE(p.nombres, ''), ' '), COALESCE(p.apellidos, '')))
@@ -94,11 +89,10 @@ public interface ConsultaRepository extends JpaRepository<Consulta, Long> {
                         AND p.correo IS NOT NULL
                         AND TRIM(p.correo) <> ''
                         """)
-        List<SeguimientoDestinatarioDTO> findDestinatariosPartesByConsultaId(
-                        @Param("consultaId") Long consultaId);
+    List<SeguimientoDestinatarioDTO> findDestinatariosPartesByConsultaId(
+            @Param("consultaId") Long consultaId);
 
-        // Contrapartes de la consulta.
-        @Query("""
+    @Query("""
                         SELECT new co.edu.ufps.legal_cases.business.dto.seguimiento.SeguimientoDestinatarioDTO(
                             p.correo,
                             TRIM(CONCAT(CONCAT(COALESCE(p.nombres, ''), ' '), COALESCE(p.apellidos, '')))
@@ -109,11 +103,10 @@ public interface ConsultaRepository extends JpaRepository<Consulta, Long> {
                         AND p.correo IS NOT NULL
                         AND TRIM(p.correo) <> ''
                         """)
-        List<SeguimientoDestinatarioDTO> findDestinatariosContrapartesByConsultaId(
-                        @Param("consultaId") Long consultaId);
+    List<SeguimientoDestinatarioDTO> findDestinatariosContrapartesByConsultaId(
+            @Param("consultaId") Long consultaId);
 
-        // Estudiante asignado a la consulta.
-        @Query("""
+    @Query("""
                         SELECT new co.edu.ufps.legal_cases.business.dto.seguimiento.SeguimientoDestinatarioDTO(
                             e.email,
                             e.nombre
@@ -123,6 +116,9 @@ public interface ConsultaRepository extends JpaRepository<Consulta, Long> {
                         WHERE c.id = :consultaId
                         AND e.activo = true
                         """)
-        Optional<SeguimientoDestinatarioDTO> findDestinatarioEstudianteByConsultaId(
-                        @Param("consultaId") Long consultaId);
+    Optional<SeguimientoDestinatarioDTO> findDestinatarioEstudianteByConsultaId(
+            @Param("consultaId") Long consultaId);
+
+    List<Consulta> findByEstadoIgnoreCase(String estado);
+
 }

@@ -116,7 +116,6 @@ export function NuevaConsultaForm() {
   const [archivos, setArchivos] = useState([]);
   const [guardando, setGuardando] = useState(false);
   const [checking, setChecking] = useState(true);
-  const [esAdministrativo, setEsAdministrativo] = useState(false);
 
   const [personas, setPersonas] = useState([]);
   const [sedes, setSedes] = useState([]);
@@ -199,8 +198,6 @@ export function NuevaConsultaForm() {
         if (!user?.permisos?.includes("Gestionar consultas")) {
           toast.error("No tienes permisos"); router.push("/inicio"); return;
         }
-        const tipoPerfil = user.tipoPerfil?.toUpperCase();
-        setEsAdministrativo(tipoPerfil === "ADMINISTRATIVO" || tipoPerfil === null || tipoPerfil === undefined);
         await cargarCatalogos();
       } catch { router.push("/"); }
       finally { setChecking(false); }
@@ -322,7 +319,7 @@ export function NuevaConsultaForm() {
           <C label="Estado *">
             <select name="estado" value={form.estado} onChange={handleChange} required className={ic}>
               <option value="">Seleccione</option>
-              {ESTADOS.filter(e => esAdministrativo || e !== "Archivado").map(e => (
+              {ESTADOS.filter(e => e !== "Archivado").map(e => (
                 <option key={e} value={e}>{e}</option>
               ))}
             </select>

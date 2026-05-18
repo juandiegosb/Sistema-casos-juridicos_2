@@ -319,7 +319,7 @@ export function ConsultasJuridicasForm() {
               <C label="Estado *">
                 <select name="estado" value={form.estado} onChange={handleChange} required className={ic}>
                   <option value="">Seleccione</option>
-                  {ESTADOS.map(e => <option key={e} value={e}>{e}</option>)}
+                  {ESTADOS.filter(e => e !== "Archivado").map(e => <option key={e} value={e}>{e}</option>)}
                 </select>
               </C>
               <C label="Trámite *"><input name="tramite" value={form.tramite} onChange={handleChange} required placeholder="Ej: Conciliación" className={ic} /></C>
