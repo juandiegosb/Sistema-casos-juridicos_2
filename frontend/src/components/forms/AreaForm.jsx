@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button"
 import { useRouter } from "next/navigation"
 import { API_URL_BASE } from "@/lib/config"
 import { toast } from "sonner"
+import { ConfirmActionDialog } from "@/components/ui/ConfirmActionDialog";
 
 export function AreaForm() {
   const router = useRouter()
@@ -14,7 +15,8 @@ export function AreaForm() {
   const [areas, setAreas] = useState([])
   const [editandoId, setEditandoId] = useState(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
-
+  const [confirmDialog, setConfirmDialog] = useState(null);
+  const [confirmLoading, setConfirmLoading] = useState(false);
   const { register, handleSubmit, reset, formState: { errors } } = useForm({
     defaultValues: { nombre: "" },
   })
@@ -52,17 +54,33 @@ export function AreaForm() {
     reset({ nombre: "" })
   }
 
-  async function desactivar(id) {
-    if (!confirm("¿Desactivar esta área?")) return
-    const res = await fetch(`${API_URL_BASE}/areas/${id}/desactivar`, {
-      method: "PATCH",
-      credentials: "include",
-    })
-    if (res.ok || res.status === 204) {
-      toast.success("Área desactivada")
-      cargarAreas()
-    } else {
-      toast.error("Error al desactivar")
+  function abrirConfirmacionDesactivar(area) {
+    setConfirmDialog(area)
+  }
+
+  async function confirmarDesactivarArea() {
+    if (!confirmDialog?.id) return
+
+    try {
+      setConfirmLoading(true)
+
+      const res = await fetch(`${API_URL_BASE}/areas/${confirmDialog.id}/desactivar`, {
+        method: "PATCH",
+        credentials: "include",
+      })
+
+      if (res.ok || res.status === 204) {
+        toast.success("Área desactivada")
+        setConfirmDialog(null)
+        cargarAreas()
+      } else {
+        toast.error("Error al desactivar")
+      }
+    } catch (error) {
+      console.error(error)
+      toast.error("Error de conexión")
+    } finally {
+      setConfirmLoading(false)
     }
   }
 
@@ -140,9 +158,8 @@ export function AreaForm() {
                 <td className="px-4 py-3 text-sm">{area.id}</td>
                 <td className="px-4 py-3 text-sm">{area.nombre}</td>
                 <td className="px-4 py-3 text-sm">
-                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                    area.activo ? "bg-green-100 text-green-600" : "bg-gray-100 text-gray-500"
-                  }`}>
+                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${area.activo ? "bg-green-100 text-green-600" : "bg-gray-100 text-gray-500"
+                    }`}>
                     {area.activo ? "Activo" : "Inactivo"}
                   </span>
                 </td>
@@ -154,11 +171,21 @@ export function AreaForm() {
                     <Button
                       size="sm"
                       variant="destructive"
-                      onClick={() => desactivar(area.id)}
+                      onClick={() => abrirConfirmacionDesactivar(area)}
                       disabled={!area.activo}
                     >
                       {area.activo ? "Desactivar" : "Inactivo"}
                     </Button>
+                    <ConfirmActionDialog
+                      open={Boolean(confirmDialog)}
+                      title="Desactivar área"
+                      description={`¿Deseas desactivar el área "${confirmDialog?.nombre || "seleccionada"}"? Podrás reactivarla después si es necesario.`}
+                      confirmText="Desactivar"
+                      cancelText="Cancelar"
+                      loading={confirmLoading}
+                      onClose={() => setConfirmDialog(null)}
+                      onConfirm={confirmarDesactivarArea}
+                    />
                   </div>
                 </td>
               </tr>
@@ -167,5 +194,6 @@ export function AreaForm() {
         </table>
       </div>
     </div>
+
   )
 }

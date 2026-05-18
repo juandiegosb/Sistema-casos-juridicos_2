@@ -19,10 +19,10 @@ const SIDEBAR_PAGES = [
     authOnly: true,
   },
   {
-  title: "Personas",
-  tooltip: "Personas",
-  path: "/personas",
-  requiredPermissions: ["Gestionar usuarios"],
+    title: "Personas",
+    tooltip: "Personas",
+    path: "/personas",
+    requiredPermissions: ["Gestionar usuarios"],
   },
   {
     title: "Tareas",
@@ -48,6 +48,12 @@ const SIDEBAR_PAGES = [
     path: "/admin",
     requiredPermissions: ["Gestionar catálogos", "Gestionar permisos"],
     match: "any",
+  },
+  {
+    title: "Eliminación",
+    tooltip: "Elementos desactivados",
+    path: "/eliminacion",
+    allowedRoles: ["Administrador"],
   },
   {
     title: "Roles",

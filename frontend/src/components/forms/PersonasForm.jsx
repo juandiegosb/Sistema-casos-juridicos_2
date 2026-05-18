@@ -1,9 +1,10 @@
 "use client";
 
 import React, { useEffect, useMemo, useState } from "react";
-import { Search, Pencil, Power, X } from "lucide-react";
+import { Search, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { API_URL_BASE } from "@/lib/config";
+import { ConfirmActionDialog } from "@/components/ui/ConfirmActionDialog";
 
 const FORM_INICIAL = {
   tipoUsuario: "",
@@ -81,17 +82,28 @@ async function leerRespuesta(res) {
 }
 
 function nombreCompleto(persona) {
-  return [persona.nombres, persona.apellidos].filter(Boolean).join(" ");
+  return [persona?.nombres, persona?.apellidos].filter(Boolean).join(" ");
 }
 
 function valorTexto(value) {
   return value || "N/A";
 }
 
+function mostrarTipoPersona(tipoUsuario) {
+  const tipo = String(tipoUsuario || "").trim().toLowerCase();
+
+  if (tipo === "consultante") return "Usuario general";
+  if (tipo === "victima" || tipo === "víctima") return "Víctima";
+  if (tipo === "usuario general") return "Usuario general";
+
+  return tipoUsuario || "N/A";
+}
+
 function convertirPersonaAForm(persona) {
   return {
     ...FORM_INICIAL,
     ...persona,
+    tipoUsuario: mostrarTipoPersona(persona.tipoUsuario),
     sabeLeerEscribir: Boolean(persona.sabeLeerEscribir),
     necesitaAjustePcd: Boolean(persona.necesitaAjustePcd),
     ingresosAdicionales: Boolean(persona.ingresosAdicionales),
@@ -109,9 +121,11 @@ export function PersonasForm() {
   const [personas, setPersonas] = useState([]);
   const [busqueda, setBusqueda] = useState("");
   const [personaEditando, setPersonaEditando] = useState(null);
+  const [personaADesactivar, setPersonaADesactivar] = useState(null);
   const [form, setForm] = useState(FORM_INICIAL);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [desactivando, setDesactivando] = useState(false);
   const [mensaje, setMensaje] = useState("");
   const [error, setError] = useState("");
 
@@ -204,6 +218,17 @@ export function PersonasForm() {
     setSaving(false);
   }
 
+  function abrirConfirmacionDesactivar(persona) {
+    setMensaje("");
+    setError("");
+    setPersonaADesactivar(persona);
+  }
+
+  function cerrarConfirmacionDesactivar() {
+    if (desactivando) return;
+    setPersonaADesactivar(null);
+  }
+
   function handleChange(event) {
     const { name, value, type, checked } = event.target;
 
@@ -259,7 +284,9 @@ export function PersonasForm() {
       }
 
       if (!res.ok) {
-        throw new Error(data?.mensaje || data?.message || "No se pudo actualizar la persona");
+        throw new Error(
+          data?.mensaje || data?.message || "No se pudo actualizar la persona"
+        );
       }
 
       setMensaje("Persona actualizada correctamente");
@@ -273,26 +300,27 @@ export function PersonasForm() {
     }
   }
 
-  async function desactivarPersona(persona) {
+  async function confirmarDesactivarPersona() {
+    if (!personaADesactivar?.id) return;
+
     if (!puedeDesactivar) {
       setError("Solo el administrador puede desactivar personas");
+      setPersonaADesactivar(null);
       return;
     }
 
-    const confirmar = window.confirm(
-      `¿Seguro que deseas desactivar a ${nombreCompleto(persona)}?`
-    );
-
-    if (!confirmar) return;
-
     try {
+      setDesactivando(true);
       setError("");
       setMensaje("");
 
-      const res = await fetch(`${API_URL_BASE}/personas/${persona.id}/activo?activo=false`, {
-        method: "PATCH",
-        credentials: "include",
-      });
+      const res = await fetch(
+        `${API_URL_BASE}/personas/${personaADesactivar.id}/activo?activo=false`,
+        {
+          method: "PATCH",
+          credentials: "include",
+        }
+      );
 
       const data = await leerRespuesta(res);
 
@@ -301,14 +329,28 @@ export function PersonasForm() {
       }
 
       if (!res.ok) {
-        throw new Error(data?.mensaje || data?.message || "No se pudo desactivar la persona");
+        throw new Error(
+          data?.mensaje || data?.message || "No se pudo desactivar la persona"
+        );
       }
 
       setMensaje("Persona desactivada correctamente");
+      setPersonaADesactivar(null);
+
+      setPersonas((prev) =>
+        prev.map((persona) =>
+          persona.id === personaADesactivar.id
+            ? { ...persona, activo: false }
+            : persona
+        )
+      );
+
       await cargarInicial();
     } catch (err) {
       console.error(err);
       setError(err.message || "Error desactivando persona");
+    } finally {
+      setDesactivando(false);
     }
   }
 
@@ -358,10 +400,10 @@ export function PersonasForm() {
           />
         </div>
 
-        <div className="overflow-hidden rounded-lg border">
+        <div className="overflow-hidden rounded-lg border border-primary/30">
           <div className="max-h-[560px] overflow-auto">
             <table className="w-full text-sm">
-              <thead className="sticky top-0 bg-muted">
+              <thead className="sticky top-0 bg-primary/20">
                 <tr>
                   <th className="px-4 py-3 text-left font-medium">ID</th>
                   <th className="px-4 py-3 text-left font-medium">Persona</th>
@@ -376,13 +418,19 @@ export function PersonasForm() {
               <tbody>
                 {personasFiltradas.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="px-4 py-8 text-center text-muted-foreground">
+                    <td
+                      colSpan={7}
+                      className="px-4 py-8 text-center text-muted-foreground"
+                    >
                       No hay personas para mostrar.
                     </td>
                   </tr>
                 ) : (
                   personasFiltradas.map((persona) => (
-                    <tr key={persona.id} className="border-t hover:bg-muted/40">
+                    <tr
+                      key={persona.id}
+                      className="border-t border-primary/20 transition hover:bg-primary/10"
+                    >
                       <td className="px-4 py-3">{persona.id}</td>
 
                       <td className="px-4 py-3">
@@ -416,8 +464,8 @@ export function PersonasForm() {
                       </td>
 
                       <td className="px-4 py-3">
-                        <span className="rounded-full border bg-muted px-2.5 py-1 text-xs font-medium">
-                          {valorTexto(persona.tipoUsuario)}
+                        <span className="rounded-full border border-primary/30 bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary">
+                          {mostrarTipoPersona(persona.tipoUsuario)}
                         </span>
                       </td>
 
@@ -428,8 +476,8 @@ export function PersonasForm() {
                             variant="outline"
                             size="sm"
                             onClick={() => abrirEdicion(persona)}
+                            className="border-primary/30 bg-primary/10 hover:bg-primary/20"
                           >
-                            <Pencil className="mr-1 size-4" />
                             Editar
                           </Button>
 
@@ -438,10 +486,11 @@ export function PersonasForm() {
                               type="button"
                               variant="destructive"
                               size="sm"
-                              onClick={() => desactivarPersona(persona)}
+                              disabled={persona.activo === false}
+                              onClick={() => abrirConfirmacionDesactivar(persona)}
+                              className="bg-destructive/20 text-destructive hover:bg-destructive/30 disabled:cursor-not-allowed disabled:opacity-60"
                             >
-                              <Power className="mr-1 size-4" />
-                              Desactivar
+                              {persona.activo === false ? "Inactivo" : "Desactivar"}
                             </Button>
                           )}
                         </div>
@@ -456,100 +505,108 @@ export function PersonasForm() {
       </div>
 
       {personaEditando && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
-          <div className="max-h-[90vh] w-full max-w-5xl overflow-hidden rounded-xl border bg-background shadow-xl">
-            <div className="flex items-center justify-between border-b px-5 py-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/70 px-4 backdrop-blur-sm">
+          <div className="flex max-h-[92vh] w-full max-w-6xl flex-col overflow-hidden rounded-2xl border bg-card shadow-2xl">
+            <div className="flex items-center justify-between border-b bg-primary/10 px-6 py-5">
               <div>
-                <h3 className="text-lg font-bold">Editar persona</h3>
+                <h3 className="text-xl font-bold">Editar persona</h3>
                 <p className="text-sm text-muted-foreground">
-                  {nombreCompleto(personaEditando)}
+                  Actualiza la información general de {nombreCompleto(personaEditando)}
                 </p>
               </div>
 
               <button
                 type="button"
                 onClick={cerrarEdicion}
-                className="rounded-md p-2 hover:bg-muted"
+                className="rounded-full border bg-background p-2 text-muted-foreground transition hover:bg-muted hover:text-foreground"
               >
                 <X className="size-5" />
               </button>
             </div>
 
-            <form onSubmit={guardarEdicion} className="max-h-[75vh] overflow-auto p-5 space-y-6">
-              <Seccion titulo="Información básica">
-                <Input label="Tipo usuario" name="tipoUsuario" value={form.tipoUsuario} onChange={handleChange} />
-                <Input label="Tipo documento" name="tipoDocumento" value={form.tipoDocumento} onChange={handleChange} />
-                <Input label="Número documento" name="numeroDocumento" value={form.numeroDocumento} onChange={handleChange} />
-                <Input label="Fecha expedición" name="fechaExpedicion" type="date" value={form.fechaExpedicion} onChange={handleChange} />
-                <Input label="Ciudad expedición" name="ciudadExpedicion" value={form.ciudadExpedicion} onChange={handleChange} />
-                <Input label="Nombres" name="nombres" value={form.nombres} onChange={handleChange} />
-                <Input label="Apellidos" name="apellidos" value={form.apellidos} onChange={handleChange} />
-                <Input label="Nombre identitario" name="nombreIdentitario" value={form.nombreIdentitario} onChange={handleChange} />
-                <Input label="Pronombre" name="pronombre" value={form.pronombre} onChange={handleChange} />
-                <Input label="Sexo" name="sexo" value={form.sexo} onChange={handleChange} />
-                <Input label="Género" name="genero" value={form.genero} onChange={handleChange} />
-                <Input label="Orientación sexual" name="orientacionSexual" value={form.orientacionSexual} onChange={handleChange} />
-                <Input label="Fecha nacimiento" name="fechaNacimiento" type="date" value={form.fechaNacimiento} onChange={handleChange} />
-              </Seccion>
+            <form onSubmit={guardarEdicion} className="flex min-h-0 flex-1 flex-col">
+              <div className="flex-1 overflow-auto p-6">
+                <div className="space-y-6">
+                  <Seccion titulo="Información básica">
+                    <Input label="Tipo usuario" name="tipoUsuario" value={form.tipoUsuario} onChange={handleChange} />
+                    <Input label="Tipo documento" name="tipoDocumento" value={form.tipoDocumento} onChange={handleChange} />
+                    <Input label="Número documento" name="numeroDocumento" value={form.numeroDocumento} onChange={handleChange} />
+                    <Input label="Fecha expedición" name="fechaExpedicion" type="date" value={form.fechaExpedicion} onChange={handleChange} />
+                    <Input label="Ciudad expedición" name="ciudadExpedicion" value={form.ciudadExpedicion} onChange={handleChange} />
+                    <Input label="Nombres" name="nombres" value={form.nombres} onChange={handleChange} />
+                    <Input label="Apellidos" name="apellidos" value={form.apellidos} onChange={handleChange} />
+                    <Input label="Nombre identitario" name="nombreIdentitario" value={form.nombreIdentitario} onChange={handleChange} />
+                    <Input label="Pronombre" name="pronombre" value={form.pronombre} onChange={handleChange} />
+                    <Input label="Sexo" name="sexo" value={form.sexo} onChange={handleChange} />
+                    <Input label="Género" name="genero" value={form.genero} onChange={handleChange} />
+                    <Input label="Orientación sexual" name="orientacionSexual" value={form.orientacionSexual} onChange={handleChange} />
+                    <Input label="Fecha nacimiento" name="fechaNacimiento" type="date" value={form.fechaNacimiento} onChange={handleChange} />
+                  </Seccion>
 
-              <Seccion titulo="Contacto">
-                <Input label="Teléfono" name="telefono" value={form.telefono} onChange={handleChange} />
-                <Input label="Correo" name="correo" type="email" value={form.correo} onChange={handleChange} />
-                <Input label="Nacionalidad" name="nacionalidad" value={form.nacionalidad} onChange={handleChange} />
-                <Input label="Estado civil" name="estadoCivil" value={form.estadoCivil} onChange={handleChange} />
-                <Input label="Escolaridad" name="escolaridad" value={form.escolaridad} onChange={handleChange} />
-                <Input label="Grupo étnico" name="grupoEtnico" value={form.grupoEtnico} onChange={handleChange} />
-                <Input label="Condición actual" name="condicionActual" value={form.condicionActual} onChange={handleChange} />
-                <Input label="Discapacidad" name="discapacidad" value={form.discapacidad} onChange={handleChange} />
-                <Input label="Caracterización PCD" name="caracterizacionPcd" value={form.caracterizacionPcd} onChange={handleChange} />
-              </Seccion>
+                  <Seccion titulo="Contacto">
+                    <Input label="Teléfono" name="telefono" value={form.telefono} onChange={handleChange} />
+                    <Input label="Correo" name="correo" type="email" value={form.correo} onChange={handleChange} />
+                    <Input label="Nacionalidad" name="nacionalidad" value={form.nacionalidad} onChange={handleChange} />
+                    <Input label="Estado civil" name="estadoCivil" value={form.estadoCivil} onChange={handleChange} />
+                    <Input label="Escolaridad" name="escolaridad" value={form.escolaridad} onChange={handleChange} />
+                    <Input label="Grupo étnico" name="grupoEtnico" value={form.grupoEtnico} onChange={handleChange} />
+                    <Input label="Condición actual" name="condicionActual" value={form.condicionActual} onChange={handleChange} />
+                    <Input label="Discapacidad" name="discapacidad" value={form.discapacidad} onChange={handleChange} />
+                    <Input label="Caracterización PCD" name="caracterizacionPcd" value={form.caracterizacionPcd} onChange={handleChange} />
+                  </Seccion>
 
-              <Seccion titulo="Ubicación y vivienda">
-                <Input label="Departamento" name="departamento" value={form.departamento} onChange={handleChange} />
-                <Input label="Municipio" name="municipio" value={form.municipio} onChange={handleChange} />
-                <Input label="Barrio" name="barrio" value={form.barrio} onChange={handleChange} />
-                <Input label="Dirección" name="direccion" value={form.direccion} onChange={handleChange} />
-                <Input label="Comuna" name="comuna" value={form.comuna} onChange={handleChange} />
-                <Input label="Localidad" name="localidad" value={form.localidad} onChange={handleChange} />
-                <Input label="Estrato" name="estrato" type="number" value={form.estrato} onChange={handleNumberChange} />
-                <Input label="Tipo vivienda" name="tipoVivienda" value={form.tipoVivienda} onChange={handleChange} />
-                <Input label="Zona" name="zona" value={form.zona} onChange={handleChange} />
-                <Input label="Tenencia" name="tenencia" value={form.tenencia} onChange={handleChange} />
-                <Input label="Personas a cargo" name="numeroPersonasACargo" type="number" value={form.numeroPersonasACargo} onChange={handleNumberChange} />
-              </Seccion>
+                  <Seccion titulo="Ubicación y vivienda">
+                    <Input label="Departamento" name="departamento" value={form.departamento} onChange={handleChange} />
+                    <Input label="Municipio" name="municipio" value={form.municipio} onChange={handleChange} />
+                    <Input label="Barrio" name="barrio" value={form.barrio} onChange={handleChange} />
+                    <Input label="Dirección" name="direccion" value={form.direccion} onChange={handleChange} />
+                    <Input label="Comuna" name="comuna" value={form.comuna} onChange={handleChange} />
+                    <Input label="Localidad" name="localidad" value={form.localidad} onChange={handleChange} />
+                    <Input label="Estrato" name="estrato" type="number" value={form.estrato} onChange={handleNumberChange} />
+                    <Input label="Tipo vivienda" name="tipoVivienda" value={form.tipoVivienda} onChange={handleChange} />
+                    <Input label="Zona" name="zona" value={form.zona} onChange={handleChange} />
+                    <Input label="Tenencia" name="tenencia" value={form.tenencia} onChange={handleChange} />
+                    <Input label="Personas a cargo" name="numeroPersonasACargo" type="number" value={form.numeroPersonasACargo} onChange={handleNumberChange} />
+                  </Seccion>
 
-              <Seccion titulo="Economía">
-                <Input label="Ocupación" name="ocupacion" value={form.ocupacion} onChange={handleChange} />
-                <Input label="Empresa" name="empresa" value={form.empresa} onChange={handleChange} />
-                <Input label="Salario" name="salario" type="number" value={form.salario} onChange={handleNumberChange} />
-                <Input label="Cargo" name="cargo" value={form.cargo} onChange={handleChange} />
-                <Input label="Dirección empresa" name="direccionEmpresa" value={form.direccionEmpresa} onChange={handleChange} />
-                <Input label="Teléfono empresa" name="telefonoEmpresa" value={form.telefonoEmpresa} onChange={handleChange} />
-              </Seccion>
+                  <Seccion titulo="Economía">
+                    <Input label="Ocupación" name="ocupacion" value={form.ocupacion} onChange={handleChange} />
+                    <Input label="Empresa" name="empresa" value={form.empresa} onChange={handleChange} />
+                    <Input label="Salario" name="salario" type="number" value={form.salario} onChange={handleNumberChange} />
+                    <Input label="Cargo" name="cargo" value={form.cargo} onChange={handleChange} />
+                    <Input label="Dirección empresa" name="direccionEmpresa" value={form.direccionEmpresa} onChange={handleChange} />
+                    <Input label="Teléfono empresa" name="telefonoEmpresa" value={form.telefonoEmpresa} onChange={handleChange} />
+                  </Seccion>
 
-              <Seccion titulo="Acudiente">
-                <Input label="Nombre acudiente" name="nombreCompletoAcudiente" value={form.nombreCompletoAcudiente} onChange={handleChange} />
-                <Input label="Relación acudiente" name="relacionAcudiente" value={form.relacionAcudiente} onChange={handleChange} />
-                <Input label="Teléfono acudiente" name="telefonoAcudiente" value={form.telefonoAcudiente} onChange={handleChange} />
-                <Input label="Correo acudiente" name="correoAcudiente" value={form.correoAcudiente} onChange={handleChange} />
-                <Input label="Dirección acudiente" name="direccionAcudiente" value={form.direccionAcudiente} onChange={handleChange} />
-              </Seccion>
+                  <Seccion titulo="Acudiente">
+                    <Input label="Nombre acudiente" name="nombreCompletoAcudiente" value={form.nombreCompletoAcudiente} onChange={handleChange} />
+                    <Input label="Relación acudiente" name="relacionAcudiente" value={form.relacionAcudiente} onChange={handleChange} />
+                    <Input label="Teléfono acudiente" name="telefonoAcudiente" value={form.telefonoAcudiente} onChange={handleChange} />
+                    <Input label="Correo acudiente" name="correoAcudiente" value={form.correoAcudiente} onChange={handleChange} />
+                    <Input label="Dirección acudiente" name="direccionAcudiente" value={form.direccionAcudiente} onChange={handleChange} />
+                  </Seccion>
 
-              <Seccion titulo="Servicio">
-                <Input label="Cómo se enteró" name="comoSeEntero" value={form.comoSeEntero} onChange={handleChange} />
-                <Input label="Relación con universidad" name="relacionConUniversidad" value={form.relacionConUniversidad} onChange={handleChange} />
-              </Seccion>
+                  <Seccion titulo="Servicio">
+                    <Input label="Cómo se enteró" name="comoSeEntero" value={form.comoSeEntero} onChange={handleChange} />
+                    <Input label="Relación con universidad" name="relacionConUniversidad" value={form.relacionConUniversidad} onChange={handleChange} />
+                  </Seccion>
 
-              <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-                <Checkbox label="Sabe leer y escribir" name="sabeLeerEscribir" checked={form.sabeLeerEscribir} onChange={handleChange} />
-                <Checkbox label="Necesita ajuste PCD" name="necesitaAjustePcd" checked={form.necesitaAjustePcd} onChange={handleChange} />
-                <Checkbox label="Ingresos adicionales" name="ingresosAdicionales" checked={form.ingresosAdicionales} onChange={handleChange} />
-                <Checkbox label="Energía eléctrica" name="energiaElectrica" checked={form.energiaElectrica} onChange={handleChange} />
-                <Checkbox label="Acueducto" name="acueducto" checked={form.acueducto} onChange={handleChange} />
-                <Checkbox label="Alcantarillado" name="alcantarillado" checked={form.alcantarillado} onChange={handleChange} />
+                  <div className="rounded-xl border bg-muted/20 p-4">
+                    <h4 className="mb-3 font-semibold">Condiciones adicionales</h4>
+
+                    <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                      <Checkbox label="Sabe leer y escribir" name="sabeLeerEscribir" checked={form.sabeLeerEscribir} onChange={handleChange} />
+                      <Checkbox label="Necesita ajuste PCD" name="necesitaAjustePcd" checked={form.necesitaAjustePcd} onChange={handleChange} />
+                      <Checkbox label="Ingresos adicionales" name="ingresosAdicionales" checked={form.ingresosAdicionales} onChange={handleChange} />
+                      <Checkbox label="Energía eléctrica" name="energiaElectrica" checked={form.energiaElectrica} onChange={handleChange} />
+                      <Checkbox label="Acueducto" name="acueducto" checked={form.acueducto} onChange={handleChange} />
+                      <Checkbox label="Alcantarillado" name="alcantarillado" checked={form.alcantarillado} onChange={handleChange} />
+                    </div>
+                  </div>
+                </div>
               </div>
 
-              <div className="flex justify-end gap-3 border-t pt-4">
+              <div className="flex justify-end gap-3 border-t bg-card px-6 py-4">
                 <Button type="button" variant="outline" onClick={cerrarEdicion} disabled={saving}>
                   Cancelar
                 </Button>
@@ -562,14 +619,28 @@ export function PersonasForm() {
           </div>
         </div>
       )}
+
+      <ConfirmActionDialog
+        open={Boolean(personaADesactivar)}
+        title="Desactivar persona"
+        description={`¿Deseas desactivar a "${
+          nombreCompleto(personaADesactivar) || "esta persona"
+        }"? Podrás reactivarla después desde la página de eliminación.`}
+        confirmText="Desactivar"
+        cancelText="Cancelar"
+        loading={desactivando}
+        onClose={cerrarConfirmacionDesactivar}
+        onConfirm={confirmarDesactivarPersona}
+      />
     </div>
   );
 }
 
 function Seccion({ titulo, children }) {
   return (
-    <section className="space-y-3">
-      <h4 className="font-semibold">{titulo}</h4>
+    <section className="rounded-xl border bg-background p-4">
+      <h4 className="mb-4 border-b pb-2 font-semibold">{titulo}</h4>
+
       <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
         {children}
       </div>

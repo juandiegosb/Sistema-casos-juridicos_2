@@ -92,7 +92,7 @@ export function PersonaForm({ onSubmit, initialValues = {} }) {
 
   const tipoUsuarioOptions = [
     { value: "Víctima", label: "Víctima" },
-    { value: "Consultante", label: "Consultante" },
+    { value: "Usuario General", label: "Usuario General" },
   ];
 
   const pronombreOptions = [
