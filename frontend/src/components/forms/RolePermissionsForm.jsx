@@ -8,17 +8,89 @@ import { PERMISOS } from "@/lib/permission";
 import { tienePermiso } from "@/lib/authz";
 
 const PAGINAS = [
-  { title: "Inicio", path: "/inicio", permisos: [PERMISOS.ACCEDER_INICIO] },
-  { title: "Recepción", path: "/recepcion", permisos: [PERMISOS.ACCEDER_RECEPCION] },
-  { title: "Tareas", path: "/tareas", permisos: [PERMISOS.ACCEDER_TAREAS] },
-  { title: "Nueva consulta", path: "/nuevaconsulta", permisos: [PERMISOS.ACCEDER_NUEVA_CONSULTA] },
-  { title: "Consultas jurídicas", path: "/consultasjuridicas", permisos: [PERMISOS.ACCEDER_CONSULTAS_JURIDICAS] },
-  { title: "Personas", path: "/personas", permisos: [PERMISOS.ACCEDER_PERSONAS] },
-  { title: "Administración", path: "/admin", permisos: [PERMISOS.ACCEDER_ADMINISTRACION] },
-  { title: "Roles", path: "/roles", permisos: [PERMISOS.ACCEDER_ROLES] },
-  { title: "Estudiantes", path: "/estudiantes", permisos: [PERMISOS.ACCEDER_ESTUDIANTES] },
-  { title: "Asesores y monitores", path: "/asesoresymonitores", permisos: [PERMISOS.ACCEDER_ASESORES_MONITORES] },
-  { title: "Eliminación", path: "/eliminacion", permisos: [PERMISOS.ACCEDER_ELIMINACION] },
+  {
+    title: "Inicio",
+    path: "/inicio",
+    permisos: [PERMISOS.ACCEDER_INICIO],
+  },
+  {
+    title: "Recepción",
+    path: "/recepcion",
+    permisos: [
+      PERMISOS.ACCEDER_RECEPCION,
+      PERMISOS.CREAR_PERSONAS,
+      PERMISOS.VER_CATALOGOS,
+    ],
+  },
+  {
+    title: "Tareas",
+    path: "/tareas",
+    permisos: [
+      PERMISOS.ACCEDER_TAREAS,
+      PERMISOS.VER_SEGUIMIENTOS,
+    ],
+  },
+  {
+    title: "Nueva consulta",
+    path: "/nuevaconsulta",
+    permisos: [
+      PERMISOS.ACCEDER_NUEVA_CONSULTA,
+      PERMISOS.CREAR_CONSULTAS,
+    ],
+  },
+  {
+    title: "Consultas jurídicas",
+    path: "/consultasjuridicas",
+    permisos: [
+      PERMISOS.ACCEDER_CONSULTAS_JURIDICAS,
+      PERMISOS.VER_CONSULTAS,
+    ],
+  },
+  {
+    title: "Personas",
+    path: "/personas",
+    permisos: [
+      PERMISOS.ACCEDER_PERSONAS,
+      PERMISOS.VER_PERSONAS,
+    ],
+  },
+  {
+    title: "Administración",
+    path: "/admin",
+    permisos: [
+      PERMISOS.ACCEDER_ADMINISTRACION,
+      PERMISOS.VER_CATALOGOS,
+    ],
+  },
+  {
+    title: "Roles",
+    path: "/roles",
+    permisos: [
+      PERMISOS.ACCEDER_ROLES,
+      PERMISOS.VER_ROLES,
+    ],
+  },
+  {
+    title: "Estudiantes",
+    path: "/estudiantes",
+    permisos: [
+      PERMISOS.ACCEDER_ESTUDIANTES,
+      PERMISOS.VER_ESTUDIANTES,
+    ],
+  },
+  {
+    title: "Asesores y monitores",
+    path: "/asesoresymonitores",
+    permisos: [
+      PERMISOS.ACCEDER_ASESORES_MONITORES,
+      PERMISOS.VER_ASESORES_MONITORES,
+    ],
+  },
+  {
+    title: "Eliminación",
+    path: "/eliminacion",
+    permisos: [PERMISOS.ACCEDER_ELIMINACION],
+  },
 ];
 
 function normalizar(value) {

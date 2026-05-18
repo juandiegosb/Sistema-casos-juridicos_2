@@ -14,6 +14,8 @@ import { tieneAlgunPermiso, tienePermiso } from "@/lib/authz";
 
 const REQUIRED = "Campo obligatorio";
 
+const PERMISO_GESTIONAR_USUARIOS_LEGACY = "Gestionar usuarios";
+
 function mapOption(item) {
   return {
     value: item.id,
@@ -24,6 +26,33 @@ function mapOption(item) {
       item.codigo ||
       String(item.id),
   };
+}
+
+function extraerLista(data) {
+  if (Array.isArray(data)) return data;
+  if (Array.isArray(data?.content)) return data.content;
+  if (Array.isArray(data?.data)) return data.data;
+  if (Array.isArray(data?.items)) return data.items;
+  if (Array.isArray(data?.rows)) return data.rows;
+  return [];
+}
+
+function puedeCrearUsuariosUsuario(usuario) {
+  return tieneAlgunPermiso(usuario, [
+    PERMISOS.CREAR_USUARIOS,
+    PERMISO_GESTIONAR_USUARIOS_LEGACY,
+  ]);
+}
+
+function puedeGestionarAdministradoresUsuario(usuario) {
+  return tienePermiso(usuario, PERMISOS.GESTIONAR_ADMINISTRADORES);
+}
+
+function puedeVerCatalogosUsuario(usuario) {
+  return tieneAlgunPermiso(usuario, [
+    PERMISOS.VER_CATALOGOS,
+    PERMISOS.GESTIONAR_CATALOGOS,
+  ]);
 }
 
 export function UsuarioSistemaForm() {
@@ -64,15 +93,9 @@ export function UsuarioSistemaForm() {
 
   const rol = watch("rol") || "";
 
-  const puedeCrearUsuarios = tienePermiso(user, PERMISOS.CREAR_USUARIOS);
-  const puedeGestionarAdministradores = tienePermiso(
-    user,
-    PERMISOS.GESTIONAR_ADMINISTRADORES
-  );
-  const puedeVerCatalogos = tieneAlgunPermiso(user, [
-    PERMISOS.VER_CATALOGOS,
-    PERMISOS.GESTIONAR_CATALOGOS,
-  ]);
+  const puedeCrearUsuarios = puedeCrearUsuariosUsuario(user);
+  const puedeGestionarAdministradores =
+    puedeGestionarAdministradoresUsuario(user);
 
   const roles = useMemo(() => {
     const base = [
@@ -104,14 +127,12 @@ export function UsuarioSistemaForm() {
       return [];
     }
 
-    if (!puedeCrearUsuarios) {
-      router.push("/inicio");
+    if (!res.ok) {
+      return [];
     }
 
-    if (!res.ok) return [];
-
     const data = await res.json();
-    return Array.isArray(data) ? data : [];
+    return extraerLista(data);
   }
 
   async function verificarYCargar() {
@@ -120,30 +141,31 @@ export function UsuarioSistemaForm() {
         credentials: "include",
       });
 
-      if (res.status === 401 || !res.ok) {
+      if (res.status === 401) {
         router.push("/");
         return;
       }
 
-      const data = await res.json();
-      setUser(data);
+      if (!res.ok) {
+        toast.error("No se pudo validar la sesión");
+        router.push("/");
+        return;
+      }
 
-      const autorizado = tieneAlgunPermiso(data, [
-        PERMISOS.CREAR_USUARIOS,
-        PERMISOS.GESTIONAR_ADMINISTRADORES,
-      ]);
+      const usuarioActual = await res.json();
+      setUser(usuarioActual);
+
+      const autorizado =
+        puedeCrearUsuariosUsuario(usuarioActual) ||
+        puedeGestionarAdministradoresUsuario(usuarioActual);
 
       if (!autorizado) {
+        toast.error("No tienes permisos para crear usuarios");
         router.push("/inicio");
         return;
       }
 
-      const puedeCargarCatalogos = tieneAlgunPermiso(data, [
-        PERMISOS.VER_CATALOGOS,
-        PERMISOS.GESTIONAR_CATALOGOS,
-      ]);
-
-      if (!puedeCargarCatalogos) {
+      if (!puedeVerCatalogosUsuario(usuarioActual)) {
         toast.error("No tienes permiso para cargar catálogos");
         return;
       }
@@ -181,6 +203,7 @@ export function UsuarioSistemaForm() {
       );
     } catch (error) {
       console.error(error);
+      toast.error("Error cargando el formulario");
       router.push("/");
     } finally {
       setChecking(false);
@@ -222,17 +245,21 @@ export function UsuarioSistemaForm() {
       return;
     }
 
-    if (!puedeCrearUsuarios && rol !== "administrativos") {
-      toast.error("No tienes permiso para crear usuarios");
-      return;
-    }
-
     if (rol === "administrativos" && !puedeGestionarAdministradores) {
       toast.error("No tienes permiso para gestionar administradores");
       return;
     }
 
-    if (!tiposDocumento.some((t) => Number(t.value) === Number(data.tipoDocumentoId))) {
+    if (rol !== "administrativos" && !puedeCrearUsuarios) {
+      toast.error("No tienes permiso para crear usuarios");
+      return;
+    }
+
+    if (
+      !tiposDocumento.some(
+        (tipo) => Number(tipo.value) === Number(data.tipoDocumentoId)
+      )
+    ) {
       toast.error("Seleccione un tipo de documento válido");
       return;
     }

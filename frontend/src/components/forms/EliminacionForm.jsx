@@ -5,6 +5,9 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { API_URL_BASE } from "@/lib/config";
 import { RotateCcw, RefreshCw } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { PERMISOS } from "@/lib/permission";
+import { tieneTodosLosPermisos } from "@/lib/authz";
 
 const SECCIONES = [
   {
@@ -140,6 +143,7 @@ export function EliminacionForm() {
   const [loading, setLoading] = useState(true);
   const [reactivando, setReactivando] = useState("");
   const [busqueda, setBusqueda] = useState("");
+  const router = useRouter();
 
   const seccion = useMemo(() => {
     return SECCIONES.find((item) => item.id === seccionActiva);
@@ -176,8 +180,51 @@ export function EliminacionForm() {
   }, [data, seccionActiva, busqueda, seccion]);
 
   useEffect(() => {
-    cargarTodo();
+    verificarYCargar();
   }, []);
+
+  async function verificarYCargar() {
+    try {
+      setLoading(true);
+
+      const res = await fetch(`${API_URL_BASE}/auth/me`, {
+        method: "GET",
+        credentials: "include",
+      });
+
+      if (res.status === 401) {
+        router.replace("/");
+        return;
+      }
+
+      if (!res.ok) {
+        router.replace("/");
+        return;
+      }
+
+      const user = await res.json();
+
+      const puedeEntrar = tieneTodosLosPermisos(user, [
+        PERMISOS.CAMBIAR_ESTADO_PERSONAS,
+        PERMISOS.CAMBIAR_ESTADO_USUARIOS,
+        PERMISOS.CAMBIAR_ESTADO_ESTUDIANTES,
+        PERMISOS.CAMBIAR_ESTADO_CONSULTAS,
+        PERMISOS.ARCHIVAR_CONSULTAS,
+      ]);
+
+      if (!puedeEntrar) {
+        router.replace("/inicio");
+        return;
+      }
+
+      await cargarTodo();
+    } catch (error) {
+      console.error("Error verificando permisos de eliminación", error);
+      router.replace("/");
+    } finally {
+      setLoading(false);
+    }
+  }
 
   async function cargarTodo() {
     try {
@@ -351,11 +398,10 @@ export function EliminacionForm() {
                   setSeccionActiva(item.id);
                   setBusqueda("");
                 }}
-                className={`rounded-lg border px-3 py-2 text-sm font-medium transition ${
-                  seccionActiva === item.id
-                    ? "border-primary bg-primary text-primary-foreground"
-                    : "bg-background hover:bg-muted"
-                }`}
+                className={`rounded-lg border px-3 py-2 text-sm font-medium transition ${seccionActiva === item.id
+                  ? "border-primary bg-primary text-primary-foreground"
+                  : "bg-background hover:bg-muted"
+                  }`}
               >
                 {item.titulo}
                 <span className="ml-2 rounded-full bg-background/20 px-2 py-0.5 text-xs">

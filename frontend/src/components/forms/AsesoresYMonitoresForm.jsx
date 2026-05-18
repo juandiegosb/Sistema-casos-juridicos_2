@@ -6,6 +6,8 @@ import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { API_URL_BASE } from "@/lib/config";
 import { ConfirmActionDialog } from "@/components/ui/ConfirmActionDialog";
+import { PERMISOS } from "@/lib/permission";
+import { tienePermiso } from "@/lib/authz";
 
 export function AsesoresYMonitoresForm() {
   const router = useRouter();
@@ -17,6 +19,7 @@ export function AsesoresYMonitoresForm() {
 
   const [confirmDialog, setConfirmDialog] = useState(null);
   const [confirmLoading, setConfirmLoading] = useState(false);
+  const [puedeGestionar, setPuedeGestionar] = useState(false);
 
   useEffect(() => {
     const verificarYcargar = async () => {
@@ -27,16 +30,29 @@ export function AsesoresYMonitoresForm() {
         });
 
         if (res.status === 401) {
-          router.push("/");
+          router.replace("/");
+          return;
+        }
+
+        if (!res.ok) {
+          router.replace("/");
           return;
         }
 
         const usuario = await res.json();
 
-        if (!usuario.permisos?.includes("Gestionar usuarios")) {
-          router.push("/inicio");
+        const puedeEntrar =
+          tienePermiso(usuario, PERMISOS.ACCEDER_ASESORES_MONITORES) &&
+          tienePermiso(usuario, PERMISOS.VER_ASESORES_MONITORES);
+
+        if (!puedeEntrar) {
+          router.replace("/inicio");
           return;
         }
+
+        setPuedeGestionar(
+          tienePermiso(usuario, PERMISOS.GESTIONAR_ASESORES_MONITORES)
+        );
 
         const [asesoresRes, monitoresRes] = await Promise.all([
           fetch(`${API_URL_BASE}/asesores/activos`, {
@@ -48,12 +64,12 @@ export function AsesoresYMonitoresForm() {
         ]);
 
         if (asesoresRes.status === 401 || monitoresRes.status === 401) {
-          router.push("/");
+          router.replace("/");
           return;
         }
 
         if (asesoresRes.status === 403 || monitoresRes.status === 403) {
-          router.push("/inicio");
+          router.replace("/inicio");
           return;
         }
 
@@ -74,6 +90,11 @@ export function AsesoresYMonitoresForm() {
   }, [router]);
 
   function abrirConfirmacionDesactivar(usuario) {
+    if (!puedeGestionar) {
+      router.replace("/inicio");
+      return;
+    }
+
     setConfirmDialog(usuario);
   }
 
@@ -181,29 +202,29 @@ export function AsesoresYMonitoresForm() {
 
                 <td className="p-3">
                   <span
-                    className={`text-xs px-2 py-1 rounded ${
-                      u.activo
+                    className={`text-xs px-2 py-1 rounded ${u.activo
                         ? "bg-blue-100 text-blue-700"
                         : "bg-red-100 text-red-700"
-                    }`}
+                      }`}
                   >
                     {u.activo ? "Activo" : "Inactivo"}
                   </span>
                 </td>
 
                 <td className="p-3">
-                  <button
-                    type="button"
-                    onClick={() => abrirConfirmacionDesactivar(u)}
-                    disabled={!u.activo}
-                    className={`text-xs px-3 py-1 rounded ${
-                      u.activo
-                        ? "bg-red-100 text-red-700 hover:bg-red-200"
-                        : "bg-gray-100 text-gray-400 cursor-not-allowed"
-                    }`}
-                  >
-                    {u.activo ? "Desactivar" : "Inactivo"}
-                  </button>
+                  {puedeGestionar && (
+                    <button
+                      type="button"
+                      onClick={() => abrirConfirmacionDesactivar(u)}
+                      disabled={!u.activo}
+                      className={`text-xs px-3 py-1 rounded ${u.activo
+                          ? "bg-red-100 text-red-700 hover:bg-red-200"
+                          : "bg-gray-100 text-gray-400 cursor-not-allowed"
+                        }`}
+                    >
+                      {u.activo ? "Desactivar" : "Inactivo"}
+                    </button>
+                  )}
                 </td>
               </tr>
             ))}
@@ -220,9 +241,8 @@ export function AsesoresYMonitoresForm() {
       <ConfirmActionDialog
         open={Boolean(confirmDialog)}
         title={`Desactivar ${confirmDialog?.rol?.toLowerCase() || "usuario"}`}
-        description={`¿Deseas desactivar a "${
-          confirmDialog?.nombre || "este usuario"
-        }"? Podrás reactivarlo después desde la página de eliminación.`}
+        description={`¿Deseas desactivar a "${confirmDialog?.nombre || "este usuario"
+          }"? Podrás reactivarlo después desde la página de eliminación.`}
         confirmText="Desactivar"
         cancelText="Cancelar"
         loading={confirmLoading}

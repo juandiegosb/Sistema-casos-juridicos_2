@@ -5,6 +5,9 @@ import { Search, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { API_URL_BASE } from "@/lib/config";
 import { ConfirmActionDialog } from "@/components/ui/ConfirmActionDialog";
+import { useRouter } from "next/navigation";
+import { PERMISOS } from "@/lib/permission";
+import { tienePermiso } from "@/lib/authz";
 
 const FORM_INICIAL = {
   tipoUsuario: "",
@@ -129,7 +132,13 @@ export function PersonasForm() {
   const [mensaje, setMensaje] = useState("");
   const [error, setError] = useState("");
 
-  const puedeDesactivar = esAdministrador(user);
+  const router = useRouter();
+
+  const puedeEditar = tienePermiso(user, PERMISOS.EDITAR_PERSONAS);
+  const puedeDesactivar = tienePermiso(
+    user,
+    PERMISOS.CAMBIAR_ESTADO_PERSONAS
+  );
 
   const personasFiltradas = useMemo(() => {
     const q = busqueda.trim().toLowerCase();
@@ -159,7 +168,7 @@ export function PersonasForm() {
 
   useEffect(() => {
     cargarInicial();
-  }, []);
+  }, [router]);
 
   async function cargarInicial() {
     try {
@@ -167,35 +176,52 @@ export function PersonasForm() {
       setError("");
       setMensaje("");
 
-      const [meRes, personasRes] = await Promise.all([
-        fetch(`${API_URL_BASE}/auth/me`, {
-          credentials: "include",
-        }),
-        fetch(`${API_URL_BASE}/personas/activos`, {
-          credentials: "include",
-        }),
-      ]);
+      const meRes = await fetch(`${API_URL_BASE}/auth/me`, {
+        credentials: "include",
+      });
 
-      if (meRes.status === 401 || personasRes.status === 401) {
-        throw new Error("La sesión expiró");
-      }
-
-      if (personasRes.status === 403) {
-        throw new Error("No tienes permisos para consultar personas");
+      if (meRes.status === 401) {
+        router.replace("/");
+        return;
       }
 
       if (!meRes.ok) {
-        throw new Error("No se pudo cargar el usuario actual");
+        router.replace("/");
+        return;
+      }
+
+      const meData = await meRes.json();
+
+      const puedeEntrar =
+        tienePermiso(meData, PERMISOS.ACCEDER_PERSONAS) &&
+        tienePermiso(meData, PERMISOS.VER_PERSONAS);
+
+      if (!puedeEntrar) {
+        router.replace("/inicio");
+        return;
+      }
+
+      setUser(meData);
+
+      const personasRes = await fetch(`${API_URL_BASE}/personas/activos`, {
+        credentials: "include",
+      });
+
+      if (personasRes.status === 401) {
+        router.replace("/");
+        return;
+      }
+
+      if (personasRes.status === 403) {
+        router.replace("/inicio");
+        return;
       }
 
       if (!personasRes.ok) {
         throw new Error("No se pudieron cargar las personas");
       }
 
-      const meData = await meRes.json();
       const personasData = await personasRes.json();
-
-      setUser(meData);
       setPersonas(Array.isArray(personasData) ? personasData : []);
     } catch (err) {
       console.error(err);
@@ -206,6 +232,11 @@ export function PersonasForm() {
   }
 
   function abrirEdicion(persona) {
+    if (!puedeEditar) {
+      setError("No tienes permisos para editar personas");
+      return;
+    }
+
     setMensaje("");
     setError("");
     setPersonaEditando(persona);
@@ -255,6 +286,11 @@ export function PersonasForm() {
       return;
     }
 
+    if (!puedeEditar) {
+      setError("No tienes permisos para editar personas");
+      return;
+    }
+
     try {
       setSaving(true);
       setError("");
@@ -279,8 +315,14 @@ export function PersonasForm() {
 
       const data = await leerRespuesta(res);
 
+      if (res.status === 401) {
+        router.replace("/");
+        return;
+      }
+
       if (res.status === 403) {
-        throw new Error("No tienes permisos para editar personas");
+        router.replace("/inicio");
+        return;
       }
 
       if (!res.ok) {
@@ -304,7 +346,7 @@ export function PersonasForm() {
     if (!personaADesactivar?.id) return;
 
     if (!puedeDesactivar) {
-      setError("Solo el administrador puede desactivar personas");
+      setError("No tienes permisos para desactivar personas");
       setPersonaADesactivar(null);
       return;
     }
@@ -324,8 +366,14 @@ export function PersonasForm() {
 
       const data = await leerRespuesta(res);
 
+      if (res.status === 401) {
+        router.replace("/");
+        return;
+      }
+
       if (res.status === 403) {
-        throw new Error("No tienes permisos para desactivar personas");
+        router.replace("/inicio");
+        return;
       }
 
       if (!res.ok) {
@@ -471,15 +519,17 @@ export function PersonasForm() {
 
                       <td className="px-4 py-3">
                         <div className="flex justify-end gap-2">
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            onClick={() => abrirEdicion(persona)}
-                            className="border-primary/30 bg-primary/10 hover:bg-primary/20"
-                          >
-                            Editar
-                          </Button>
+                          {puedeEditar && (
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={() => abrirEdicion(persona)}
+                              className="border-primary/30 bg-primary/10 hover:bg-primary/20"
+                            >
+                              Editar
+                            </Button>
+                          )}
 
                           {puedeDesactivar && (
                             <Button

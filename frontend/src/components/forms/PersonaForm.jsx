@@ -9,6 +9,8 @@ import { FormInput } from "./parts/FormInput";
 import { FormCheckbox } from "./parts/FormCheckbox";
 import { Button } from "@/components/ui/button";
 import { API_URL_BASE } from "@/lib/config";
+import { PERMISOS } from "@/lib/permission";
+import { tienePermiso } from "@/lib/authz";
 
 export function PersonaForm({ onSubmit, initialValues = {} }) {
   const router = useRouter();
@@ -188,32 +190,55 @@ export function PersonaForm({ onSubmit, initialValues = {} }) {
   }, [formValues.fechaNacimiento]);
 
   useEffect(() => {
-    verificarSesion();
-    cargarCatalogos();
-  }, []);
+  async function iniciar() {
+    await verificarSesion();
+  }
+
+  iniciar();
+}, []);
 
   async function verificarSesion() {
-    try {
-      const res = await fetch(`${API_URL_BASE}/auth/me`, {
-        method: "GET",
-        credentials: "include",
-      });
+  try {
+    const res = await fetch(`${API_URL_BASE}/auth/me`, {
+      method: "GET",
+      credentials: "include",
+    });
 
-      if (res.status === 401) {
-        router.push("/");
-        return;
-      }
-
-      if (!res.ok) {
-        router.push("/");
-        return;
-      }
-    } catch {
-      router.push("/");
-    } finally {
-      setChecking(false);
+    if (res.status === 401) {
+      router.replace("/");
+      return;
     }
+
+    if (!res.ok) {
+      router.replace("/");
+      return;
+    }
+
+    const user = await res.json();
+
+    const puedeEntrarRecepcion = tienePermiso(
+      user,
+      PERMISOS.ACCEDER_RECEPCION
+    );
+
+    const puedeCrearPersonas = tienePermiso(
+      user,
+      PERMISOS.CREAR_PERSONAS
+    );
+
+    if (!puedeEntrarRecepcion || !puedeCrearPersonas) {
+      router.replace("/inicio");
+      return;
+    }
+
+    await cargarCatalogos();
+  } catch (error) {
+    console.error("Error verificando sesión", error);
+    router.replace("/");
+  } finally {
+    setChecking(false);
   }
+}
 
   async function cargarCatalogos() {
     try {

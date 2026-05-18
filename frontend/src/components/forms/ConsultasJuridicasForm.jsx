@@ -4,6 +4,8 @@ import React, { useEffect, useState, useMemo } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
+import { PERMISOS } from "@/lib/permission";
+import { tienePermiso } from "@/lib/authz";
 
 import { API_URL_BASE, FILE_STORAGE_API_URL_BASE } from "@/lib/config";
 
@@ -17,6 +19,148 @@ const VACIOS = {
   tipoId: "", asesorId: "", monitorId: "", estudianteId: "",
   partesIds: [], contrapartesIds: [],
 };
+
+
+const CONSULTAS_PAGE_SIZE = 500;
+const MAX_CONSULTAS_PAGES = 50;
+
+function construirUrlConsultas(search = "", page = 0) {
+  const params = new URLSearchParams();
+  const texto = String(search || "").trim();
+
+  if (texto) params.set("search", texto);
+  params.set("page", String(page));
+  params.set("size", String(CONSULTAS_PAGE_SIZE));
+
+  return `${API_URL_BASE}/consultas?${params.toString()}`;
+}
+
+async function leerJsonSeguro(res) {
+  if (res.status === 204) return null;
+
+  const text = await res.text();
+  if (!text) return null;
+
+  try {
+    return JSON.parse(text);
+  } catch {
+    return text;
+  }
+}
+
+function obtenerArrayDesdeRespuesta(payload) {
+  if (Array.isArray(payload)) return payload;
+  if (!payload || typeof payload !== "object") return [];
+
+  const posiblesClaves = [
+    "content",
+    "data",
+    "items",
+    "rows",
+    "consultas",
+    "resultado",
+    "result",
+    "payload",
+  ];
+
+  for (const clave of posiblesClaves) {
+    const valor = payload[clave];
+    if (Array.isArray(valor)) return valor;
+    if (valor && typeof valor === "object") {
+      const interno = obtenerArrayDesdeRespuesta(valor);
+      if (interno.length > 0) return interno;
+    }
+  }
+
+  return [];
+}
+
+function obtenerTotalPaginas(payload) {
+  if (!payload || typeof payload !== "object" || Array.isArray(payload)) return 1;
+
+  const total = Number(
+    payload.totalPages ??
+      payload.totalPaginas ??
+      payload.pages ??
+      payload.page?.totalPages ??
+      1
+  );
+
+  return Number.isFinite(total) && total > 0 ? total : 1;
+}
+
+function valorDefinido(...valores) {
+  return valores.find((valor) => valor !== undefined && valor !== null && valor !== "") ?? "";
+}
+
+function normalizarConsultaFila(row) {
+  const persona = row?.persona || row?.consultante || row?.partePrincipal || {};
+  const id = valorDefinido(row?.id, row?.consultaId, row?.idConsulta);
+
+  return {
+    ...row,
+    id,
+    consulta: valorDefinido(
+      row?.consulta,
+      row?.descripcion,
+      row?.descripcionConsulta,
+      row?.hechos,
+      id ? `Consulta #${id}` : "Consulta"
+    ),
+    fecha: valorDefinido(row?.fecha, row?.fechaConsulta, row?.createdAt, row?.fechaCreacion),
+    nombre: valorDefinido(
+      row?.nombre,
+      row?.nombres,
+      row?.personaNombre,
+      row?.nombrePersona,
+      persona?.nombre,
+      persona?.nombres
+    ),
+    apellido: valorDefinido(
+      row?.apellido,
+      row?.apellidos,
+      row?.personaApellido,
+      row?.apellidoPersona,
+      persona?.apellido,
+      persona?.apellidos
+    ),
+    cedula: valorDefinido(
+      row?.cedula,
+      row?.documento,
+      row?.numeroDocumento,
+      row?.personaDocumento,
+      persona?.documento,
+      persona?.numeroDocumento
+    ),
+    estado: valorDefinido(row?.estado, row?.estadoConsulta, "Sin estado"),
+  };
+}
+
+function mensajeErrorDesdeRespuesta(payload, defecto) {
+  if (!payload) return defecto;
+  if (typeof payload === "string") return payload || defecto;
+
+  return (
+    payload.mensaje ||
+    payload.message ||
+    payload.descripcion ||
+    payload.error ||
+    defecto
+  );
+}
+
+function accionPermitidaPorRegistro(row, claves = [], fallback = false) {
+  const acciones = row?.accionesPermitidas;
+  if (!acciones || typeof acciones !== "object") return fallback;
+
+  for (const clave of claves) {
+    if (Object.prototype.hasOwnProperty.call(acciones, clave)) {
+      return Boolean(acciones[clave]);
+    }
+  }
+
+  return fallback;
+}
 
 // Modal selección simple
 function ModalSimple({ abierto, titulo, items, busqueda, setBusqueda, onSeleccionar, onCerrar, seleccionado, renderItem }) {
@@ -112,7 +256,6 @@ export function ConsultasJuridicasForm() {
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(false);
   const [searchText, setSearchText] = useState("");
-  const [esAdministrativo, setEsAdministrativo] = useState(false);
 
   const [mostrarFormEdicion, setMostrarFormEdicion] = useState(false);
   const [idEditando, setIdEditando] = useState(null);
@@ -129,6 +272,8 @@ export function ConsultasJuridicasForm() {
   const [estudiantes, setEstudiantes] = useState([]);
   const [archivosCaso, setArchivosCaso] = useState([]);
   const [cargandoArchivos, setCargandoArchivos] = useState(false);
+  const [user, setUser] = useState(null);
+  const [checkingPermisos, setCheckingPermisos] = useState(true);
 
   // Estados modales edición
   const [modalAsesor, setModalAsesor] = useState({ abierto: false, busqueda: "" });
@@ -193,18 +338,85 @@ export function ConsultasJuridicasForm() {
     return t ? personasParaContrapartes.filter(p => `${p.nombres} ${p.apellidos} ${p.numeroDocumento}`.toLowerCase().includes(t)) : personasParaContrapartes;
   }, [personasParaContrapartes, modalContrapartes.busqueda]);
 
+
+  const puedeEditarConsultas = useMemo(
+    () => tienePermiso(user, PERMISOS.EDITAR_CONSULTAS),
+    [user]
+  );
+
+  const puedeCambiarEstadoConsulta = useMemo(
+    () => tienePermiso(user, PERMISOS.CAMBIAR_ESTADO_CONSULTAS),
+    [user]
+  );
+
+  const puedeArchivarConsultas = useMemo(
+    () => tienePermiso(user, PERMISOS.ARCHIVAR_CONSULTAS),
+    [user]
+  );
+
+  const puedeAsignarResponsablesConsulta = useMemo(
+    () => tienePermiso(user, PERMISOS.ASIGNAR_RESPONSABLES_CONSULTA),
+    [user]
+  );
+
+  function puedeEditarRegistro(row) {
+    return accionPermitidaPorRegistro(
+      row,
+      ["puedeEditar", "puedeEditarConsulta"],
+      puedeEditarConsultas
+    );
+  }
+
+  function puedeArchivarRegistro(row) {
+    return accionPermitidaPorRegistro(
+      row,
+      ["puedeArchivar", "puedeArchivarConsulta", "puedeEliminar"],
+      puedeArchivarConsultas
+    );
+  }
+
   useEffect(() => {
     async function init() {
       try {
-        const res = await fetch(`${API_URL_BASE}/auth/me`, { credentials: "include" });
-        if (res.status === 401) { router.push("/"); return; }
-        const user = await res.json();
-        const tipoPerfil = user.tipoPerfil?.toUpperCase();
-        setEsAdministrativo(tipoPerfil === "ADMINISTRATIVO" || tipoPerfil === null || tipoPerfil === undefined);
-      } catch {}
-      cargarConsultas();
-      cargarCatalogos();
+        setCheckingPermisos(true);
+
+        const res = await fetch(`${API_URL_BASE}/auth/me`, {
+          method: "GET",
+          credentials: "include",
+        });
+
+        if (res.status === 401) {
+          router.replace("/");
+          return;
+        }
+
+        if (!res.ok) {
+          router.replace("/");
+          return;
+        }
+
+        const usuarioActual = await res.json();
+
+        const puedeEntrar =
+          tienePermiso(usuarioActual, PERMISOS.ACCEDER_CONSULTAS_JURIDICAS) &&
+          tienePermiso(usuarioActual, PERMISOS.VER_CONSULTAS);
+
+        if (!puedeEntrar) {
+          router.replace("/inicio");
+          return;
+        }
+
+        setUser(usuarioActual);
+        await cargarConsultas();
+        await cargarCatalogos();
+      } catch (error) {
+        console.error("Error verificando permisos:", error);
+        router.replace("/");
+      } finally {
+        setCheckingPermisos(false);
+      }
     }
+
     init();
   }, []);
 
@@ -230,33 +442,108 @@ export function ConsultasJuridicasForm() {
 
   async function cargarConsultas(search = "") {
     setLoading(true);
+
     try {
-      const res = await fetch(`${API_URL_BASE}/consultas?search=${encodeURIComponent(search)}`, { credentials: "include" });
-      if (res.status === 401) { router.push("/"); return; }
-      if (res.status === 403) { router.push("/inicio"); return; }
-      const data = await res.json();
-      setRows(Array.isArray(data) ? data : []);
-    } catch { toast.error("Error de conexión"); }
-    finally { setLoading(false); }
+      async function cargarPagina(page) {
+        const res = await fetch(construirUrlConsultas(search, page), {
+          credentials: "include",
+        });
+
+        const payload = await leerJsonSeguro(res);
+
+        if (res.status === 401) {
+          router.replace("/");
+          return { items: [], totalPages: 1, detener: true };
+        }
+
+        if (res.status === 403) {
+          toast.error("No tienes permisos para ver estas consultas.");
+          router.replace("/inicio");
+          return { items: [], totalPages: 1, detener: true };
+        }
+
+        if (!res.ok) {
+          throw new Error(mensajeErrorDesdeRespuesta(payload, "Error cargando consultas"));
+        }
+
+        return {
+          items: obtenerArrayDesdeRespuesta(payload).map(normalizarConsultaFila),
+          totalPages: obtenerTotalPaginas(payload),
+          detener: false,
+        };
+      }
+
+      const primeraPagina = await cargarPagina(0);
+      if (primeraPagina.detener) return;
+
+      let consultas = [...primeraPagina.items];
+      const totalPages = Math.min(primeraPagina.totalPages, MAX_CONSULTAS_PAGES);
+
+      if (totalPages > 1) {
+        const paginasRestantes = await Promise.all(
+          Array.from({ length: totalPages - 1 }, (_, i) => cargarPagina(i + 1))
+        );
+
+        consultas = consultas.concat(
+          paginasRestantes.flatMap((pagina) => pagina.items || [])
+        );
+      }
+
+      setRows(consultas);
+    } catch (error) {
+      console.error(error);
+      toast.error(error.message || "Error de conexión");
+      setRows([]);
+    } finally {
+      setLoading(false);
+    }
   }
 
   async function cargarCatalogos() {
     try {
+      const fetchCatalogo = async (url) => {
+        const res = await fetch(url, {
+          credentials: "include",
+        });
+
+        const payload = await leerJsonSeguro(res);
+
+        if (res.status === 401) {
+          router.replace("/");
+          return [];
+        }
+
+        if (res.status === 403) {
+          console.warn("Catálogo no permitido para el usuario actual:", url);
+          return [];
+        }
+
+        if (!res.ok) {
+          console.warn("No se pudo cargar catálogo:", url, payload);
+          return [];
+        }
+
+        return obtenerArrayDesdeRespuesta(payload);
+      };
+
       const [pR, sR, aR, asR, moR, esR] = await Promise.all([
-        fetch(`${API_URL_BASE}/personas/activos`, { credentials: "include" }).then(r => r.json()),
-        fetch(`${API_URL_BASE}/sedes`, { credentials: "include" }).then(r => r.json()),
-        fetch(`${API_URL_BASE}/areas`, { credentials: "include" }).then(r => r.json()),
-        fetch(`${API_URL_BASE}/asesores/activos`, { credentials: "include" }).then(r => r.json()),
-        fetch(`${API_URL_BASE}/monitores/activos`, { credentials: "include" }).then(r => r.json()),
-        fetch(`${API_URL_BASE}/estudiantes/activos`, { credentials: "include" }).then(r => r.json()),
+        fetchCatalogo(`${API_URL_BASE}/personas/activos`),
+        fetchCatalogo(`${API_URL_BASE}/sedes`),
+        fetchCatalogo(`${API_URL_BASE}/areas`),
+        fetchCatalogo(`${API_URL_BASE}/asesores/activos`),
+        fetchCatalogo(`${API_URL_BASE}/monitores/activos`),
+        fetchCatalogo(`${API_URL_BASE}/estudiantes/activos`),
       ]);
-      setPersonas(Array.isArray(pR) ? pR : []);
-      setSedes(Array.isArray(sR) ? sR : []);
-      setAreas(Array.isArray(aR) ? aR : []);
-      setAsesores(Array.isArray(asR) ? asR : []);
-      setMonitores(Array.isArray(moR) ? moR : []);
-      setEstudiantes(Array.isArray(esR) ? esR : []);
-    } catch (e) { console.error("Error catálogos:", e); }
+
+      setPersonas(pR);
+      setSedes(sR);
+      setAreas(aR);
+      setAsesores(asR);
+      setMonitores(moR);
+      setEstudiantes(esR);
+    } catch (error) {
+      console.error("Error catálogos:", error);
+    }
   }
 
   function handleChange(e) {
@@ -267,18 +554,34 @@ export function ConsultasJuridicasForm() {
   async function abrirEditar(id) {
     try {
       const res = await fetch(`${API_URL_BASE}/consultas/${id}`, { credentials: "include" });
-      if (res.status === 401) { router.push("/"); return; }
-      const data = await res.json();
+      const payload = await leerJsonSeguro(res);
+
+      if (res.status === 401) {
+        router.push("/");
+        return;
+      }
+
+      if (res.status === 403) {
+        toast.error("No tienes permisos para abrir esta consulta.");
+        return;
+      }
+
+      if (!res.ok) {
+        toast.error(mensajeErrorDesdeRespuesta(payload, "Error al cargar la consulta"));
+        return;
+      }
+
+      const data = payload?.data || payload?.consulta || payload;
 
       if (data.areaId) {
         const temasRes = await fetch(`${API_URL_BASE}/temas/area/${data.areaId}`, { credentials: "include" });
-        const temasData = await temasRes.json();
-        setTemas(Array.isArray(temasData) ? temasData : []);
+        const temasData = await leerJsonSeguro(temasRes);
+        setTemas(temasRes.ok ? obtenerArrayDesdeRespuesta(temasData) : []);
       }
       if (data.temaId) {
         const tiposRes = await fetch(`${API_URL_BASE}/tipos/tema/${data.temaId}`, { credentials: "include" });
-        const tiposData = await tiposRes.json();
-        setTipos(Array.isArray(tiposData) ? tiposData : []);
+        const tiposData = await leerJsonSeguro(tiposRes);
+        setTipos(tiposRes.ok ? obtenerArrayDesdeRespuesta(tiposData) : []);
       }
 
       setForm({
@@ -292,21 +595,24 @@ export function ConsultasJuridicasForm() {
         tipoViolencia: data.tipoViolencia ?? "",
         estado: data.estado ?? "",
         resultado: data.resultado ?? "",
-        personaId: data.personaId ?? "",
-        sedeId: data.sedeId ?? "",
-        areaId: data.areaId ?? "",
-        temaId: data.temaId ?? "",
-        tipoId: data.tipoId ?? "",
-        asesorId: data.asesorId ?? "",
-        monitorId: data.monitorId ?? "",
-        estudianteId: data.estudianteId ?? "",
+        personaId: data.personaId ?? data.persona?.id ?? "",
+        sedeId: data.sedeId ?? data.sede?.id ?? "",
+        areaId: data.areaId ?? data.area?.id ?? "",
+        temaId: data.temaId ?? data.tema?.id ?? "",
+        tipoId: data.tipoId ?? data.tipo?.id ?? "",
+        asesorId: data.asesorId ?? data.asesor?.id ?? "",
+        monitorId: data.monitorId ?? data.monitor?.id ?? "",
+        estudianteId: data.estudianteId ?? data.estudiante?.id ?? "",
         partesIds: Array.isArray(data.partesIds) ? data.partesIds.map(Number) : [],
         contrapartesIds: Array.isArray(data.contrapartesIds) ? data.contrapartesIds.map(Number) : [],
       });
       setIdEditando(id);
       setMostrarFormEdicion(true);
       cargarArchivosCaso(id);
-    } catch { toast.error("Error al cargar la consulta"); }
+    } catch (error) {
+      console.error(error);
+      toast.error("Error al cargar la consulta");
+    }
   }
 
   async function cargarArchivosCaso(consultaId) {
@@ -335,46 +641,118 @@ export function ConsultasJuridicasForm() {
 
   async function handleGuardar(e) {
     e.preventDefault();
+
+    if (!puedeEditarConsultas) {
+      toast.error("No tienes permisos para editar consultas.");
+      return;
+    }
+
     setGuardando(true);
+
     const payload = {
-      ...form,
+      fecha: form.fecha,
+      descripcion: form.descripcion,
+      hechos: form.hechos,
+      pretensiones: form.pretensiones,
+      conceptoJuridico: form.conceptoJuridico,
+      tramite: form.tramite,
+      observaciones: form.observaciones,
+      tipoViolencia: form.tipoViolencia,
+      resultado: form.resultado,
       personaId: form.personaId ? Number(form.personaId) : null,
       sedeId: form.sedeId ? Number(form.sedeId) : null,
       areaId: form.areaId ? Number(form.areaId) : null,
       temaId: form.temaId ? Number(form.temaId) : null,
       tipoId: form.tipoId ? Number(form.tipoId) : null,
-      asesorId: form.asesorId ? Number(form.asesorId) : null,
-      monitorId: form.monitorId ? Number(form.monitorId) : null,
-      estudianteId: form.estudianteId ? Number(form.estudianteId) : null,
-      partesIds: form.partesIds,
-      contrapartesIds: form.contrapartesIds,
+      partesIds: Array.isArray(form.partesIds) ? form.partesIds.map(Number) : [],
+      contrapartesIds: Array.isArray(form.contrapartesIds)
+        ? form.contrapartesIds.map(Number)
+        : [],
     };
+
+    if (puedeCambiarEstadoConsulta) {
+      payload.estado = form.estado;
+    }
+
+    if (puedeAsignarResponsablesConsulta) {
+      payload.asesorId = form.asesorId ? Number(form.asesorId) : null;
+      payload.monitorId = form.monitorId ? Number(form.monitorId) : null;
+      payload.estudianteId = form.estudianteId ? Number(form.estudianteId) : null;
+    }
+
     try {
       const res = await fetch(`${API_URL_BASE}/consultas/${idEditando}`, {
-        method: "PUT", headers: { "Content-Type": "application/json" },
-        credentials: "include", body: JSON.stringify(payload),
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify(payload),
       });
-      if (res.status === 401) { router.push("/"); return; }
+
+      const respuesta = await leerJsonSeguro(res);
+
+      if (res.status === 401) {
+        router.push("/");
+        return;
+      }
+
+      if (res.status === 403) {
+        toast.error("No tienes permisos para editar esta consulta.");
+        return;
+      }
+
       if (res.ok) {
         toast.success("Consulta actualizada");
         setMostrarFormEdicion(false);
         cargarConsultas(searchText);
       } else {
-        const error = await res.json();
-        const detalle = error.mensaje || error.message || error.descripcion || JSON.stringify(error);
-        toast.error("Error al guardar", { description: detalle });
+        toast.error("Error al guardar", {
+          description: mensajeErrorDesdeRespuesta(respuesta, "No se pudo guardar la consulta"),
+        });
       }
-    } catch { toast.error("Error de conexión"); }
-    finally { setGuardando(false); }
+    } catch (error) {
+      console.error(error);
+      toast.error("Error de conexión");
+    } finally {
+      setGuardando(false);
+    }
   }
 
   async function handleArchivar(id) {
+    if (!puedeArchivarConsultas) {
+      toast.error("No tienes permisos para archivar consultas.");
+      return;
+    }
+
     if (!confirm("¿Archivar esta consulta? El registro quedará como Archivado.")) return;
+
     try {
-      const res = await fetch(`${API_URL_BASE}/consultas/${id}/archivar`, { method: "PATCH", credentials: "include" });
-      if (res.ok) { toast.success("Consulta archivada"); cargarConsultas(searchText); }
-      else { toast.error("Error al archivar"); }
-    } catch { toast.error("Error de conexión"); }
+      const res = await fetch(`${API_URL_BASE}/consultas/${id}/archivar`, {
+        method: "PATCH",
+        credentials: "include",
+      });
+
+      const payload = await leerJsonSeguro(res);
+
+      if (res.status === 401) {
+        router.push("/");
+        return;
+      }
+
+      if (res.status === 403) {
+        toast.error("No tienes permisos para archivar esta consulta.");
+        return;
+      }
+
+      if (res.ok) {
+        toast.success("Consulta archivada");
+        cargarConsultas(searchText);
+      } else {
+        toast.error(mensajeErrorDesdeRespuesta(payload, "Error al archivar"));
+      }
+    } catch (error) {
+      console.error(error);
+      toast.error("Error de conexión");
+    }
   }
 
   function renderPersona(p) {
@@ -384,6 +762,10 @@ export function ConsultasJuridicasForm() {
         <div className="text-xs text-muted-foreground">{p.numeroDocumento}</div>
       </>
     );
+  }
+
+  if (checkingPermisos) {
+    return <div className="p-6 text-sm text-muted-foreground">Verificando permisos...</div>;
   }
 
   return (
@@ -412,10 +794,14 @@ export function ConsultasJuridicasForm() {
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 <C label="Fecha *"><input type="date" name="fecha" value={form.fecha} onChange={handleChange} required className={ic} /></C>
                 <C label="Estado *">
-                  <select name="estado" value={form.estado} onChange={handleChange} required className={ic}>
-                    <option value="">Seleccione</option>
-                    {ESTADOS.filter(e => e !== "Archivado").map(e => <option key={e} value={e}>{e}</option>)}
-                  </select>
+                  {puedeCambiarEstadoConsulta ? (
+                    <select name="estado" value={form.estado} onChange={handleChange} required className={ic}>
+                      <option value="">Seleccione</option>
+                      {ESTADOS.filter(e => e !== "Archivado").map(e => <option key={e} value={e}>{e}</option>)}
+                    </select>
+                  ) : (
+                    <input value={form.estado || "Sin estado"} disabled className={ic} />
+                  )}
                 </C>
                 <C label="Trámite *"><input name="tramite" value={form.tramite} onChange={handleChange} required placeholder="Ej: Conciliación" className={ic} /></C>
                 <C label="Sede *">
@@ -445,38 +831,46 @@ export function ConsultasJuridicasForm() {
                 <C label="Tipo de violencia"><input name="tipoViolencia" value={form.tipoViolencia} onChange={handleChange} placeholder="Opcional" className={ic} /></C>
                 <C label="Resultado"><input name="resultado" value={form.resultado} onChange={handleChange} placeholder="Opcional" className={ic} /></C>
 
-                {/* ASESOR */}
-                <C label="Asesor">
-                  <button type="button" onClick={() => setModalAsesor(p => ({ ...p, abierto: true }))}
-                    className="flex h-9 w-full items-center justify-between rounded-md border bg-background px-3 py-2 text-sm text-left hover:bg-muted/50 transition-colors">
-                    <span className={asesorSeleccionado ? "text-foreground" : "text-muted-foreground"}>
-                      {asesorSeleccionado ? `${asesorSeleccionado.nombre}${asesorSeleccionado.documento ? ` - ${asesorSeleccionado.documento}` : ""}` : "Sin asignar"}
-                    </span>
-                    <span className="text-muted-foreground">▼</span>
-                  </button>
-                </C>
+                {puedeAsignarResponsablesConsulta ? (
+                  <>
+                    {/* ASESOR */}
+                    <C label="Asesor">
+                      <button type="button" onClick={() => setModalAsesor(p => ({ ...p, abierto: true }))}
+                        className="flex h-9 w-full items-center justify-between rounded-md border bg-background px-3 py-2 text-sm text-left hover:bg-muted/50 transition-colors">
+                        <span className={asesorSeleccionado ? "text-foreground" : "text-muted-foreground"}>
+                          {asesorSeleccionado ? `${asesorSeleccionado.nombre}${asesorSeleccionado.documento ? ` - ${asesorSeleccionado.documento}` : ""}` : "Sin asignar"}
+                        </span>
+                        <span className="text-muted-foreground">▼</span>
+                      </button>
+                    </C>
 
-                {/* MONITOR */}
-                <C label="Monitor">
-                  <button type="button" onClick={() => setModalMonitor(p => ({ ...p, abierto: true }))}
-                    className="flex h-9 w-full items-center justify-between rounded-md border bg-background px-3 py-2 text-sm text-left hover:bg-muted/50 transition-colors">
-                    <span className={monitorSeleccionado ? "text-foreground" : "text-muted-foreground"}>
-                      {monitorSeleccionado ? `${monitorSeleccionado.nombre}${monitorSeleccionado.documento ? ` - ${monitorSeleccionado.documento}` : ""}` : "Sin asignar"}
-                    </span>
-                    <span className="text-muted-foreground">▼</span>
-                  </button>
-                </C>
+                    {/* MONITOR */}
+                    <C label="Monitor">
+                      <button type="button" onClick={() => setModalMonitor(p => ({ ...p, abierto: true }))}
+                        className="flex h-9 w-full items-center justify-between rounded-md border bg-background px-3 py-2 text-sm text-left hover:bg-muted/50 transition-colors">
+                        <span className={monitorSeleccionado ? "text-foreground" : "text-muted-foreground"}>
+                          {monitorSeleccionado ? `${monitorSeleccionado.nombre}${monitorSeleccionado.documento ? ` - ${monitorSeleccionado.documento}` : ""}` : "Sin asignar"}
+                        </span>
+                        <span className="text-muted-foreground">▼</span>
+                      </button>
+                    </C>
 
-                {/* ESTUDIANTE */}
-                <C label="Estudiante">
-                  <button type="button" onClick={() => setModalEstudiante(p => ({ ...p, abierto: true }))}
-                    className="flex h-9 w-full items-center justify-between rounded-md border bg-background px-3 py-2 text-sm text-left hover:bg-muted/50 transition-colors">
-                    <span className={estudianteSeleccionado ? "text-foreground" : "text-muted-foreground"}>
-                      {estudianteSeleccionado ? `${estudianteSeleccionado.nombre}${estudianteSeleccionado.codigo ? ` - ${estudianteSeleccionado.codigo}` : ""}` : "Sin asignar"}
-                    </span>
-                    <span className="text-muted-foreground">▼</span>
-                  </button>
-                </C>
+                    {/* ESTUDIANTE */}
+                    <C label="Estudiante">
+                      <button type="button" onClick={() => setModalEstudiante(p => ({ ...p, abierto: true }))}
+                        className="flex h-9 w-full items-center justify-between rounded-md border bg-background px-3 py-2 text-sm text-left hover:bg-muted/50 transition-colors">
+                        <span className={estudianteSeleccionado ? "text-foreground" : "text-muted-foreground"}>
+                          {estudianteSeleccionado ? `${estudianteSeleccionado.nombre}${estudianteSeleccionado.codigo ? ` - ${estudianteSeleccionado.codigo}` : ""}` : "Sin asignar"}
+                        </span>
+                        <span className="text-muted-foreground">▼</span>
+                      </button>
+                    </C>
+                  </>
+                ) : (
+                  <div className="md:col-span-2 lg:col-span-3 rounded-md border bg-muted/30 p-3 text-sm text-muted-foreground">
+                    Los responsables no se pueden cambiar con tus permisos actuales.
+                  </div>
+                )}
               </div>
 
               {/* PARTE PRINCIPAL */}
@@ -570,22 +964,34 @@ export function ConsultasJuridicasForm() {
                   <td className="px-4 py-3 text-sm">{row.apellido}</td>
                   <td className="px-4 py-3 text-sm">{row.cedula}</td>
                   <td className="px-4 py-3 text-sm">
-                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                      row.estado === "Archivado" ? "bg-gray-100 text-gray-600" :
-                      row.estado === "Cerrado"   ? "bg-red-100 text-red-600" :
-                      row.estado === "Urgente"   ? "bg-orange-100 text-orange-600" :
-                      row.estado === "Activo"    ? "bg-green-100 text-green-600" :
-                      "bg-blue-100 text-blue-600"
-                    }`}>
+                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${row.estado === "Archivado" ? "bg-gray-100 text-gray-600" :
+                      row.estado === "Cerrado" ? "bg-red-100 text-red-600" :
+                        row.estado === "Urgente" ? "bg-orange-100 text-orange-600" :
+                          row.estado === "Activo" ? "bg-green-100 text-green-600" :
+                            "bg-blue-100 text-blue-600"
+                      }`}>
                       {row.estado ?? "Sin estado"}
                     </span>
                   </td>
                   <td className="px-4 py-3 text-sm">
                     <div className="flex gap-2">
-                      <Button size="sm" variant="outline" onClick={() => abrirEditar(row.id)}>Editar</Button>
-                      {esAdministrativo && (
-                        <Button size="sm" variant="destructive" onClick={() => handleArchivar(row.id)} disabled={row.estado === "Archivado"}>
-                          {row.estado === "Archivado" ? "Archivado" : "Archivar"}
+                      {puedeEditarRegistro(row) && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => abrirEditar(row.id)}
+                        >
+                          Editar
+                        </Button>
+                      )}
+
+                      {puedeArchivarRegistro(row) && row.estado !== "Archivado" && (
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          onClick={() => handleArchivar(row.id)}
+                        >
+                          Archivar
                         </Button>
                       )}
                     </div>
