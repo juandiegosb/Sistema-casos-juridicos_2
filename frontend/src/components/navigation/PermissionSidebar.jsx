@@ -4,126 +4,104 @@ import * as React from "react";
 import { useRouter } from "next/navigation";
 import { AppSidebar } from "@/components/app-sidebar";
 import { API_URL_BASE } from "@/lib/config";
+import { PERMISOS } from "@/lib/permissions";
+import {
+  tieneAlgunPermiso,
+  tieneTodosLosPermisos,
+} from "@/lib/authz";
 
 const SIDEBAR_PAGES = [
   {
     title: "Inicio",
     tooltip: "Inicio",
     path: "/inicio",
-    authOnly: true,
+    requiredPermissions: [PERMISOS.ACCEDER_INICIO],
   },
   {
     title: "Recepcion",
-    tooltip: "Recepcion",
+    tooltip: "Recepción de personas",
     path: "/recepcion",
-    authOnly: true,
-  },
-  {
-    title: "Personas",
-    tooltip: "Personas",
-    path: "/personas",
-    requiredPermissions: ["Gestionar usuarios"],
+    requiredPermissions: [PERMISOS.ACCEDER_RECEPCION],
   },
   {
     title: "Tareas",
     tooltip: "Tareas",
     path: "/tareas",
-    allowedRoles: ["Asesor", "Administrador", "Estudiante"],
+    requiredPermissions: [PERMISOS.ACCEDER_TAREAS],
   },
   {
     title: "Nueva consulta",
     tooltip: "Nueva consulta",
     path: "/nuevaconsulta",
-    requiredPermissions: ["Gestionar consultas"],
+    requiredPermissions: [PERMISOS.ACCEDER_NUEVA_CONSULTA],
   },
   {
     title: "Consultas juridicas",
     tooltip: "Consultas juridicas",
     path: "/consultasjuridicas",
-    requiredPermissions: ["Gestionar consultas"],
+    requiredPermissions: [PERMISOS.ACCEDER_CONSULTAS_JURIDICAS],
+  },
+  {
+    title: "Personas",
+    tooltip: "Personas",
+    path: "/personas",
+    requiredPermissions: [PERMISOS.ACCEDER_PERSONAS],
   },
   {
     title: "Administración",
     tooltip: "Administración",
     path: "/admin",
-    requiredPermissions: ["Gestionar catálogos", "Gestionar permisos"],
-    match: "any",
-  },
-  {
-    title: "Eliminación",
-    tooltip: "Elementos desactivados",
-    path: "/eliminacion",
-    allowedRoles: ["Administrador"],
+    requiredPermissions: [PERMISOS.ACCEDER_ADMINISTRACION],
   },
   {
     title: "Roles",
     tooltip: "Roles / Usuarios",
     path: "/roles",
-    requiredPermissions: ["Gestionar usuarios"],
+    requiredPermissions: [PERMISOS.ACCEDER_ROLES],
   },
   {
     title: "Estudiantes",
     tooltip: "Estudiantes",
     path: "/estudiantes",
-    requiredPermissions: ["Gestionar usuarios"],
+    requiredPermissions: [PERMISOS.ACCEDER_ESTUDIANTES],
   },
   {
     title: "Asesores y monitores",
     tooltip: "Asesores y monitores",
     path: "/asesoresymonitores",
-    requiredPermissions: ["Gestionar usuarios"],
+    requiredPermissions: [PERMISOS.ACCEDER_ASESORES_MONITORES],
+  },
+  {
+    title: "Eliminación",
+    tooltip: "Registros desactivados",
+    path: "/eliminacion",
+    requiredPermissions: [
+      PERMISOS.CAMBIAR_ESTADO_PERSONAS,
+      PERMISOS.CAMBIAR_ESTADO_USUARIOS,
+      PERMISOS.CAMBIAR_ESTADO_ESTUDIANTES,
+      PERMISOS.CAMBIAR_ESTADO_CONSULTAS,
+      PERMISOS.ARCHIVAR_CONSULTAS,
+    ],
+    match: "any",
   },
 ];
 
-function normalizar(value) {
-  return String(value || "")
-    .trim()
-    .toUpperCase();
-}
-
-function tieneTodosLosPermisos(userPermissions, requiredPermissions = []) {
-  return requiredPermissions.every((permission) =>
-    userPermissions.includes(permission)
-  );
-}
-
-function tieneAlgunPermiso(userPermissions, requiredPermissions = []) {
-  return requiredPermissions.some((permission) =>
-    userPermissions.includes(permission)
-  );
-}
-
-function tienePerfilPermitido(user, allowedProfiles = []) {
-  if (!Array.isArray(allowedProfiles) || allowedProfiles.length === 0) {
-    return true;
-  }
-  const userProfile = normalizar(user?.tipoPerfil);
-  const perfilesPermitidos = allowedProfiles.map(normalizar);
-  return perfilesPermitidos.includes(userProfile);
-}
-
-function tieneRolPermitido(user, allowedRoles = []) {
-  if (!Array.isArray(allowedRoles) || allowedRoles.length === 0) {
-    return true;
-  }
-  const userRole = normalizar(user?.rolNombre);
-  const rolesPermitidos = allowedRoles.map(normalizar);
-  return rolesPermitidos.includes(userRole);
-}
-
 function puedeVerPagina(page, user) {
   if (!user) return false;
-  if (page.authOnly) return true;
-  if (!tieneRolPermitido(user, page.allowedRoles)) return false;
 
-  const userPermissions = Array.isArray(user.permisos) ? user.permisos : [];
   const requiredPermissions = Array.isArray(page.requiredPermissions)
     ? page.requiredPermissions
     : [];
 
-  if (requiredPermissions.length === 0) return true;
-  if (page.match === "any") return tieneAlgunPermiso(userPermissions, requiredPermissions);
-  return tieneTodosLosPermisos(userPermissions, requiredPermissions);
+  if (requiredPermissions.length === 0) {
+    return true;
+  }
+
+  if (page.match === "any") {
+    return tieneAlgunPermiso(user, requiredPermissions);
+  }
+
+  return tieneTodosLosPermisos(user, requiredPermissions);
 }
 
 function filtrarPaginasPorPermisos(pages, user) {
@@ -132,6 +110,7 @@ function filtrarPaginasPorPermisos(pages, user) {
 
 export function PermissionSidebar() {
   const router = useRouter();
+
   const [user, setUser] = React.useState(null);
   const [loading, setLoading] = React.useState(true);
 
@@ -148,12 +127,16 @@ export function PermissionSidebar() {
           return;
         }
 
-        if (!res.ok) return;
+        if (!res.ok) {
+          setUser(null);
+          return;
+        }
 
         const data = await res.json();
         setUser(data);
       } catch (error) {
         console.error("Error cargando permisos del usuario", error);
+        setUser(null);
       } finally {
         setLoading(false);
       }
@@ -167,5 +150,6 @@ export function PermissionSidebar() {
   }
 
   const mainItems = filtrarPaginasPorPermisos(SIDEBAR_PAGES, user);
+
   return <AppSidebar mainItems={mainItems} footerItems={[]} />;
 }
