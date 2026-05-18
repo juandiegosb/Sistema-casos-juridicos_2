@@ -1,11 +1,16 @@
 package co.edu.ufps.legal_cases.business.controller.seguimiento;
 
+import static co.edu.ufps.legal_cases.security.constant.PermisoNombre.CREAR_SEGUIMIENTOS;
+import static co.edu.ufps.legal_cases.security.constant.PermisoNombre.EDITAR_SEGUIMIENTOS;
+import static co.edu.ufps.legal_cases.security.constant.PermisoNombre.ELIMINAR_SEGUIMIENTOS;
+import static co.edu.ufps.legal_cases.security.constant.PermisoNombre.VER_ALERTAS_DISCIPLINARIAS;
+import static co.edu.ufps.legal_cases.security.constant.PermisoNombre.VER_SEGUIMIENTOS;
+
 import java.time.LocalDate;
 import java.util.List;
 
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -30,31 +35,31 @@ public class SeguimientoController {
     private final SeguimientoService seguimientoService;
 
     @GetMapping("/consulta/{consultaId}")
-    @PreAuthorize("hasAuthority('Ver seguimientos')")
+    @PreAuthorize("hasAuthority('" + VER_SEGUIMIENTOS + "')")
     public List<SeguimientoResponseDTO> listarPorConsulta(@PathVariable Long consultaId) {
         return seguimientoService.listarPorConsulta(consultaId);
     }
 
     @GetMapping("/consulta/{consultaId}/visibles-estudiante")
-    @PreAuthorize("hasAuthority('Ver seguimientos')")
+    @PreAuthorize("hasAuthority('" + VER_SEGUIMIENTOS + "')")
     public List<SeguimientoResponseDTO> listarVisiblesParaEstudiantePorConsulta(@PathVariable Long consultaId) {
         return seguimientoService.listarVisiblesParaEstudiantePorConsulta(consultaId);
     }
 
     @GetMapping("/autor/{autorId}")
-    @PreAuthorize("hasAuthority('Ver seguimientos')")
+    @PreAuthorize("hasAuthority('" + VER_SEGUIMIENTOS + "')")
     public List<SeguimientoResponseDTO> listarPorAutor(@PathVariable Long autorId) {
         return seguimientoService.listarPorAutor(autorId);
     }
 
     @GetMapping("/alertas-disciplinarias")
-    @PreAuthorize("hasAuthority('Ver alertas disciplinarias')")
+    @PreAuthorize("hasAuthority('" + VER_ALERTAS_DISCIPLINARIAS + "')")
     public List<SeguimientoResponseDTO> listarAlertasDisciplinarias() {
         return seguimientoService.listarAlertasDisciplinarias();
     }
 
     @GetMapping("/fecha-entrega")
-    @PreAuthorize("hasAuthority('Ver seguimientos')")
+    @PreAuthorize("hasAuthority('" + VER_SEGUIMIENTOS + "')")
     public List<SeguimientoResponseDTO> listarPorFechaEntrega(
             @RequestParam
             @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
@@ -63,24 +68,19 @@ public class SeguimientoController {
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasAuthority('Ver seguimientos')")
+    @PreAuthorize("hasAuthority('" + VER_SEGUIMIENTOS + "')")
     public SeguimientoResponseDTO obtenerPorId(@PathVariable Long id) {
         return seguimientoService.obtenerPorId(id);
     }
 
     @PostMapping
-    @PreAuthorize("hasAuthority('Crear seguimientos')")
-    public SeguimientoResponseDTO crear(
-            @Valid @RequestBody SeguimientoRequestDTO dto,
-            Authentication authentication) {
-
-        String autorUsername = authentication != null ? authentication.getName() : null;
-
-        return seguimientoService.crear(dto, autorUsername);
+    @PreAuthorize("hasAuthority('" + CREAR_SEGUIMIENTOS + "')")
+    public SeguimientoResponseDTO crear(@Valid @RequestBody SeguimientoRequestDTO dto) {
+        return seguimientoService.crear(dto);
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasAuthority('Editar seguimientos')")
+    @PreAuthorize("hasAuthority('" + EDITAR_SEGUIMIENTOS + "')")
     public SeguimientoResponseDTO actualizar(
             @PathVariable Long id,
             @Valid @RequestBody SeguimientoRequestDTO dto) {
@@ -88,7 +88,7 @@ public class SeguimientoController {
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAuthority('Eliminar seguimientos')")
+    @PreAuthorize("hasAuthority('" + ELIMINAR_SEGUIMIENTOS + "')")
     public void eliminar(@PathVariable Long id) {
         seguimientoService.eliminar(id);
     }

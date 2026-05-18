@@ -20,6 +20,7 @@ import co.edu.ufps.legal_cases.security.dto.account.PerfilUsuarioActual;
 import co.edu.ufps.legal_cases.security.model.account.TipoPerfilUsuario;
 import co.edu.ufps.legal_cases.security.service.context.UsuarioActualService;
 
+// Este servicio valida los persmisos de acceso a las consultas de cada usuario
 @Service
 public class ConsultaAccessService {
 
