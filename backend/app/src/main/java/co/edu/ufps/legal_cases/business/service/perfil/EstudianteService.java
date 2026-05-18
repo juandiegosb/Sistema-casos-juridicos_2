@@ -24,6 +24,7 @@ import co.edu.ufps.legal_cases.business.repository.catalogo.SedeRepository;
 import co.edu.ufps.legal_cases.business.repository.catalogo.TipoDocumentoRepository;
 import co.edu.ufps.legal_cases.business.repository.perfil.AsesorRepository;
 import co.edu.ufps.legal_cases.business.repository.perfil.EstudianteRepository;
+import co.edu.ufps.legal_cases.business.service.acceso.EstudianteAccessService;
 import co.edu.ufps.legal_cases.common.exception.BusinessException;
 import co.edu.ufps.legal_cases.security.model.account.UsuarioSistema;
 import co.edu.ufps.legal_cases.security.service.account.UsuarioSistemaRegistroService;
@@ -36,42 +37,81 @@ public class EstudianteService {
     private final SedeRepository sedeRepository;
     private final AsesorRepository asesorRepository;
     private final UsuarioSistemaRegistroService usuarioSistemaRegistroService;
+    private final EstudianteAccessService estudianteAccessService;
 
     public EstudianteService(
             EstudianteRepository estudianteRepository,
             TipoDocumentoRepository tipoDocumentoRepository,
             SedeRepository sedeRepository,
             AsesorRepository asesorRepository,
-            UsuarioSistemaRegistroService usuarioSistemaRegistroService) {
+            UsuarioSistemaRegistroService usuarioSistemaRegistroService,
+            EstudianteAccessService estudianteAccessService) {
         this.estudianteRepository = estudianteRepository;
         this.tipoDocumentoRepository = tipoDocumentoRepository;
         this.sedeRepository = sedeRepository;
         this.asesorRepository = asesorRepository;
         this.usuarioSistemaRegistroService = usuarioSistemaRegistroService;
+        this.estudianteAccessService = estudianteAccessService;
     }
 
+    @Transactional(readOnly = true)
     public List<EstudianteDTO> listar() {
-        return estudianteRepository.findAll()
-                .stream()
-                .map(this::convertirADTO)
-                .toList();
+        estudianteAccessService.validarPuedeListarEstudiantes();
+
+        if (estudianteAccessService.puedeVerTodosLosEstudiantes()) {
+            return estudianteRepository.findAll()
+                    .stream()
+                    .map(this::convertirADTO)
+                    .toList();
+        }
+
+        if (estudianteAccessService.usuarioEsAsesor()) {
+            return estudianteRepository.findByAsesorId(estudianteAccessService.obtenerAsesorActualId())
+                    .stream()
+                    .map(this::convertirADTO)
+                    .toList();
+        }
+
+        // Si no tiene permisos devuelve una lista vacia
+        return List.of();
     }
 
+    @Transactional(readOnly = true)
     public List<EstudianteDTO> listarActivos() {
-        return estudianteRepository.findByActivoTrue()
-                .stream()
-                .map(this::convertirADTO)
-                .toList();
+        estudianteAccessService.validarPuedeListarEstudiantes();
+
+        if (estudianteAccessService.puedeVerTodosLosEstudiantes()) {
+            return estudianteRepository.findByActivoTrue()
+                    .stream()
+                    .map(this::convertirADTO)
+                    .toList();
+        }
+
+        if (estudianteAccessService.usuarioEsAsesor()) {
+            return estudianteRepository.findByAsesorIdAndActivoTrue(estudianteAccessService.obtenerAsesorActualId())
+                    .stream()
+                    .map(this::convertirADTO)
+                    .toList();
+        }
+
+        return List.of();
     }
 
+    @Transactional(readOnly = true)
     public List<EstudianteDTO> listarConConciliacion() {
+        estudianteAccessService.validarPuedeListarEstudiantes();
+
         return estudianteRepository.findByConciliacionTrue()
                 .stream()
+                .filter(estudianteAccessService::puedeVerEstudiante)    // Trae solo a los estudiantes en conciliacion 
                 .map(this::convertirADTO)
                 .toList();
     }
 
+    @Transactional(readOnly = true)
     public List<EstudianteDTO> listarPorAsesor(Long asesorId) {
+        estudianteAccessService.validarPuedeListarEstudiantesPorAsesor(asesorId);
+
         return estudianteRepository.findByAsesorId(asesorId)
                 .stream()
                 .map(this::convertirADTO)
@@ -79,14 +119,20 @@ public class EstudianteService {
     }
 
     // Solo estudiantes activos de un asesor específico
+    @Transactional(readOnly = true)
     public List<EstudianteDTO> listarActivosPorAsesor(Long asesorId) {
+        estudianteAccessService.validarPuedeListarEstudiantesPorAsesor(asesorId);
+
         return estudianteRepository.findByAsesorIdAndActivoTrue(asesorId)
                 .stream()
                 .map(this::convertirADTO)
                 .toList();
     }
 
+    @Transactional(readOnly = true)
     public EstudianteDTO obtenerPorId(Long id) {
+        estudianteAccessService.validarPuedeVerEstudiante(id);
+
         Estudiante estudiante = estudianteRepository.findById(id)
                 .orElseThrow(() -> new BusinessException("Estudiante no encontrado con id: " + id));
 
@@ -95,6 +141,8 @@ public class EstudianteService {
 
     @Transactional
     public EstudianteDTO crear(EstudianteDTO dto) {
+        estudianteAccessService.validarPuedeGestionarEstudiantes();
+
         if (dto.getId() != null) {
             throw new BusinessException("El id no debe enviarse en la creación");
         }
@@ -137,7 +185,10 @@ public class EstudianteService {
         return convertirADTO(estudianteActualizado);
     }
 
+    @Transactional
     public EstudianteDTO actualizar(Long id, EstudianteDTO dto) {
+        estudianteAccessService.validarPuedeGestionarEstudiantes();
+
         Estudiante existente = estudianteRepository.findById(id)
                 .orElseThrow(() -> new BusinessException("Estudiante no encontrado con id: " + id));
 
@@ -194,7 +245,10 @@ public class EstudianteService {
         return convertirADTO(estudianteRepository.save(existente));
     }
 
+    @Transactional
     public EstudianteDTO cambiarEstado(Long id, Boolean activo) {
+        estudianteAccessService.validarPuedeCambiarEstadoEstudiante();
+
         Estudiante estudiante = estudianteRepository.findById(id)
                 .orElseThrow(() -> new BusinessException("Estudiante no encontrado con id: " + id));
 
@@ -210,7 +264,10 @@ public class EstudianteService {
         return convertirADTO(estudianteRepository.save(estudiante));
     }
 
+    @Transactional
     public EstudianteDTO cambiarConciliacion(Long id, Boolean conciliacion) {
+        estudianteAccessService.validarPuedeGestionarEstudiantes();
+
         Estudiante estudiante = estudianteRepository.findById(id)
                 .orElseThrow(() -> new BusinessException("Estudiante no encontrado con id: " + id));
 
@@ -226,7 +283,10 @@ public class EstudianteService {
         return convertirADTO(estudianteRepository.save(estudiante));
     }
 
+    @Transactional
     public void eliminar(Long id) {
+        estudianteAccessService.validarPuedeGestionarEstudiantes();
+
         Estudiante estudiante = estudianteRepository.findById(id)
                 .orElseThrow(() -> new BusinessException("Estudiante no encontrado con id: " + id));
 
