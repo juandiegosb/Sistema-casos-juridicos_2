@@ -1,10 +1,10 @@
 package co.edu.ufps.legal_cases.business.service.consulta;
 
+import static co.edu.ufps.legal_cases.common.util.ComparacionUtils.equalsIgnoreCase;
 import static co.edu.ufps.legal_cases.common.util.NormalizacionUtils.normalizarTexto;
 
 import java.util.List;
 
-import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -28,15 +28,17 @@ import co.edu.ufps.legal_cases.business.repository.perfil.AsesorRepository;
 import co.edu.ufps.legal_cases.business.repository.perfil.EstudianteRepository;
 import co.edu.ufps.legal_cases.business.repository.perfil.MonitorRepository;
 import co.edu.ufps.legal_cases.business.repository.persona.PersonaRepository;
+import co.edu.ufps.legal_cases.business.service.acceso.ConsultaAccessService;
 import co.edu.ufps.legal_cases.common.exception.BusinessException;
 import co.edu.ufps.legal_cases.security.dto.account.PerfilUsuarioActual;
 import co.edu.ufps.legal_cases.security.model.account.TipoPerfilUsuario;
-import co.edu.ufps.legal_cases.security.model.account.UsuarioSistema;
-import co.edu.ufps.legal_cases.security.repository.account.UsuarioSistemaRepository;
-import co.edu.ufps.legal_cases.security.service.account.PerfilUsuarioResolverService;
+import lombok.AllArgsConstructor;
 
 @Service
+@AllArgsConstructor
 public class ConsultaService {
+
+    private static final String ESTADO_ARCHIVADO = "Archivado";
 
     private final ConsultaRepository consultaRepository;
     private final PersonaRepository personaRepository;
@@ -47,95 +49,58 @@ public class ConsultaService {
     private final AsesorRepository asesorRepository;
     private final MonitorRepository monitorRepository;
     private final EstudianteRepository estudianteRepository;
-    private final PerfilUsuarioResolverService perfilUsuarioResolverService;
-    private final UsuarioSistemaRepository usuarioSistemaRepository;
-
-    public ConsultaService(
-            ConsultaRepository consultaRepository,
-            PersonaRepository personaRepository,
-            SedeRepository sedeRepository,
-            AreaRepository areaRepository,
-            TemaRepository temaRepository,
-            TipoRepository tipoRepository,
-            AsesorRepository asesorRepository,
-            MonitorRepository monitorRepository,
-            EstudianteRepository estudianteRepository,
-            PerfilUsuarioResolverService perfilUsuarioResolverService,
-            UsuarioSistemaRepository usuarioSistemaRepository) {
-        this.consultaRepository = consultaRepository;
-        this.personaRepository = personaRepository;
-        this.sedeRepository = sedeRepository;
-        this.areaRepository = areaRepository;
-        this.temaRepository = temaRepository;
-        this.tipoRepository = tipoRepository;
-        this.asesorRepository = asesorRepository;
-        this.monitorRepository = monitorRepository;
-        this.estudianteRepository = estudianteRepository;
-        this.perfilUsuarioResolverService = perfilUsuarioResolverService;
-        this.usuarioSistemaRepository = usuarioSistemaRepository;
-    }
+    private final ConsultaAccessService consultaAccessService;
 
     /**
      * Busca consultas por texto libre en descripción, nombre, apellido o cédula.
-     * Si el parámetro es null o vacío, retorna todas las consultas.
+     * Ahora el resultado se filtra según el alcance del usuario autenticado.
      */
-    public List<ConsultaBusquedaDTO> buscar(String search) {
+    @Transactional(readOnly = true)
+    public List<ConsultaBusquedaDTO> buscarParaUsuarioActual(String search) {
         String termino = normalizarTexto(search);
-        return consultaRepository.buscar(termino)
-                .stream()
-                .map(this::convertirABusquedaDTO)
-                .toList();
+        PerfilUsuarioActual perfil = consultaAccessService.obtenerPerfilActual();
+
+        if (consultaAccessService.usuarioEsAdministrador()) {
+            return consultaRepository.buscarParaAdministrador(termino)
+                    .stream()
+                    .map(this::convertirABusquedaDTO)
+                    .toList();
+        }
+
+        if (perfil.getTipoPerfil() == TipoPerfilUsuario.ESTUDIANTE) {
+            return consultaRepository.buscarParaEstudiante(termino, perfil.getPerfilId())
+                    .stream()
+                    .map(this::convertirABusquedaDTO)
+                    .toList();
+        }
+
+        if (perfil.getTipoPerfil() == TipoPerfilUsuario.ASESOR) {
+            return consultaRepository.buscarParaAsesor(termino, perfil.getPerfilId())
+                    .stream()
+                    .map(this::convertirABusquedaDTO)
+                    .toList();
+        }
+
+        if (perfil.getTipoPerfil() == TipoPerfilUsuario.MONITOR) {
+            return consultaRepository.buscarParaMonitor(termino, perfil.getPerfilId())
+                    .stream()
+                    .map(this::convertirABusquedaDTO)
+                    .toList();
+        }
+
+        if (perfil.getTipoPerfil() == TipoPerfilUsuario.CONCILIADOR) {
+            // Cuando esté implementado el módulo de conciliaciones, aquí se listarán
+            // las consultas asociadas a las conciliaciones del conciliador.
+            return List.of();
+        }
+
+        return List.of();
     }
 
-    /**
-     * Busca consultas filtrando según el rol del usuario autenticado.
-     * - Estudiante: solo sus consultas
-     * - Asesor: consultas de sus estudiantes
-     * - Monitor: consultas donde está asignado
-     * - Administrativo/Conciliador: todas
-     */
-    public List<ConsultaBusquedaDTO> buscarSegunRol(String search, Authentication authentication) {
-        String termino = normalizarTexto(search);
-
-        if (authentication == null) {
-            return consultaRepository.buscar(termino)
-                    .stream().map(this::convertirABusquedaDTO).toList();
-        }
-
-        String username = authentication.getName();
-        UsuarioSistema usuario = usuarioSistemaRepository
-                .findWithRolPermisosAndPerfilByUsername(username)
-                .orElse(null);
-
-        if (usuario == null) {
-            return consultaRepository.buscar(termino)
-                    .stream().map(this::convertirABusquedaDTO).toList();
-        }
-
-        PerfilUsuarioActual perfil = null;
-        try {
-            perfil = perfilUsuarioResolverService.obtenerPerfilActivoObligatorio(usuario);
-        } catch (Exception e) {
-            // Si no tiene perfil asociado, ve todas las consultas
-        }
-
-        Long estudianteId = null;
-        Long asesorId = null;
-        Long monitorId = null;
-
-        if (perfil != null) {
-            if (perfil.getTipoPerfil() == TipoPerfilUsuario.ESTUDIANTE) {
-                estudianteId = perfil.getPerfilId();
-            } else if (perfil.getTipoPerfil() == TipoPerfilUsuario.ASESOR) {
-                asesorId = perfil.getPerfilId();
-            } else if (perfil.getTipoPerfil() == TipoPerfilUsuario.MONITOR) {
-                monitorId = perfil.getPerfilId();
-            }
-            // ADMINISTRATIVO y CONCILIADOR pasan null → ven todas
-        }
-
-        return consultaRepository.buscarFiltrado(termino, estudianteId, asesorId, monitorId)
-                .stream().map(this::convertirABusquedaDTO).toList();
+    // Se conserva temporalmente para compatibilidad interna si alguna clase lo usa.
+    @Transactional(readOnly = true)
+    public List<ConsultaBusquedaDTO> buscar(String search) {
+        return buscarParaUsuarioActual(search);
     }
 
     public List<ConsultaDTO> listar() {
@@ -147,47 +112,85 @@ public class ConsultaService {
 
     @Transactional(readOnly = true)
     public ConsultaDTO obtenerPorId(Long id) {
+        consultaAccessService.validarPuedeVerConsulta(id);
+
         Consulta consulta = consultaRepository.findByIdConPartes(id)
                 .orElseThrow(() -> new BusinessException("Consulta no encontrada con id: " + id));
         consultaRepository.findByIdConContrapartes(id);
+
         return convertirADTO(consulta);
     }
 
     @Transactional
     public ConsultaDTO crear(ConsultaDTO dto) {
+        consultaAccessService.validarPuedeCrearConsulta();
+
         if (dto.getId() != null) {
             throw new BusinessException("El id no debe enviarse en la creación");
         }
+
         validarCamposObligatorios(dto);
-        Consulta consulta = construirDesdeDTO(new Consulta(), dto);
+
+        Consulta consulta = construirDesdeDTO(
+                new Consulta(),
+                dto,
+                consultaAccessService.usuarioPuedeAsignarResponsables());
+
+        if (!consultaAccessService.usuarioPuedeAsignarResponsables()) {
+            asignarResponsablesSegunUsuarioActual(consulta);
+        }
+
         return convertirADTO(consultaRepository.save(consulta));
     }
 
     @Transactional
     public ConsultaDTO actualizar(Long id, ConsultaDTO dto) {
+        consultaAccessService.validarPuedeEditarConsulta(id);
+
         Consulta existente = consultaRepository.findByIdConPartes(id)
                 .orElseThrow(() -> new BusinessException("Consulta no encontrada con id: " + id));
         consultaRepository.findByIdConContrapartes(id);
+
         validarCamposObligatorios(dto);
+
         if (dto.getId() != null && !dto.getId().equals(existente.getId())) {
             throw new BusinessException("No se permite cambiar el id de la consulta");
         }
-        construirDesdeDTO(existente, dto);
+
+        validarCambioEstadoPermitido(existente, dto);
+
+        construirDesdeDTO(
+                existente,
+                dto,
+                consultaAccessService.usuarioPuedeAsignarResponsables());
+
         return convertirADTO(consultaRepository.save(existente));
     }
 
+    /**
+     * Se conserva el nombre eliminar por compatibilidad con el endpoint antiguo.
+     * Para evitar eliminar información, ahora funciona como archivo lógico.
+     */
     @Transactional
     public void eliminar(Long id) {
+        consultaAccessService.validarPuedeArchivarConsulta(id);
+
         Consulta consulta = consultaRepository.findById(id)
                 .orElseThrow(() -> new BusinessException("Consulta no encontrada con id: " + id));
-        consultaRepository.delete(consulta);
+
+        consulta.setEstado(ESTADO_ARCHIVADO);
+        consultaRepository.save(consulta);
     }
 
     @Transactional
     public ConsultaDTO archivar(Long id) {
+        consultaAccessService.validarPuedeArchivarConsulta(id);
+
         Consulta consulta = consultaRepository.findById(id)
                 .orElseThrow(() -> new BusinessException("Consulta no encontrada con id: " + id));
-        consulta.setEstado("Archivado");
+
+        consulta.setEstado(ESTADO_ARCHIVADO);
+
         return convertirADTO(consultaRepository.save(consulta));
     }
 
@@ -207,6 +210,14 @@ public class ConsultaService {
         if (dto.getSedeId() == null) throw new BusinessException("La sede es obligatoria");
         if (dto.getAreaId() == null) throw new BusinessException("El área es obligatoria");
         if (dto.getTemaId() == null) throw new BusinessException("El tema es obligatorio");
+    }
+
+    private void validarCambioEstadoPermitido(Consulta existente, ConsultaDTO dto) {
+        String estadoNuevo = normalizarTexto(dto.getEstado());
+
+        if (!equalsIgnoreCase(existente.getEstado(), estadoNuevo)) {
+            consultaAccessService.validarPuedeCambiarEstadoConsulta(existente.getId());
+        }
     }
 
     // -------------------------------------------------------------------------
@@ -261,7 +272,10 @@ public class ConsultaService {
     // Conversiones
     // -------------------------------------------------------------------------
 
-    private Consulta construirDesdeDTO(Consulta consulta, ConsultaDTO dto) {
+    private Consulta construirDesdeDTO(
+            Consulta consulta,
+            ConsultaDTO dto,
+            boolean puedeAsignarResponsables) {
         consulta.setFecha(dto.getFecha());
         consulta.setDescripcion(normalizarTexto(dto.getDescripcion()));
         consulta.setHechos(normalizarTexto(dto.getHechos()));
@@ -278,9 +292,12 @@ public class ConsultaService {
         consulta.setArea(obtenerArea(dto.getAreaId()));
         consulta.setTema(obtenerTema(dto.getTemaId()));
         consulta.setTipo(obtenerTipo(dto.getTipoId()));
-        consulta.setAsesor(obtenerAsesor(dto.getAsesorId()));
-        consulta.setMonitor(obtenerMonitor(dto.getMonitorId()));
-        consulta.setEstudiante(obtenerEstudiante(dto.getEstudianteId()));
+
+        if (puedeAsignarResponsables) {
+            consulta.setAsesor(obtenerAsesor(dto.getAsesorId()));
+            consulta.setMonitor(obtenerMonitor(dto.getMonitorId()));
+            consulta.setEstudiante(obtenerEstudiante(dto.getEstudianteId()));
+        }
 
         if (dto.getPartesIds() != null) {
             List<Persona> partes = dto.getPartesIds().stream()
@@ -301,6 +318,26 @@ public class ConsultaService {
         }
 
         return consulta;
+    }
+
+    private void asignarResponsablesSegunUsuarioActual(Consulta consulta) {
+        PerfilUsuarioActual perfil = consultaAccessService.obtenerPerfilActual();
+
+        if (perfil.getTipoPerfil() == TipoPerfilUsuario.ESTUDIANTE) {
+            Estudiante estudiante = obtenerEstudiante(perfil.getPerfilId());
+            consulta.setEstudiante(estudiante);
+            consulta.setAsesor(estudiante.getAsesor());
+            return;
+        }
+
+        if (perfil.getTipoPerfil() == TipoPerfilUsuario.ASESOR) {
+            consulta.setAsesor(obtenerAsesor(perfil.getPerfilId()));
+            return;
+        }
+
+        if (perfil.getTipoPerfil() == TipoPerfilUsuario.MONITOR) {
+            consulta.setMonitor(obtenerMonitor(perfil.getPerfilId()));
+        }
     }
 
     private ConsultaDTO convertirADTO(Consulta c) {
