@@ -33,6 +33,8 @@ public class EstudianteAccessService {
         this.estudianteRepository = estudianteRepository;
     }
 
+    // Valida que el usuario pueda consultar estudiantes.
+    // El alcance real se aplica luego en el QueryService.
     @Transactional(readOnly = true)
     public void validarPuedeListarEstudiantes() {
         if (!usuarioActualService.tieneAlgunPermiso(
@@ -74,10 +76,10 @@ public class EstudianteAccessService {
         }
     }
 
+    // La gestión real de estudiantes queda restringida al administrador.
+    // Esto evita que permisos viejos temporales den acceso indebido.
     @Transactional(readOnly = true)
     public void validarPuedeGestionarEstudiantes() {
-        // Aunque algunos roles todavía tengan temporalmente "Gestionar usuarios",
-        // la gestión real de estudiantes se limita al administrador.
         if (!usuarioActualService.esRolAdministrador()) {
             throw new AccessDeniedException("Solo el administrador puede gestionar estudiantes");
         }

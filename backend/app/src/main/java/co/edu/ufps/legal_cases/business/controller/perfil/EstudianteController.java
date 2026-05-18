@@ -27,18 +27,15 @@ public class EstudianteController {
         this.estudianteService = estudianteService;
     }
 
-    // Listar todos según alcance:
-    // - Administrador: todos.
-    // - Asesor: solo sus estudiantes.
+    // Listado con alcance:
+    // Administrador ve todos; asesor ve solo sus estudiantes.
     @GetMapping
     @PreAuthorize("hasAnyAuthority('" + VER_ESTUDIANTES + "', '" + VER_PERFILES_AUXILIARES + "', '" + GESTIONAR_USUARIOS + "')")
     public List<EstudianteDTO> listar() {
         return estudianteService.listar();
     }
 
-    // Solo activos según alcance:
-    // - Administrador: todos los activos.
-    // - Asesor: solo sus estudiantes activos.
+    // Solo activos con el mismo alcance del listado general.
     @GetMapping("/activos")
     @PreAuthorize("hasAnyAuthority('" + VER_ESTUDIANTES + "', '" + VER_PERFILES_AUXILIARES + "', '" + GESTIONAR_USUARIOS + "')")
     public List<EstudianteDTO> listarActivos() {
@@ -51,7 +48,6 @@ public class EstudianteController {
         return estudianteService.listarConConciliacion();
     }
 
-    // Solo activos de un asesor específico.
     // Si el usuario es asesor, solo puede consultar su propio id de asesor.
     @GetMapping("/activos/asesor/{asesorId}")
     @PreAuthorize("hasAnyAuthority('" + VER_ESTUDIANTES + "', '" + VER_PERFILES_AUXILIARES + "', '" + GESTIONAR_USUARIOS + "')")
@@ -59,15 +55,13 @@ public class EstudianteController {
         return estudianteService.listarActivosPorAsesor(asesorId);
     }
 
-    // Por ID, respetando alcance.
     @GetMapping("/{id}")
     @PreAuthorize("hasAnyAuthority('" + VER_ESTUDIANTES + "', '" + VER_PERFILES_AUXILIARES + "', '" + GESTIONAR_USUARIOS + "')")
     public EstudianteDTO obtenerPorId(@PathVariable Long id) {
         return estudianteService.obtenerPorId(id);
     }
 
-    // Crear estudiante.
-    // Por ahora se mantiene asociado a gestión de usuarios porque crear estudiante crea usuario del sistema.
+    // Crear estudiante crea también usuario del sistema.
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     @PreAuthorize("hasAnyAuthority('" + CREAR_USUARIOS + "', '" + GESTIONAR_USUARIOS + "')")
@@ -75,7 +69,6 @@ public class EstudianteController {
         return estudianteService.crear(dto);
     }
 
-    // Actualizar estudiante.
     @PutMapping("/{id}")
     @PreAuthorize("hasAnyAuthority('" + EDITAR_USUARIOS + "', '" + GESTIONAR_USUARIOS + "')")
     public EstudianteDTO actualizar(
@@ -85,7 +78,6 @@ public class EstudianteController {
         return estudianteService.actualizar(id, dto);
     }
 
-    // Activar / Desactivar.
     @PatchMapping("/{id}/activo")
     @PreAuthorize("hasAnyAuthority('" + CAMBIAR_ESTADO_ESTUDIANTES + "', '" + GESTIONAR_USUARIOS + "')")
     public EstudianteDTO cambiarEstado(
@@ -95,7 +87,6 @@ public class EstudianteController {
         return estudianteService.cambiarEstado(id, activo);
     }
 
-    // Cambiar conciliación.
     @PatchMapping("/{id}/conciliacion")
     @PreAuthorize("hasAnyAuthority('" + EDITAR_USUARIOS + "', '" + GESTIONAR_USUARIOS + "')")
     public EstudianteDTO cambiarConciliacion(
@@ -105,7 +96,6 @@ public class EstudianteController {
         return estudianteService.cambiarConciliacion(id, conciliacion);
     }
 
-    // Eliminar.
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     @PreAuthorize("hasAuthority('" + GESTIONAR_USUARIOS + "')")
