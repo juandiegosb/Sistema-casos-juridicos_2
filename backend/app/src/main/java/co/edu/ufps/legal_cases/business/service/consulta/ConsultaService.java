@@ -194,6 +194,13 @@ public class ConsultaService {
         return convertirADTO(consultaRepository.save(consulta));
     }
 
+    public List<ConsultaBusquedaDTO> listarArchivadas() {
+        return consultaRepository.findByEstadoIgnoreCase("Archivado")
+                .stream()
+                .map(this::convertirABusquedaDTO)
+                .toList();
+    }
+
     // -------------------------------------------------------------------------
     // Validaciones
     // -------------------------------------------------------------------------

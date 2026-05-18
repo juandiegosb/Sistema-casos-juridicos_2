@@ -64,4 +64,10 @@ public class PersonaController {
     public void desactivar(@PathVariable Long id) {
         personaService.desactivar(id);
     }
+
+    @PatchMapping("/{id}/reactivar")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void reactivar(@PathVariable Long id) {
+        personaService.reactivar(id);
+    }
 }

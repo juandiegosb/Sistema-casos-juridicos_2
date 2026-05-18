@@ -36,12 +36,12 @@ public interface ConsultaRepository extends JpaRepository<Consulta, Long> {
         @Query("""
                         SELECT c FROM Consulta c
                         JOIN c.persona p
-                        WHERE (:search IS NULL OR :search = ''
+                        WHERE LOWER(c.estado) <> 'archivado'
+                          AND (:search IS NULL OR :search = ''
                            OR LOWER(c.descripcion)       LIKE LOWER(CONCAT('%', :search, '%'))
                            OR LOWER(p.nombres)           LIKE LOWER(CONCAT('%', :search, '%'))
                            OR LOWER(p.apellidos)         LIKE LOWER(CONCAT('%', :search, '%'))
                            OR LOWER(p.numeroDocumento)   LIKE LOWER(CONCAT('%', :search, '%')))
-                          AND LOWER(c.estado) <> 'archivado'
                         ORDER BY c.fecha DESC
                         """)
         List<Consulta> buscar(@Param("search") String search);
@@ -51,12 +51,12 @@ public interface ConsultaRepository extends JpaRepository<Consulta, Long> {
         @Query("""
                         SELECT c FROM Consulta c
                         JOIN c.persona p
-                        WHERE (:search IS NULL OR :search = ''
+                        WHERE LOWER(c.estado) <> 'archivado'
+                          AND (:search IS NULL OR :search = ''
                            OR LOWER(c.descripcion)       LIKE LOWER(CONCAT('%', :search, '%'))
                            OR LOWER(p.nombres)           LIKE LOWER(CONCAT('%', :search, '%'))
                            OR LOWER(p.apellidos)         LIKE LOWER(CONCAT('%', :search, '%'))
                            OR LOWER(p.numeroDocumento)   LIKE LOWER(CONCAT('%', :search, '%')))
-                          AND LOWER(c.estado) <> 'archivado'
                         ORDER BY c.fecha DESC
                         """)
         List<Consulta> buscarParaAdministrador(@Param("search") String search);
@@ -66,12 +66,12 @@ public interface ConsultaRepository extends JpaRepository<Consulta, Long> {
         @Query("""
                         SELECT c FROM Consulta c
                         JOIN c.persona p
-                        WHERE (:search IS NULL OR :search = ''
+                        WHERE LOWER(c.estado) <> 'archivado'
+                          AND (:search IS NULL OR :search = ''
                            OR LOWER(c.descripcion)       LIKE LOWER(CONCAT('%', :search, '%'))
                            OR LOWER(p.nombres)           LIKE LOWER(CONCAT('%', :search, '%'))
                            OR LOWER(p.apellidos)         LIKE LOWER(CONCAT('%', :search, '%'))
                            OR LOWER(p.numeroDocumento)   LIKE LOWER(CONCAT('%', :search, '%')))
-                          AND LOWER(c.estado) <> 'archivado'
                           AND c.estudiante.id = :estudianteId
                         ORDER BY c.fecha DESC
                         """)
@@ -85,12 +85,12 @@ public interface ConsultaRepository extends JpaRepository<Consulta, Long> {
         @Query("""
                         SELECT c FROM Consulta c
                         JOIN c.persona p
-                        WHERE (:search IS NULL OR :search = ''
+                        WHERE LOWER(c.estado) <> 'archivado'
+                          AND (:search IS NULL OR :search = ''
                            OR LOWER(c.descripcion)       LIKE LOWER(CONCAT('%', :search, '%'))
                            OR LOWER(p.nombres)           LIKE LOWER(CONCAT('%', :search, '%'))
                            OR LOWER(p.apellidos)         LIKE LOWER(CONCAT('%', :search, '%'))
                            OR LOWER(p.numeroDocumento)   LIKE LOWER(CONCAT('%', :search, '%')))
-                          AND LOWER(c.estado) <> 'archivado'
                           AND (
                                 c.asesor.id = :asesorId
                                 OR c.estudiante.asesor.id = :asesorId
@@ -106,12 +106,12 @@ public interface ConsultaRepository extends JpaRepository<Consulta, Long> {
         @Query("""
                         SELECT c FROM Consulta c
                         JOIN c.persona p
-                        WHERE (:search IS NULL OR :search = ''
+                        WHERE LOWER(c.estado) <> 'archivado'
+                          AND (:search IS NULL OR :search = ''
                            OR LOWER(c.descripcion)       LIKE LOWER(CONCAT('%', :search, '%'))
                            OR LOWER(p.nombres)           LIKE LOWER(CONCAT('%', :search, '%'))
                            OR LOWER(p.apellidos)         LIKE LOWER(CONCAT('%', :search, '%'))
                            OR LOWER(p.numeroDocumento)   LIKE LOWER(CONCAT('%', :search, '%')))
-                          AND LOWER(c.estado) <> 'archivado'
                           AND c.monitor.id = :monitorId
                         ORDER BY c.fecha DESC
                         """)
@@ -124,7 +124,8 @@ public interface ConsultaRepository extends JpaRepository<Consulta, Long> {
         @Query("""
                         SELECT c FROM Consulta c
                         JOIN c.persona p
-                        WHERE (:search IS NULL OR :search = ''
+                        WHERE LOWER(c.estado) <> 'archivado'
+                          AND (:search IS NULL OR :search = ''
                            OR LOWER(c.descripcion)       LIKE LOWER(CONCAT('%', :search, '%'))
                            OR LOWER(p.nombres)           LIKE LOWER(CONCAT('%', :search, '%'))
                            OR LOWER(p.apellidos)         LIKE LOWER(CONCAT('%', :search, '%'))
@@ -198,4 +199,6 @@ public interface ConsultaRepository extends JpaRepository<Consulta, Long> {
                         """)
         Optional<SeguimientoDestinatarioDTO> findDestinatarioEstudianteByConsultaId(
                         @Param("consultaId") Long consultaId);
+
+        List<Consulta> findByEstadoIgnoreCase(String estado);
 }

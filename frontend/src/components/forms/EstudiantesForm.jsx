@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { API_URL_BASE } from "@/lib/config";
+import { ConfirmActionDialog } from "@/components/ui/ConfirmActionDialog";
 
 export function EstudiantesForm() {
   const router = useRouter();
@@ -12,6 +13,9 @@ export function EstudiantesForm() {
   const [estudiantes, setEstudiantes] = useState([]);
   const [busqueda, setBusqueda] = useState("");
   const [cargando, setCargando] = useState(true);
+
+  const [confirmDialog, setConfirmDialog] = useState(null);
+  const [confirmLoading, setConfirmLoading] = useState(false);
 
   useEffect(() => {
     const verificarYCargar = async () => {
@@ -33,8 +37,8 @@ export function EstudiantesForm() {
           return;
         }
 
-        // Si es asesor, traer solo sus estudiantes activos
         let url = `${API_URL_BASE}/estudiantes/activos`;
+
         if (usuario.tipoPerfil === "ASESOR" && usuario.perfilId) {
           url = `${API_URL_BASE}/estudiantes/activos/asesor/${usuario.perfilId}`;
         }
@@ -65,7 +69,6 @@ export function EstudiantesForm() {
           setEstudiantes([]);
           toast.error("La API no devolvió una lista");
         }
-
       } catch (e) {
         console.error(e);
         toast.error("Error cargando estudiantes");
@@ -77,17 +80,42 @@ export function EstudiantesForm() {
     verificarYCargar();
   }, [router]);
 
-  async function desactivar(id) {
-    if (!confirm("¿Desactivar este estudiante?")) return;
-    const res = await fetch(`${API_URL_BASE}/estudiantes/${id}/activo?activo=false`, {
-      method: "PATCH",
-      credentials: "include",
-    });
-    if (res.ok) {
-      toast.success("Estudiante desactivado");
-      setEstudiantes(prev => prev.map(e => e.id === id ? { ...e, activo: false } : e));
-    } else {
-      toast.error("Error al desactivar");
+  function abrirConfirmacionDesactivar(estudiante) {
+    setConfirmDialog(estudiante);
+  }
+
+  async function confirmarDesactivar() {
+    if (!confirmDialog?.id) return;
+
+    try {
+      setConfirmLoading(true);
+
+      const res = await fetch(
+        `${API_URL_BASE}/estudiantes/${confirmDialog.id}/activo?activo=false`,
+        {
+          method: "PATCH",
+          credentials: "include",
+        }
+      );
+
+      if (res.ok) {
+        toast.success("Estudiante desactivado");
+
+        setEstudiantes((prev) =>
+          prev.map((e) =>
+            e.id === confirmDialog.id ? { ...e, activo: false } : e
+          )
+        );
+
+        setConfirmDialog(null);
+      } else {
+        toast.error("Error al desactivar");
+      }
+    } catch (error) {
+      console.error(error);
+      toast.error("Error de conexión");
+    } finally {
+      setConfirmLoading(false);
     }
   }
 
@@ -95,7 +123,7 @@ export function EstudiantesForm() {
     return <div className="text-center mt-10">Cargando...</div>;
   }
 
-  const filtrados = estudiantes.filter(e =>
+  const filtrados = estudiantes.filter((e) =>
     `${e.nombre} ${e.documento} ${e.email} ${e.codigo}`
       .toLowerCase()
       .includes(busqueda.toLowerCase())
@@ -103,7 +131,6 @@ export function EstudiantesForm() {
 
   return (
     <div className="space-y-6">
-
       <Input
         placeholder="Buscar por nombre, documento, email o código..."
         value={busqueda}
@@ -112,7 +139,6 @@ export function EstudiantesForm() {
 
       <div className="overflow-x-auto border rounded-xl">
         <table className="w-full text-sm">
-
           <thead className="bg-muted/50">
             <tr className="text-left">
               <th className="p-3">Nombre</th>
@@ -139,28 +165,33 @@ export function EstudiantesForm() {
                 <td className="p-3">{e.codigo}</td>
 
                 <td className="p-3">
-                  <span className={`text-xs px-2 py-1 rounded ${
-                    e.conciliacion
-                      ? "bg-green-100 text-green-700"
-                      : "bg-gray-100 text-gray-600"
-                  }`}>
+                  <span
+                    className={`text-xs px-2 py-1 rounded ${
+                      e.conciliacion
+                        ? "bg-green-100 text-green-700"
+                        : "bg-gray-100 text-gray-600"
+                    }`}
+                  >
                     {e.conciliacion ? "Sí" : "No"}
                   </span>
                 </td>
 
                 <td className="p-3">
-                  <span className={`text-xs px-2 py-1 rounded ${
-                    e.activo
-                      ? "bg-blue-100 text-blue-700"
-                      : "bg-red-100 text-red-700"
-                  }`}>
+                  <span
+                    className={`text-xs px-2 py-1 rounded ${
+                      e.activo
+                        ? "bg-blue-100 text-blue-700"
+                        : "bg-red-100 text-red-700"
+                    }`}
+                  >
                     {e.activo ? "Activo" : "Inactivo"}
                   </span>
                 </td>
 
                 <td className="p-3">
                   <button
-                    onClick={() => desactivar(e.id)}
+                    type="button"
+                    onClick={() => abrirConfirmacionDesactivar(e)}
                     disabled={!e.activo}
                     className={`text-xs px-3 py-1 rounded ${
                       e.activo
@@ -171,7 +202,6 @@ export function EstudiantesForm() {
                     {e.activo ? "Desactivar" : "Inactivo"}
                   </button>
                 </td>
-
               </tr>
             ))}
           </tbody>
@@ -183,6 +213,19 @@ export function EstudiantesForm() {
           No se encontraron resultados
         </p>
       )}
+
+      <ConfirmActionDialog
+        open={Boolean(confirmDialog)}
+        title="Desactivar estudiante"
+        description={`¿Deseas desactivar a "${
+          confirmDialog?.nombre || "este estudiante"
+        }"? Podrás reactivarlo después desde la página de eliminación.`}
+        confirmText="Desactivar"
+        cancelText="Cancelar"
+        loading={confirmLoading}
+        onClose={() => setConfirmDialog(null)}
+        onConfirm={confirmarDesactivar}
+      />
     </div>
   );
 }
