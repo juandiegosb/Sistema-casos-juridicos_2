@@ -10,6 +10,8 @@ import { useRouter } from "next/navigation";
 import { API_URL_BASE } from "@/lib/config";
 import { toast } from "sonner";
 import { ConfirmActionDialog } from "@/components/ui/ConfirmActionDialog";
+import { PERMISOS } from "@/lib/permission";
+import { tienePermiso } from "@/lib/authz";
 
 export function TipoForm() {
   const router = useRouter();
@@ -47,9 +49,14 @@ export function TipoForm() {
           return;
         }
 
+        if (!res.ok) {
+          router.push("/");
+          return;
+        }
+
         const user = await res.json();
 
-        if (!user.permisos?.includes("Gestionar catálogos")) {
+        if (!tienePermiso(user, PERMISOS.GESTIONAR_CATALOGOS)) {
           router.push("/inicio");
           return;
         }
@@ -70,11 +77,14 @@ export function TipoForm() {
 
         if (response.ok) {
           const temasData = await response.json();
+
           setTemas(
-            temasData.map((tema) => ({
-              value: tema.id,
-              label: tema.nombre,
-            }))
+            Array.isArray(temasData)
+              ? temasData.map((tema) => ({
+                  value: tema.id,
+                  label: tema.nombre,
+                }))
+              : []
           );
         }
 
@@ -256,8 +266,9 @@ export function TipoForm() {
                   <td className="px-4 py-3 text-sm">{tipo.nombre}</td>
 
                   <td className="px-4 py-3 text-sm">
-                    {temas.find((t) => t.value === tipo.temaId)?.label ??
-                      tipo.temaId}
+                    {temas.find(
+                      (t) => Number(t.value) === Number(tipo.temaId)
+                    )?.label ?? tipo.temaId}
                   </td>
 
                   <td className="px-4 py-3 text-sm">

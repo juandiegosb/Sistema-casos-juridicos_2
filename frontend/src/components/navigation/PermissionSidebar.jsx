@@ -4,7 +4,7 @@ import * as React from "react";
 import { useRouter } from "next/navigation";
 import { AppSidebar } from "@/components/app-sidebar";
 import { API_URL_BASE } from "@/lib/config";
-import { PERMISOS } from "@/lib/permissions";
+import { PERMISOS } from "@/lib/permission";
 import {
   tieneAlgunPermiso,
   tieneTodosLosPermisos,
@@ -82,7 +82,7 @@ const SIDEBAR_PAGES = [
       PERMISOS.CAMBIAR_ESTADO_CONSULTAS,
       PERMISOS.ARCHIVAR_CONSULTAS,
     ],
-    match: "any",
+    match: "all",
   },
 ];
 

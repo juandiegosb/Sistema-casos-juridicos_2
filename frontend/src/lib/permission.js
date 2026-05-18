@@ -9,6 +9,7 @@ export const PERMISOS = {
   ACCEDER_ESTUDIANTES: "Acceder estudiantes",
   ACCEDER_ASESORES_MONITORES: "Acceder asesores y monitores",
   ACCEDER_PERSONAS: "Acceder personas",
+  ACCEDER_ELIMINACION: "Acceder eliminación",
   ACCEDER_CONCILIACIONES: "Acceder conciliaciones",
   ACCEDER_PROCESOS: "Acceder procesos",
 
@@ -19,6 +20,7 @@ export const PERMISOS = {
   CREAR_PERSONAS: "Crear personas",
   EDITAR_PERSONAS: "Editar personas",
   CAMBIAR_ESTADO_PERSONAS: "Cambiar estado personas",
+  GESTIONAR_PERSONAS: "Gestionar personas",
 
   VER_CONSULTAS: "Ver consultas",
   CREAR_CONSULTAS: "Crear consultas",
@@ -34,7 +36,6 @@ export const PERMISOS = {
   RESPONDER_SEGUIMIENTOS: "Responder seguimientos",
   APROBAR_RESPUESTAS_SEGUIMIENTO: "Aprobar respuestas de seguimiento",
   VER_ALERTAS_DISCIPLINARIAS: "Ver alertas disciplinarias",
-
   GESTIONAR_CATEGORIAS_SEGUIMIENTO: "Gestionar categorias de seguimiento",
 
   VER_USUARIOS: "Ver usuarios",
