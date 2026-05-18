@@ -14,18 +14,24 @@ import org.springframework.stereotype.Service;
 import co.edu.ufps.legal_cases.business.dto.persona.PersonaDTO;
 import co.edu.ufps.legal_cases.business.model.persona.Persona;
 import co.edu.ufps.legal_cases.business.repository.persona.PersonaRepository;
+import co.edu.ufps.legal_cases.business.service.acceso.PersonaAccessService;
 import co.edu.ufps.legal_cases.common.exception.BusinessException;
 
 @Service
 public class PersonaService {
 
     private final PersonaRepository personaRepository;
+    private final PersonaAccessService personaAccessService;
 
-    public PersonaService(PersonaRepository personaRepository) {
+    public PersonaService(PersonaRepository personaRepository,
+            PersonaAccessService personaAccessService) {
         this.personaRepository = personaRepository;
+        this.personaAccessService = personaAccessService;
     }
 
     public List<PersonaDTO> listar() {
+        personaAccessService.validarPuedeVerPersonas();
+
         return personaRepository.findAll()
                 .stream()
                 .map(persona -> convertirADTO(persona))
@@ -33,6 +39,8 @@ public class PersonaService {
     }
 
     public List<PersonaDTO> listarActivos() {
+        personaAccessService.validarPuedeVerPersonas();
+
         return personaRepository.findAll()
                 .stream()
                 .filter(p -> Boolean.TRUE.equals(p.getActivo()))
@@ -41,6 +49,8 @@ public class PersonaService {
     }
 
     public PersonaDTO obtenerPorId(Long id) {
+        personaAccessService.validarPuedeVerPersonas();
+
         Persona persona = personaRepository.findById(id)
                 .orElseThrow(() -> new BusinessException("Persona no encontrada con id: " + id));
 
@@ -48,6 +58,8 @@ public class PersonaService {
     }
 
     public PersonaDTO crear(PersonaDTO personaDTO) {
+        personaAccessService.validarPuedeCrearPersonas();
+
         validarTelefonoOCorreo(personaDTO);
         validarDatosAcudienteSiEsMenor(personaDTO);
 
@@ -65,6 +77,8 @@ public class PersonaService {
     }
 
     public PersonaDTO actualizar(Long id, PersonaDTO personaDTO) {
+        personaAccessService.validarPuedeEditarPersonas();
+
         Persona personaExistente = personaRepository.findById(id)
                 .orElseThrow(() -> new BusinessException("Persona no encontrada con id: " + id));
 
@@ -87,6 +101,8 @@ public class PersonaService {
     }
 
     public void desactivar(Long id) {
+        personaAccessService.validarPuedeCambiarEstadoPersonas();
+
         Persona persona = personaRepository.findById(id)
                 .orElseThrow(() -> new BusinessException("Persona no encontrada con id: " + id));
         persona.setActivo(false);
