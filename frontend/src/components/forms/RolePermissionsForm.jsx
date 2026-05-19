@@ -18,16 +18,19 @@ const PAGINAS = [
     path: "/recepcion",
     permisos: [
       PERMISOS.ACCEDER_RECEPCION,
+      PERMISOS.VER_PERSONAS,
       PERMISOS.CREAR_PERSONAS,
       PERMISOS.VER_CATALOGOS,
     ],
   },
   {
-    title: "Tareas",
-    path: "/tareas",
+    title: "Personas",
+    path: "/personas",
     permisos: [
-      PERMISOS.ACCEDER_TAREAS,
-      PERMISOS.VER_SEGUIMIENTOS,
+      PERMISOS.ACCEDER_PERSONAS,
+      PERMISOS.VER_PERSONAS,
+      PERMISOS.CREAR_PERSONAS,
+      PERMISOS.EDITAR_PERSONAS,
     ],
   },
   {
@@ -35,6 +38,9 @@ const PAGINAS = [
     path: "/nuevaconsulta",
     permisos: [
       PERMISOS.ACCEDER_NUEVA_CONSULTA,
+      PERMISOS.VER_CATALOGOS,
+      PERMISOS.VER_PERSONAS,
+      PERMISOS.VER_CONSULTAS,
       PERMISOS.CREAR_CONSULTAS,
     ],
   },
@@ -44,14 +50,46 @@ const PAGINAS = [
     permisos: [
       PERMISOS.ACCEDER_CONSULTAS_JURIDICAS,
       PERMISOS.VER_CONSULTAS,
+      PERMISOS.EDITAR_CONSULTAS,
+      PERMISOS.CAMBIAR_ESTADO_CONSULTAS,
+      PERMISOS.ARCHIVAR_CONSULTAS,
+      PERMISOS.ASIGNAR_RESPONSABLES_CONSULTA,
     ],
   },
   {
-    title: "Personas",
-    path: "/personas",
+    title: "Tareas",
+    path: "/tareas",
     permisos: [
-      PERMISOS.ACCEDER_PERSONAS,
-      PERMISOS.VER_PERSONAS,
+      PERMISOS.ACCEDER_TAREAS,
+      PERMISOS.VER_SEGUIMIENTOS,
+      PERMISOS.CREAR_SEGUIMIENTOS,
+      PERMISOS.EDITAR_SEGUIMIENTOS,
+      PERMISOS.ELIMINAR_SEGUIMIENTOS,
+      PERMISOS.RESPONDER_SEGUIMIENTOS,
+      PERMISOS.APROBAR_RESPUESTAS_SEGUIMIENTO,
+      PERMISOS.VER_ALERTAS_DISCIPLINARIAS,
+    ],
+  },
+  {
+    title: "Nuevo proceso",
+    path: "/nuevoproceso",
+    permisos: [
+      PERMISOS.ACCEDER_PROCESOS,
+      PERMISOS.VER_PROCESOS,
+      PERMISOS.GESTIONAR_PROCESOS,
+      PERMISOS.VER_CONSULTAS,
+      PERMISOS.VER_CATALOGOS,
+    ],
+  },
+  {
+    title: "Procesos",
+    path: "/procesos",
+    permisos: [
+      PERMISOS.ACCEDER_PROCESOS,
+      PERMISOS.VER_PROCESOS,
+      PERMISOS.GESTIONAR_PROCESOS,
+      PERMISOS.VER_CONSULTAS,
+      PERMISOS.VER_CATALOGOS,
     ],
   },
   {
@@ -60,6 +98,12 @@ const PAGINAS = [
     permisos: [
       PERMISOS.ACCEDER_ADMINISTRACION,
       PERMISOS.VER_CATALOGOS,
+      PERMISOS.GESTIONAR_CATALOGOS,
+      PERMISOS.VER_USUARIOS,
+      PERMISOS.CREAR_USUARIOS,
+      PERMISOS.EDITAR_USUARIOS,
+      PERMISOS.CAMBIAR_ESTADO_USUARIOS,
+      PERMISOS.ASIGNAR_ROL_USUARIOS,
     ],
   },
   {
@@ -68,6 +112,9 @@ const PAGINAS = [
     permisos: [
       PERMISOS.ACCEDER_ROLES,
       PERMISOS.VER_ROLES,
+      PERMISOS.CREAR_ROLES,
+      PERMISOS.EDITAR_ROLES,
+      PERMISOS.ASIGNAR_PERMISOS_ROLES,
     ],
   },
   {
@@ -76,6 +123,7 @@ const PAGINAS = [
     permisos: [
       PERMISOS.ACCEDER_ESTUDIANTES,
       PERMISOS.VER_ESTUDIANTES,
+      PERMISOS.CAMBIAR_ESTADO_ESTUDIANTES,
     ],
   },
   {
@@ -84,12 +132,20 @@ const PAGINAS = [
     permisos: [
       PERMISOS.ACCEDER_ASESORES_MONITORES,
       PERMISOS.VER_ASESORES_MONITORES,
+      PERMISOS.GESTIONAR_ASESORES_MONITORES,
     ],
   },
   {
     title: "Eliminación",
     path: "/eliminacion",
-    permisos: [PERMISOS.ACCEDER_ELIMINACION],
+    permisos: [
+      PERMISOS.ACCEDER_ELIMINACION,
+      PERMISOS.CAMBIAR_ESTADO_PERSONAS,
+      PERMISOS.CAMBIAR_ESTADO_USUARIOS,
+      PERMISOS.CAMBIAR_ESTADO_ESTUDIANTES,
+      PERMISOS.CAMBIAR_ESTADO_CONSULTAS,
+      PERMISOS.ARCHIVAR_CONSULTAS,
+    ],
   },
 ];
 
@@ -132,7 +188,9 @@ function paginaMarcada(page, permisosRol) {
     normalizar(nombrePermiso(permiso))
   );
 
-  return page.permisos.every((permiso) =>
+  const permisosPagina = page.permisos.filter(Boolean);
+
+  return permisosPagina.every((permiso) =>
     permisosRolNormalizados.includes(normalizar(permiso))
   );
 }
@@ -147,6 +205,41 @@ async function leerRespuesta(response) {
   } catch {
     return { mensaje: text };
   }
+}
+
+function extraerLista(data) {
+  if (Array.isArray(data)) return data;
+  if (!data || typeof data !== "object") return [];
+
+  const claves = [
+    "content",
+    "data",
+    "items",
+    "rows",
+    "permisos",
+    "roles",
+    "resultado",
+    "payload",
+  ];
+
+  for (const clave of claves) {
+    const valor = data[clave];
+
+    if (Array.isArray(valor)) return valor;
+
+    if (valor && typeof valor === "object") {
+      const interno = extraerLista(valor);
+      if (interno.length > 0) return interno;
+    }
+  }
+
+  return [];
+}
+
+function esErrorDuplicadoPermiso(data) {
+  const mensaje = normalizar(data?.mensaje || data?.message || data?.error);
+
+  return mensaje.includes("YA EXISTE") && mensaje.includes("PERMISO");
 }
 
 export function RolePermissionsForm() {
@@ -252,7 +345,7 @@ export function RolePermissionsForm() {
     }
 
     const data = await res.json();
-    return Array.isArray(data) ? data : [];
+    return extraerLista(data);
   }
 
   async function cargarPermisosActivos() {
@@ -275,7 +368,22 @@ export function RolePermissionsForm() {
     }
 
     const data = await res.json();
-    return Array.isArray(data) ? data : [];
+    const lista = extraerLista(data);
+
+    if (lista.length > 0) return lista;
+
+    try {
+      const resTodos = await fetch(`${API_URL_BASE}/permisos`, {
+        credentials: "include",
+      });
+
+      if (!resTodos.ok) return lista;
+
+      const dataTodos = await resTodos.json();
+      return extraerLista(dataTodos);
+    } catch {
+      return lista;
+    }
   }
 
   async function crearPermiso(nombre) {
@@ -289,6 +397,8 @@ export function RolePermissionsForm() {
       }),
     });
 
+    const data = await leerRespuesta(res);
+
     if (res.status === 401) {
       router.replace("/");
       return null;
@@ -300,7 +410,13 @@ export function RolePermissionsForm() {
     }
 
     if (!res.ok) {
-      const data = await leerRespuesta(res);
+      if (res.status === 400 && esErrorDuplicadoPermiso(data)) {
+        return {
+          duplicado: true,
+          nombre,
+        };
+      }
+
       throw new Error(
         data?.mensaje ||
           data?.message ||
@@ -308,16 +424,28 @@ export function RolePermissionsForm() {
       );
     }
 
-    return leerRespuesta(res);
+    return data;
   }
 
   async function asegurarPermisos(nombres) {
     let lista = [...permisos];
 
-    for (const nombre of nombres) {
+    for (const nombre of nombres.filter(Boolean)) {
       if (buscarPermiso(lista, nombre)) continue;
 
       const creado = await crearPermiso(nombre);
+
+      if (creado?.duplicado) {
+        lista = await cargarPermisosActivos();
+
+        if (buscarPermiso(lista, nombre)) {
+          continue;
+        }
+
+        throw new Error(
+          `El permiso "${nombre}" ya existe en la base de datos, pero no aparece como activo. Actívalo o revisa el endpoint /permisos/activos.`
+        );
+      }
 
       if (creado && idPermiso(creado)) {
         lista = [...lista, creado];
@@ -404,7 +532,7 @@ export function RolePermissionsForm() {
     paginasConfigurables.forEach((page) => {
       if (!paths.has(page.path)) return;
 
-      page.permisos.forEach((permiso) => {
+      page.permisos.filter(Boolean).forEach((permiso) => {
         nombres.add(permiso);
       });
     });
@@ -416,7 +544,7 @@ export function RolePermissionsForm() {
     const nombres = new Set();
 
     paginasConfigurables.forEach((page) => {
-      page.permisos.forEach((permiso) => {
+      page.permisos.filter(Boolean).forEach((permiso) => {
         nombres.add(permiso);
       });
     });
@@ -426,6 +554,7 @@ export function RolePermissionsForm() {
 
   function idsDesdeNombres(listaPermisos, nombres) {
     return nombres
+      .filter(Boolean)
       .map((nombre) => buscarPermiso(listaPermisos, nombre))
       .map(idPermiso)
       .filter((id) => id !== null && id !== undefined);

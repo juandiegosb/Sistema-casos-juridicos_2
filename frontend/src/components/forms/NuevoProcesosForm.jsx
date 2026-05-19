@@ -1,0 +1,557 @@
+"use client";
+
+import React, { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import { API_URL_BASE } from "@/lib/config";
+import { PERMISOS } from "@/lib/permission";
+import { tieneAlgunPermiso } from "@/lib/authz";
+
+const PERMISOS_PROCESOS = {
+  VER_PROCESOS: PERMISOS.VER_PROCESOS || "Ver procesos",
+  GESTIONAR_PROCESOS: PERMISOS.GESTIONAR_PROCESOS || "Gestionar procesos",
+  GESTIONAR_CONSULTAS_LEGACY: "Gestionar consultas",
+};
+
+const FORM_INICIAL = {
+  numeroRadicado: "",
+  departamentoId: "",
+  consultaId: "",
+  organoControlId: "",
+  especialidadId: "",
+  activo: true,
+};
+
+function extraerLista(data) {
+  if (Array.isArray(data)) return data;
+  if (!data || typeof data !== "object") return [];
+
+  const claves = [
+    "content",
+    "data",
+    "items",
+    "rows",
+    "departamentos",
+    "organos",
+    "organosControl",
+    "especialidades",
+    "consultas",
+    "procesos",
+    "resultado",
+    "payload",
+  ];
+
+  for (const clave of claves) {
+    const valor = data[clave];
+
+    if (Array.isArray(valor)) return valor;
+
+    if (valor && typeof valor === "object") {
+      const interno = extraerLista(valor);
+      if (interno.length > 0) return interno;
+    }
+  }
+
+  return [];
+}
+
+async function leerRespuesta(response) {
+  if (response.status === 204) return null;
+
+  const text = await response.text();
+  if (!text) return null;
+
+  try {
+    return JSON.parse(text);
+  } catch {
+    return { mensaje: text };
+  }
+}
+
+function mensajeError(payload, defecto) {
+  if (!payload) return defecto;
+  if (typeof payload === "string") return payload || defecto;
+
+  return payload.mensaje || payload.message || payload.error || defecto;
+}
+
+async function apiGet(url) {
+  const response = await fetch(url, { credentials: "include" });
+  const payload = await leerRespuesta(response);
+
+  if (response.status === 401) {
+    const error = new Error("Sesión vencida. Inicia sesión nuevamente.");
+    error.status = 401;
+    throw error;
+  }
+
+  if (response.status === 403) {
+    const error = new Error("No tienes permisos para consultar esta información.");
+    error.status = 403;
+    throw error;
+  }
+
+  if (!response.ok) {
+    throw new Error(mensajeError(payload, "No se pudo consultar la información."));
+  }
+
+  return payload;
+}
+
+async function apiEnviar(url, options) {
+  const response = await fetch(url, {
+    credentials: "include",
+    headers: {
+      "Content-Type": "application/json",
+      ...(options?.headers || {}),
+    },
+    ...options,
+  });
+
+  const payload = await leerRespuesta(response);
+
+  if (response.status === 401) {
+    const error = new Error("Sesión vencida. Inicia sesión nuevamente.");
+    error.status = 401;
+    throw error;
+  }
+
+  if (response.status === 403) {
+    const error = new Error("No tienes permisos para realizar esta acción.");
+    error.status = 403;
+    throw error;
+  }
+
+  if (!response.ok) {
+    throw new Error(mensajeError(payload, "No se pudo guardar el proceso."));
+  }
+
+  return payload;
+}
+
+function puedeAccederProcesos(user) {
+  return tieneAlgunPermiso(user, [
+    PERMISOS.ACCEDER_PROCESOS,
+    PERMISOS_PROCESOS.VER_PROCESOS,
+    PERMISOS_PROCESOS.GESTIONAR_PROCESOS,
+  ]);
+}
+
+function puedeGestionarProcesos(user) {
+  return tieneAlgunPermiso(user, [PERMISOS_PROCESOS.GESTIONAR_PROCESOS]);
+}
+
+function puedeCargarCatalogos(user) {
+  return tieneAlgunPermiso(user, [
+    PERMISOS.VER_CATALOGOS,
+    PERMISOS.GESTIONAR_CATALOGOS,
+  ]);
+}
+
+function puedeCargarConsultas(user) {
+  return tieneAlgunPermiso(user, [
+    PERMISOS.VER_CONSULTAS,
+    PERMISOS_PROCESOS.GESTIONAR_CONSULTAS_LEGACY,
+  ]);
+}
+
+function ordenarActivosPrimero(lista) {
+  return [...lista].sort((a, b) => {
+    const activoA = a.activo === false ? 1 : 0;
+    const activoB = b.activo === false ? 1 : 0;
+
+    if (activoA !== activoB) return activoA - activoB;
+
+    return String(a.nombre || a.descripcion || "").localeCompare(
+      String(b.nombre || b.descripcion || ""),
+      "es"
+    );
+  });
+}
+
+function labelCatalogo(item) {
+  const nombre = item.nombre || item.descripcion || item.codigo || `#${item.id}`;
+  return item.activo === false ? `${nombre} (Inactivo)` : nombre;
+}
+
+function labelConsulta(consulta) {
+  const persona = consulta.persona || consulta.consultante || {};
+
+  const nombrePersona = [
+    consulta.nombre || consulta.personaNombre || persona.nombre,
+    consulta.apellido || consulta.personaApellido || persona.apellido,
+  ]
+    .filter(Boolean)
+    .join(" ");
+
+  return [
+    `#${consulta.id || consulta.consultaId}`,
+    consulta.consulta || consulta.descripcion || consulta.hechos || consulta.asunto,
+    nombrePersona,
+    consulta.cedula || consulta.documento || persona.documento,
+  ]
+    .filter(Boolean)
+    .join(" - ");
+}
+
+function normalizarPayload(form) {
+  const numeroRadicado = String(form.numeroRadicado || "").trim();
+
+  return {
+    numeroRadicado: numeroRadicado || null,
+    departamentoId: form.departamentoId ? Number(form.departamentoId) : null,
+    consultaId: form.consultaId ? Number(form.consultaId) : null,
+    organoControlId: form.organoControlId ? Number(form.organoControlId) : null,
+    especialidadId: form.especialidadId ? Number(form.especialidadId) : null,
+    activo: Boolean(form.activo),
+  };
+}
+
+export function NuevoProcesoForm() {
+  const router = useRouter();
+
+  const [checking, setChecking] = useState(true);
+  const [guardando, setGuardando] = useState(false);
+  const [user, setUser] = useState(null);
+  const [form, setForm] = useState(FORM_INICIAL);
+
+  const [departamentos, setDepartamentos] = useState([]);
+  const [organosControl, setOrganosControl] = useState([]);
+  const [especialidades, setEspecialidades] = useState([]);
+  const [consultas, setConsultas] = useState([]);
+
+  const puedeGestionar = puedeGestionarProcesos(user);
+
+  const especialidadesFiltradas = useMemo(() => {
+    if (!form.organoControlId) return especialidades;
+
+    return especialidades.filter(
+      (especialidad) =>
+        Number(especialidad.organoControlId) === Number(form.organoControlId)
+    );
+  }, [especialidades, form.organoControlId]);
+
+  useEffect(() => {
+    verificarYCargar();
+  }, []);
+
+  function actualizarCampo(name, value) {
+    setForm((prev) => ({
+      ...prev,
+      [name]: value,
+      ...(name === "organoControlId" ? { especialidadId: "" } : {}),
+    }));
+  }
+
+  async function verificarYCargar() {
+    try {
+      const usuarioActual = await apiGet(`${API_URL_BASE}/auth/me`);
+      setUser(usuarioActual);
+
+      if (!puedeAccederProcesos(usuarioActual)) {
+        toast.error("No tienes permiso para acceder a procesos");
+        router.push("/inicio");
+        return;
+      }
+
+      if (!puedeGestionarProcesos(usuarioActual)) {
+        toast.error("No tienes permiso para crear procesos");
+        router.push("/procesos");
+        return;
+      }
+
+      const consultasPermitidas = puedeCargarConsultas(usuarioActual);
+      const catalogosPermitidos = puedeCargarCatalogos(usuarioActual);
+
+      const [departamentosRes, organosRes, especialidadesRes, consultasRes] =
+        await Promise.allSettled([
+          catalogosPermitidos
+            ? apiGet(`${API_URL_BASE}/departamentos`)
+            : Promise.resolve([]),
+          catalogosPermitidos
+            ? apiGet(`${API_URL_BASE}/organos-control`)
+            : Promise.resolve([]),
+          catalogosPermitidos
+            ? apiGet(`${API_URL_BASE}/especialidades`)
+            : Promise.resolve([]),
+          consultasPermitidas
+            ? apiGet(`${API_URL_BASE}/consultas?page=0&size=500`)
+            : Promise.resolve([]),
+        ]);
+
+      if (departamentosRes.status === "fulfilled") {
+        setDepartamentos(
+          ordenarActivosPrimero(extraerLista(departamentosRes.value))
+        );
+      }
+
+      if (organosRes.status === "fulfilled") {
+        setOrganosControl(
+          ordenarActivosPrimero(extraerLista(organosRes.value))
+        );
+      }
+
+      if (especialidadesRes.status === "fulfilled") {
+        setEspecialidades(
+          ordenarActivosPrimero(extraerLista(especialidadesRes.value))
+        );
+      }
+
+      if (consultasRes.status === "fulfilled") {
+        setConsultas(extraerLista(consultasRes.value));
+      }
+
+      const errores = [
+        departamentosRes,
+        organosRes,
+        especialidadesRes,
+        consultasRes,
+      ]
+        .filter((res) => res.status === "rejected")
+        .map((res) => res.reason?.message)
+        .filter(Boolean);
+
+      if (errores.length > 0) {
+        toast.error(errores[0]);
+      }
+    } catch (error) {
+      console.error(error);
+
+      if (error.status === 401) {
+        router.push("/");
+        return;
+      }
+
+      toast.error(error.message || "No se pudo cargar el formulario");
+      router.push("/inicio");
+    } finally {
+      setChecking(false);
+    }
+  }
+
+  function validarAntesDeGuardar() {
+    const numeroRadicado = String(form.numeroRadicado || "").trim();
+
+    if (!form.departamentoId) {
+      toast.error("Selecciona un departamento");
+      return false;
+    }
+
+    if (!form.consultaId) {
+      toast.error("Selecciona una consulta");
+      return false;
+    }
+
+    if (numeroRadicado && numeroRadicado.length !== 23) {
+      toast.error("El número de radicado debe tener exactamente 23 caracteres");
+      return false;
+    }
+
+    if (form.especialidadId && !form.organoControlId) {
+      toast.error("Selecciona primero un órgano de control");
+      return false;
+    }
+
+    return true;
+  }
+
+  async function guardarProceso(event) {
+    event.preventDefault();
+
+    if (!puedeGestionar) {
+      toast.error("No tienes permiso para crear procesos");
+      return;
+    }
+
+    if (!validarAntesDeGuardar()) return;
+
+    try {
+      setGuardando(true);
+
+      await apiEnviar(`${API_URL_BASE}/procesos`, {
+        method: "POST",
+        body: JSON.stringify(normalizarPayload(form)),
+      });
+
+      toast.success("Proceso creado correctamente");
+      router.push("/procesos");
+    } catch (error) {
+      console.error(error);
+
+      if (error.status === 401) {
+        router.push("/");
+        return;
+      }
+
+      toast.error(error.message || "No se pudo crear el proceso");
+    } finally {
+      setGuardando(false);
+    }
+  }
+
+  if (checking) {
+    return <div className="text-center mt-10">Cargando...</div>;
+  }
+
+  return (
+    <div className="rounded-xl border bg-card p-6 shadow space-y-6">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h2 className="text-xl font-bold">Nuevo proceso</h2>
+          <p className="text-sm text-muted-foreground">
+            Registra un proceso asociado a una consulta jurídica.
+          </p>
+        </div>
+
+        <Button
+          type="button"
+          variant="outline"
+          onClick={() => router.push("/procesos")}
+        >
+          Ver procesos
+        </Button>
+      </div>
+
+      {!puedeGestionar ? (
+        <Aviso>No tienes permiso para crear procesos.</Aviso>
+      ) : (
+        <form onSubmit={guardarProceso} className="space-y-5">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            <CampoTexto
+              label="Número de radicado"
+              value={form.numeroRadicado}
+              onChange={(value) => actualizarCampo("numeroRadicado", value)}
+              placeholder="Opcional, exactamente 23 caracteres"
+              maxLength={23}
+            />
+
+            <CampoSelect
+              label="Departamento"
+              value={form.departamentoId}
+              onChange={(value) => actualizarCampo("departamentoId", value)}
+              required
+            >
+              <option value="">Seleccione un departamento</option>
+              {departamentos.map((departamento) => (
+                <option key={departamento.id} value={departamento.id}>
+                  {labelCatalogo(departamento)}
+                </option>
+              ))}
+            </CampoSelect>
+
+            <CampoSelect
+              label="Consulta"
+              value={form.consultaId}
+              onChange={(value) => actualizarCampo("consultaId", value)}
+              required
+            >
+              <option value="">Seleccione una consulta</option>
+              {consultas.map((consulta) => (
+                <option
+                  key={consulta.id || consulta.consultaId}
+                  value={consulta.id || consulta.consultaId}
+                >
+                  {labelConsulta(consulta)}
+                </option>
+              ))}
+            </CampoSelect>
+
+            <CampoSelect
+              label="Órgano de control"
+              value={form.organoControlId}
+              onChange={(value) => actualizarCampo("organoControlId", value)}
+            >
+              <option value="">Sin órgano de control</option>
+              {organosControl.map((organo) => (
+                <option key={organo.id} value={organo.id}>
+                  {labelCatalogo(organo)}
+                </option>
+              ))}
+            </CampoSelect>
+
+            <CampoSelect
+              label="Especialidad"
+              value={form.especialidadId}
+              onChange={(value) => actualizarCampo("especialidadId", value)}
+              disabled={especialidadesFiltradas.length === 0}
+            >
+              <option value="">Sin especialidad</option>
+              {especialidadesFiltradas.map((especialidad) => (
+                <option key={especialidad.id} value={especialidad.id}>
+                  {labelCatalogo(especialidad)}
+                </option>
+              ))}
+            </CampoSelect>
+
+            <label className="flex items-center gap-2 rounded-lg border p-3 text-sm">
+              <input
+                type="checkbox"
+                checked={form.activo}
+                onChange={(event) =>
+                  actualizarCampo("activo", event.target.checked)
+                }
+              />
+              Proceso activo
+            </label>
+          </div>
+
+          <div className="flex justify-end gap-3">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setForm(FORM_INICIAL)}
+              disabled={guardando}
+            >
+              Limpiar
+            </Button>
+
+            <Button type="submit" disabled={guardando}>
+              {guardando ? "Guardando..." : "Crear proceso"}
+            </Button>
+          </div>
+        </form>
+      )}
+    </div>
+  );
+}
+
+function CampoTexto({ label, value, onChange, placeholder, maxLength }) {
+  return (
+    <div className="flex flex-col gap-1.5">
+      <label className="text-sm font-medium">{label}</label>
+      <input
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        placeholder={placeholder}
+        maxLength={maxLength}
+        className="h-9 rounded-lg border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring"
+      />
+    </div>
+  );
+}
+
+function CampoSelect({ label, value, onChange, children, required, disabled }) {
+  return (
+    <div className="flex flex-col gap-1.5">
+      <label className="text-sm font-medium">{label}</label>
+      <select
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        required={required}
+        disabled={disabled}
+        className="h-9 rounded-lg border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-60"
+      >
+        {children}
+      </select>
+    </div>
+  );
+}
+
+function Aviso({ children }) {
+  return (
+    <div className="rounded-lg border bg-muted/30 p-3 text-sm text-muted-foreground">
+      {children}
+    </div>
+  );
+}

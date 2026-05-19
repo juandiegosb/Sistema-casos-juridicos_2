@@ -10,6 +10,10 @@ import {
   tieneTodosLosPermisos,
 } from "@/lib/authz";
 
+const PERMISO_VER_PROCESOS = PERMISOS.VER_PROCESOS || "Ver procesos";
+const PERMISO_GESTIONAR_PROCESOS =
+  PERMISOS.GESTIONAR_PROCESOS || "Gestionar procesos";
+
 const SIDEBAR_PAGES = [
   {
     title: "Inicio",
@@ -18,28 +22,10 @@ const SIDEBAR_PAGES = [
     requiredPermissions: [PERMISOS.ACCEDER_INICIO],
   },
   {
-    title: "Recepcion",
+    title: "Recepción",
     tooltip: "Recepción de personas",
     path: "/recepcion",
     requiredPermissions: [PERMISOS.ACCEDER_RECEPCION],
-  },
-  {
-    title: "Tareas",
-    tooltip: "Tareas",
-    path: "/tareas",
-    requiredPermissions: [PERMISOS.ACCEDER_TAREAS],
-  },
-  {
-    title: "Nueva consulta",
-    tooltip: "Nueva consulta",
-    path: "/nuevaconsulta",
-    requiredPermissions: [PERMISOS.ACCEDER_NUEVA_CONSULTA],
-  },
-  {
-    title: "Consultas juridicas",
-    tooltip: "Consultas juridicas",
-    path: "/consultasjuridicas",
-    requiredPermissions: [PERMISOS.ACCEDER_CONSULTAS_JURIDICAS],
   },
   {
     title: "Personas",
@@ -48,16 +34,48 @@ const SIDEBAR_PAGES = [
     requiredPermissions: [PERMISOS.ACCEDER_PERSONAS],
   },
   {
-    title: "Administración",
-    tooltip: "Administración",
-    path: "/admin",
-    requiredPermissions: [PERMISOS.ACCEDER_ADMINISTRACION],
+    title: "Nueva consulta",
+    tooltip: "Nueva consulta",
+    path: "/nuevaconsulta",
+    requiredPermissions: [PERMISOS.ACCEDER_NUEVA_CONSULTA],
   },
   {
-    title: "Roles",
-    tooltip: "Roles / Usuarios",
-    path: "/roles",
-    requiredPermissions: [PERMISOS.ACCEDER_ROLES],
+    title: "Consultas jurídicas",
+    tooltip: "Consultas jurídicas",
+    path: "/consultasjuridicas",
+    requiredPermissions: [PERMISOS.ACCEDER_CONSULTAS_JURIDICAS],
+  },
+  {
+    title: "Tareas",
+    tooltip: "Tareas y seguimientos",
+    path: "/tareas",
+    requiredPermissions: [PERMISOS.ACCEDER_TAREAS],
+  },
+  {
+    title: "Nuevo proceso",
+    tooltip: "Registrar nuevo proceso",
+    path: "/nuevoproceso",
+    requiredPermissions: [
+      PERMISOS.ACCEDER_PROCESOS,
+      PERMISO_GESTIONAR_PROCESOS,
+    ],
+    match: "all",
+  },
+  {
+    title: "Procesos",
+    tooltip: "Procesos",
+    path: "/procesos",
+    requiredPermissions: [
+      PERMISOS.ACCEDER_PROCESOS,
+      PERMISO_VER_PROCESOS,
+    ],
+    match: "all",
+  },
+  {
+    title: "Conciliaciones",
+    tooltip: "Conciliaciones",
+    path: "/conciliaciones",
+    requiredPermissions: [PERMISOS.ACCEDER_CONCILIACIONES],
   },
   {
     title: "Estudiantes",
@@ -70,6 +88,18 @@ const SIDEBAR_PAGES = [
     tooltip: "Asesores y monitores",
     path: "/asesoresymonitores",
     requiredPermissions: [PERMISOS.ACCEDER_ASESORES_MONITORES],
+  },
+  {
+    title: "Roles",
+    tooltip: "Roles / Usuarios",
+    path: "/roles",
+    requiredPermissions: [PERMISOS.ACCEDER_ROLES],
+  },
+  {
+    title: "Administración",
+    tooltip: "Administración",
+    path: "/admin",
+    requiredPermissions: [PERMISOS.ACCEDER_ADMINISTRACION],
   },
   {
     title: "Eliminación",
@@ -90,7 +120,7 @@ function puedeVerPagina(page, user) {
   if (!user) return false;
 
   const requiredPermissions = Array.isArray(page.requiredPermissions)
-    ? page.requiredPermissions
+    ? page.requiredPermissions.filter(Boolean)
     : [];
 
   if (requiredPermissions.length === 0) {

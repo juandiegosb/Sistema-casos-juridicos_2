@@ -57,4 +57,7 @@ export const PERMISOS = {
 
   VER_ADMINISTRADORES: "Ver administradores",
   GESTIONAR_ADMINISTRADORES: "Gestionar administradores",
+
+  VER_PROCESOS: "Ver procesos",
+  GESTIONAR_PROCESOS: "Gestionar procesos",
 };
