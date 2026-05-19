@@ -42,7 +42,7 @@ public interface MonitorRepository extends JpaRepository<Monitor, Long> {
 
     // Para obtener los datos de notificar
     @Query("""
-            SELECT new co.edu.ufps.legal_cases.business.dto.seguimiento.SeguimientoDestinatarioDTO(
+            SELECT new co.edu.ufps.legal_cases.business.dto.seguimiento.notificacion.SeguimientoDestinatarioDTO(
                 m.email,
                 m.nombre
             )

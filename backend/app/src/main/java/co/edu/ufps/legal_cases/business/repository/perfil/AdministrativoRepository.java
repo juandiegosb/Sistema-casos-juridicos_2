@@ -43,7 +43,7 @@ public interface AdministrativoRepository extends JpaRepository<Administrativo, 
 
     // Para luego notificar en caso de alertas disiplinarias
     @Query("""
-            SELECT new co.edu.ufps.legal_cases.business.dto.seguimiento.SeguimientoDestinatarioDTO(
+            SELECT new co.edu.ufps.legal_cases.business.dto.seguimiento.notificacion.SeguimientoDestinatarioDTO(
                 a.email,
                 a.nombre
             )

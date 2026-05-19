@@ -143,7 +143,7 @@ public interface ConsultaRepository extends JpaRepository<Consulta, Long> {
 
         // Destinatario principal de la consulta.
         @Query("""
-                        SELECT new co.edu.ufps.legal_cases.business.dto.seguimiento.SeguimientoDestinatarioDTO(
+                        SELECT new co.edu.ufps.legal_cases.business.dto.seguimiento.notificacion.SeguimientoDestinatarioDTO(
                             p.correo,
                             TRIM(CONCAT(CONCAT(COALESCE(p.nombres, ''), ' '), COALESCE(p.apellidos, '')))
                         )
@@ -158,7 +158,7 @@ public interface ConsultaRepository extends JpaRepository<Consulta, Long> {
 
         // Partes adicionales de la consulta.
         @Query("""
-                        SELECT new co.edu.ufps.legal_cases.business.dto.seguimiento.SeguimientoDestinatarioDTO(
+                        SELECT new co.edu.ufps.legal_cases.business.dto.seguimiento.notificacion.SeguimientoDestinatarioDTO(
                             p.correo,
                             TRIM(CONCAT(CONCAT(COALESCE(p.nombres, ''), ' '), COALESCE(p.apellidos, '')))
                         )
@@ -173,7 +173,7 @@ public interface ConsultaRepository extends JpaRepository<Consulta, Long> {
 
         // Contrapartes de la consulta.
         @Query("""
-                        SELECT new co.edu.ufps.legal_cases.business.dto.seguimiento.SeguimientoDestinatarioDTO(
+                        SELECT new co.edu.ufps.legal_cases.business.dto.seguimiento.notificacion.SeguimientoDestinatarioDTO(
                             p.correo,
                             TRIM(CONCAT(CONCAT(COALESCE(p.nombres, ''), ' '), COALESCE(p.apellidos, '')))
                         )
@@ -188,7 +188,7 @@ public interface ConsultaRepository extends JpaRepository<Consulta, Long> {
 
         // Estudiante asignado a la consulta.
         @Query("""
-                        SELECT new co.edu.ufps.legal_cases.business.dto.seguimiento.SeguimientoDestinatarioDTO(
+                        SELECT new co.edu.ufps.legal_cases.business.dto.seguimiento.notificacion.SeguimientoDestinatarioDTO(
                             e.email,
                             e.nombre
                         )

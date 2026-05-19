@@ -46,7 +46,7 @@ public interface AsesorRepository extends JpaRepository<Asesor, Long> {
 
     // Para obtener datos y notificar
     @Query("""
-            SELECT new co.edu.ufps.legal_cases.business.dto.seguimiento.SeguimientoDestinatarioDTO(
+            SELECT new co.edu.ufps.legal_cases.business.dto.seguimiento.notificacion.SeguimientoDestinatarioDTO(
                 a.email,
                 a.nombre
             )
