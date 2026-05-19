@@ -8,9 +8,9 @@ import org.springframework.stereotype.Service;
 import org.thymeleaf.TemplateEngine;
 import org.thymeleaf.context.Context;
 
-import co.edu.ufps.legal_cases.business.dto.seguimiento.SeguimientoDestinatarioDTO;
-import co.edu.ufps.legal_cases.business.model.seguimiento.MomentoNotificacionSeguimiento;
-import co.edu.ufps.legal_cases.business.model.seguimiento.TipoNotificacionSeguimiento;
+import co.edu.ufps.legal_cases.business.dto.seguimiento.notificacion.SeguimientoDestinatarioDTO;
+import co.edu.ufps.legal_cases.business.model.seguimiento.notificacion.MomentoNotificacionSeguimiento;
+import co.edu.ufps.legal_cases.business.model.seguimiento.notificacion.TipoNotificacionSeguimiento;
 import co.edu.ufps.legal_cases.common.service.EmailService;
 import lombok.RequiredArgsConstructor;
 

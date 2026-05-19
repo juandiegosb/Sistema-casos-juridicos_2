@@ -1,4 +1,4 @@
-package co.edu.ufps.legal_cases.business.model.seguimiento;
+package co.edu.ufps.legal_cases.business.model.seguimiento.notificacion;
 
 public enum TipoNotificacionSeguimiento {
 

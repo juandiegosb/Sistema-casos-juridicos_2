@@ -1,4 +1,4 @@
-package co.edu.ufps.legal_cases.business.repository.seguimiento;
+package co.edu.ufps.legal_cases.business.repository.seguimiento.notificacion;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -7,9 +7,9 @@ import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
-import co.edu.ufps.legal_cases.business.model.seguimiento.MomentoNotificacionSeguimiento;
-import co.edu.ufps.legal_cases.business.model.seguimiento.SeguimientoNotificacion;
-import co.edu.ufps.legal_cases.business.model.seguimiento.TipoNotificacionSeguimiento;
+import co.edu.ufps.legal_cases.business.model.seguimiento.notificacion.MomentoNotificacionSeguimiento;
+import co.edu.ufps.legal_cases.business.model.seguimiento.notificacion.SeguimientoNotificacion;
+import co.edu.ufps.legal_cases.business.model.seguimiento.notificacion.TipoNotificacionSeguimiento;
 
 @Repository
 public interface SeguimientoNotificacionRepository extends JpaRepository<SeguimientoNotificacion, Long> {

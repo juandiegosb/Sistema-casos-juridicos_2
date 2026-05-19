@@ -1,8 +1,9 @@
-package co.edu.ufps.legal_cases.business.model.seguimiento;
+package co.edu.ufps.legal_cases.business.model.seguimiento.notificacion;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
+import co.edu.ufps.legal_cases.business.model.seguimiento.Seguimiento;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;

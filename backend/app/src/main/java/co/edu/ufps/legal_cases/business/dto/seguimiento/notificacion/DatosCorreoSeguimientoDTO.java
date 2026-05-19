@@ -1,4 +1,4 @@
-package co.edu.ufps.legal_cases.business.dto.seguimiento;
+package co.edu.ufps.legal_cases.business.dto.seguimiento.notificacion;
 
 import java.time.LocalDate;
 

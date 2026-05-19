@@ -6,13 +6,13 @@ import java.time.LocalDateTime;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import co.edu.ufps.legal_cases.business.dto.seguimiento.DatosCorreoSeguimientoDTO;
-import co.edu.ufps.legal_cases.business.model.seguimiento.MomentoNotificacionSeguimiento;
+import co.edu.ufps.legal_cases.business.dto.seguimiento.notificacion.DatosCorreoSeguimientoDTO;
 import co.edu.ufps.legal_cases.business.model.seguimiento.Seguimiento;
-import co.edu.ufps.legal_cases.business.model.seguimiento.SeguimientoNotificacion;
-import co.edu.ufps.legal_cases.business.model.seguimiento.TipoNotificacionSeguimiento;
-import co.edu.ufps.legal_cases.business.repository.seguimiento.SeguimientoNotificacionRepository;
+import co.edu.ufps.legal_cases.business.model.seguimiento.notificacion.MomentoNotificacionSeguimiento;
+import co.edu.ufps.legal_cases.business.model.seguimiento.notificacion.SeguimientoNotificacion;
+import co.edu.ufps.legal_cases.business.model.seguimiento.notificacion.TipoNotificacionSeguimiento;
 import co.edu.ufps.legal_cases.business.repository.seguimiento.SeguimientoRepository;
+import co.edu.ufps.legal_cases.business.repository.seguimiento.notificacion.SeguimientoNotificacionRepository;
 import lombok.RequiredArgsConstructor;
 
 // Crear, reactivar, cancelar y enviar notificaciones inmediatas.

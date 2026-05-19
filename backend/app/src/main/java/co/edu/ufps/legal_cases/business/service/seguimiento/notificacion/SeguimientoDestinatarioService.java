@@ -10,9 +10,9 @@ import java.util.Map;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import co.edu.ufps.legal_cases.business.dto.seguimiento.DatosNotificacionSeguimientoDTO;
-import co.edu.ufps.legal_cases.business.dto.seguimiento.SeguimientoDestinatarioDTO;
-import co.edu.ufps.legal_cases.business.model.seguimiento.TipoNotificacionSeguimiento;
+import co.edu.ufps.legal_cases.business.dto.seguimiento.notificacion.DatosNotificacionSeguimientoDTO;
+import co.edu.ufps.legal_cases.business.dto.seguimiento.notificacion.SeguimientoDestinatarioDTO;
+import co.edu.ufps.legal_cases.business.model.seguimiento.notificacion.TipoNotificacionSeguimiento;
 import co.edu.ufps.legal_cases.business.repository.consulta.ConsultaRepository;
 import co.edu.ufps.legal_cases.business.repository.perfil.AdministrativoRepository;
 import co.edu.ufps.legal_cases.business.repository.perfil.AsesorRepository;
