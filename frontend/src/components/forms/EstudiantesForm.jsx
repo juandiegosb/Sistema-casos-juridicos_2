@@ -6,6 +6,8 @@ import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { API_URL_BASE } from "@/lib/config";
 import { ConfirmActionDialog } from "@/components/ui/ConfirmActionDialog";
+import { PERMISOS } from "@/lib/permission";
+import { tienePermiso } from "@/lib/authz";
 
 export function EstudiantesForm() {
   const router = useRouter();
@@ -13,6 +15,7 @@ export function EstudiantesForm() {
   const [estudiantes, setEstudiantes] = useState([]);
   const [busqueda, setBusqueda] = useState("");
   const [cargando, setCargando] = useState(true);
+  const [puedeCambiarEstado, setPuedeCambiarEstado] = useState(false);
 
   const [confirmDialog, setConfirmDialog] = useState(null);
   const [confirmLoading, setConfirmLoading] = useState(false);
@@ -26,16 +29,29 @@ export function EstudiantesForm() {
         });
 
         if (res.status === 401) {
-          router.push("/");
+          router.replace("/");
+          return;
+        }
+
+        if (!res.ok) {
+          router.replace("/");
           return;
         }
 
         const usuario = await res.json();
 
-        if (!usuario.permisos?.includes("Gestionar usuarios")) {
-          router.push("/inicio");
+        const puedeEntrar =
+          tienePermiso(usuario, PERMISOS.ACCEDER_ESTUDIANTES) &&
+          tienePermiso(usuario, PERMISOS.VER_ESTUDIANTES);
+
+        if (!puedeEntrar) {
+          router.replace("/inicio");
           return;
         }
+
+        setPuedeCambiarEstado(
+          tienePermiso(usuario, PERMISOS.CAMBIAR_ESTADO_ESTUDIANTES)
+        );
 
         let url = `${API_URL_BASE}/estudiantes/activos`;
 
@@ -48,12 +64,18 @@ export function EstudiantesForm() {
         });
 
         if (estudiantesRes.status === 401) {
-          router.push("/");
+          router.replace("/");
           return;
         }
 
         if (estudiantesRes.status === 403) {
-          router.push("/inicio");
+          router.replace("/inicio");
+          return;
+        }
+
+        if (!estudiantesRes.ok) {
+          toast.error("Error cargando estudiantes");
+          setEstudiantes([]);
           return;
         }
 
@@ -81,11 +103,21 @@ export function EstudiantesForm() {
   }, [router]);
 
   function abrirConfirmacionDesactivar(estudiante) {
+    if (!puedeCambiarEstado) {
+      router.replace("/inicio");
+      return;
+    }
+
     setConfirmDialog(estudiante);
   }
 
   async function confirmarDesactivar() {
     if (!confirmDialog?.id) return;
+
+    if (!puedeCambiarEstado) {
+      router.replace("/inicio");
+      return;
+    }
 
     try {
       setConfirmLoading(true);
@@ -97,6 +129,16 @@ export function EstudiantesForm() {
           credentials: "include",
         }
       );
+
+      if (res.status === 401) {
+        router.replace("/");
+        return;
+      }
+
+      if (res.status === 403) {
+        router.replace("/inicio");
+        return;
+      }
 
       if (res.ok) {
         toast.success("Estudiante desactivado");
@@ -189,18 +231,22 @@ export function EstudiantesForm() {
                 </td>
 
                 <td className="p-3">
-                  <button
-                    type="button"
-                    onClick={() => abrirConfirmacionDesactivar(e)}
-                    disabled={!e.activo}
-                    className={`text-xs px-3 py-1 rounded ${
-                      e.activo
-                        ? "bg-red-100 text-red-700 hover:bg-red-200"
-                        : "bg-gray-100 text-gray-400 cursor-not-allowed"
-                    }`}
-                  >
-                    {e.activo ? "Desactivar" : "Inactivo"}
-                  </button>
+                  {puedeCambiarEstado ? (
+                    <button
+                      type="button"
+                      onClick={() => abrirConfirmacionDesactivar(e)}
+                      disabled={!e.activo}
+                      className={`text-xs px-3 py-1 rounded ${
+                        e.activo
+                          ? "bg-red-100 text-red-700 hover:bg-red-200"
+                          : "bg-gray-100 text-gray-400 cursor-not-allowed"
+                      }`}
+                    >
+                      {e.activo ? "Desactivar" : "Inactivo"}
+                    </button>
+                  ) : (
+                    <span className="text-xs text-muted-foreground">—</span>
+                  )}
                 </td>
               </tr>
             ))}

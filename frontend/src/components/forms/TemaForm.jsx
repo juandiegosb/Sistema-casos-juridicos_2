@@ -8,6 +8,8 @@ import { useRouter } from "next/navigation";
 import { API_URL_BASE } from "@/lib/config";
 import { toast } from "sonner";
 import { ConfirmActionDialog } from "@/components/ui/ConfirmActionDialog";
+import { PERMISOS } from "@/lib/permission";
+import { tieneAlgunPermiso, tienePermiso } from "@/lib/authz";
 
 export function TemaForm() {
   const router = useRouter();
@@ -18,6 +20,7 @@ export function TemaForm() {
 
   const [temaADesactivar, setTemaADesactivar] = useState(null);
   const [desactivando, setDesactivando] = useState(false);
+  const [puedeGestionarCatalogos, setPuedeGestionarCatalogos] = useState(false);
 
   const {
     register,
@@ -31,59 +34,73 @@ export function TemaForm() {
   });
 
   useEffect(() => {
-    const verificar = async () => {
-      try {
-        const res = await fetch(`${API_URL_BASE}/auth/me`, {
-          method: "GET",
-          credentials: "include",
-        });
+  const verificar = async () => {
+    try {
+      const res = await fetch(`${API_URL_BASE}/auth/me`, {
+        method: "GET",
+        credentials: "include",
+      });
 
-        if (res.status === 401) {
-          router.push("/");
-          return;
-        }
-
-        const user = await res.json();
-
-        if (!user.permisos?.includes("Gestionar catálogos")) {
-          router.push("/inicio");
-          return;
-        }
-
-        const response = await fetch(`${API_URL_BASE}/areas`, {
-          credentials: "include",
-        });
-
-        if (response.status === 401) {
-          router.push("/");
-          return;
-        }
-
-        if (response.status === 403) {
-          router.push("/inicio");
-          return;
-        }
-
-        if (response.ok) {
-          const areasData = await response.json();
-          setAreas(
-            areasData.map((area) => ({
-              value: area.id.toString(),
-              label: area.nombre,
-            }))
-          );
-        }
-
-        await cargarTemas();
-      } catch (error) {
+      if (res.status === 401) {
         router.push("/");
-      } finally {
-        setChecking(false);
+        return;
       }
-    };
 
-    verificar();
-  }, [router]);
+      if (!res.ok) {
+        router.push("/");
+        return;
+      }
+
+      const user = await res.json();
+
+      const puedeGestionar = tienePermiso(
+        user,
+        PERMISOS.GESTIONAR_CATALOGOS
+      );
+
+      setPuedeGestionarCatalogos(puedeGestionar);
+
+      if (!puedeGestionar) {
+        router.push("/inicio");
+        return;
+      }
+
+      const response = await fetch(`${API_URL_BASE}/areas`, {
+        credentials: "include",
+      });
+
+      if (response.status === 401) {
+        router.push("/");
+        return;
+      }
+
+      if (response.status === 403) {
+        router.push("/inicio");
+        return;
+      }
+
+      if (response.ok) {
+        const areasData = await response.json();
+
+        setAreas(
+          areasData.map((area) => ({
+            value: area.id.toString(),
+            label: area.nombre,
+          }))
+        );
+      }
+
+      await cargarTemas();
+    } catch (error) {
+      console.error(error);
+      router.push("/");
+    } finally {
+      setChecking(false);
+    }
+  };
+
+  verificar();
+}, [router]);
 
   async function cargarTemas() {
     const res = await fetch(`${API_URL_BASE}/temas`, {
@@ -95,6 +112,11 @@ export function TemaForm() {
   }
 
   function abrirEditar(tema) {
+    if (!puedeGestionarCatalogos) {
+      toast.error("No tienes permiso para editar catálogos");
+      return;
+    }
+
     setEditandoId(tema.id);
     reset({
       nombre: tema.nombre,
@@ -108,6 +130,11 @@ export function TemaForm() {
   }
 
   function abrirConfirmacionDesactivar(tema) {
+    if (!puedeGestionarCatalogos) {
+      toast.error("No tienes permiso para desactivar catálogos");
+      return;
+    }
+
     setTemaADesactivar(tema);
   }
 
@@ -118,6 +145,12 @@ export function TemaForm() {
 
   async function confirmarDesactivarTema() {
     if (!temaADesactivar?.id) return;
+
+    if (!puedeGestionarCatalogos) {
+      toast.error("No tienes permiso para desactivar catálogos");
+      setTemaADesactivar(null);
+      return;
+    }
 
     try {
       setDesactivando(true);
@@ -146,6 +179,11 @@ export function TemaForm() {
   }
 
   const onSubmit = async (data) => {
+    if (!puedeGestionarCatalogos) {
+      toast.error("No tienes permiso para gestionar catálogos");
+      return;
+    }
+
     if (editandoId) {
       const res = await fetch(`${API_URL_BASE}/temas/${editandoId}`, {
         method: "PUT",
@@ -193,7 +231,10 @@ export function TemaForm() {
         />
 
         <div className="flex gap-3 mt-2">
-          <Button onClick={handleSubmit(onSubmit)} disabled={isSubmitting}>
+          <Button
+            onClick={handleSubmit(onSubmit)}
+            disabled={isSubmitting || !puedeGestionarCatalogos}
+          >
             {isSubmitting
               ? "Guardando..."
               : editandoId
@@ -264,6 +305,7 @@ export function TemaForm() {
                         size="sm"
                         variant="outline"
                         onClick={() => abrirEditar(tema)}
+                        disabled={!puedeGestionarCatalogos}
                       >
                         Editar
                       </Button>
@@ -272,7 +314,7 @@ export function TemaForm() {
                         size="sm"
                         variant="destructive"
                         onClick={() => abrirConfirmacionDesactivar(tema)}
-                        disabled={!tema.activo}
+                        disabled={!tema.activo || !puedeGestionarCatalogos}
                       >
                         {tema.activo ? "Desactivar" : "Inactivo"}
                       </Button>

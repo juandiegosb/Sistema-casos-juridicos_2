@@ -6,6 +6,8 @@ import { useForm } from "react-hook-form"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { API_URL_BASE, FILE_STORAGE_API_URL_BASE } from "@/lib/config"
+import { PERMISOS } from "@/lib/permission"
+import { tieneAlgunPermiso, tienePermiso } from "@/lib/authz"
 import { FormFileUpload } from "./parts/FormFileUpload"
 
 const FORM_TAREA_INICIAL = {
@@ -20,36 +22,93 @@ const FORM_RESPUESTA_INICIAL = {
   archivos: [],
 }
 
-function normalizar(value) {
-  return String(value || "").trim().toUpperCase()
+const PERMISOS_LEGACY = {
+  GESTIONAR_CONSULTAS: "Gestionar consultas",
+  GESTIONAR_SEGUIMIENTOS: "Gestionar seguimientos",
 }
 
-function esAdministrador(user) {
-  return normalizar(user?.rolNombre) === "ADMINISTRADOR"
+function extraerLista(data) {
+  if (Array.isArray(data)) return data
+  if (Array.isArray(data?.content)) return data.content
+  if (Array.isArray(data?.data)) return data.data
+  if (Array.isArray(data?.items)) return data.items
+  if (Array.isArray(data?.rows)) return data.rows
+  if (Array.isArray(data?.consultas)) return data.consultas
+  if (Array.isArray(data?.seguimientos)) return data.seguimientos
+  if (Array.isArray(data?.tareas)) return data.tareas
+  if (Array.isArray(data?.categorias)) return data.categorias
+  return []
 }
 
-function esAsesor(user) {
-  return normalizar(user?.rolNombre) === "ASESOR"
+function puedeAccederTareasUsuario(user) {
+  return tieneAlgunPermiso(user, [
+    PERMISOS.ACCEDER_TAREAS,
+    PERMISOS.VER_SEGUIMIENTOS,
+    PERMISOS_LEGACY.GESTIONAR_SEGUIMIENTOS,
+  ])
 }
 
-function esMonitor(user) {
-  return normalizar(user?.rolNombre) === "MONITOR"
+function puedeVerConsultasUsuario(user) {
+  return tieneAlgunPermiso(user, [
+    PERMISOS.VER_CONSULTAS,
+    PERMISOS_LEGACY.GESTIONAR_CONSULTAS,
+  ])
 }
 
-function esEstudiante(user) {
-  return normalizar(user?.rolNombre) === "ESTUDIANTE"
+function puedeVerSeguimientosUsuario(user) {
+  return tieneAlgunPermiso(user, [
+    PERMISOS.VER_SEGUIMIENTOS,
+    PERMISOS_LEGACY.GESTIONAR_SEGUIMIENTOS,
+  ])
+}
+
+function puedeCargarCategoriasUsuario(user) {
+  return tieneAlgunPermiso(user, [
+    PERMISOS.VER_SEGUIMIENTOS,
+    PERMISOS.CREAR_SEGUIMIENTOS,
+    PERMISOS.EDITAR_SEGUIMIENTOS,
+    PERMISOS.GESTIONAR_CATEGORIAS_SEGUIMIENTO,
+    PERMISOS_LEGACY.GESTIONAR_SEGUIMIENTOS,
+  ])
 }
 
 function puedeCrearTarea(user) {
-  return esAdministrador(user) || esAsesor(user)
+  return tieneAlgunPermiso(user, [
+    PERMISOS.CREAR_SEGUIMIENTOS,
+    PERMISOS_LEGACY.GESTIONAR_SEGUIMIENTOS,
+  ])
 }
 
 function puedeEditarTarea(user) {
-  return esAdministrador(user) || esAsesor(user) || esMonitor(user)
+  return tieneAlgunPermiso(user, [
+    PERMISOS.EDITAR_SEGUIMIENTOS,
+    PERMISOS_LEGACY.GESTIONAR_SEGUIMIENTOS,
+  ])
+}
+
+function puedeEliminarTarea(user) {
+  return tieneAlgunPermiso(user, [
+    PERMISOS.ELIMINAR_SEGUIMIENTOS,
+    PERMISOS_LEGACY.GESTIONAR_SEGUIMIENTOS,
+  ])
 }
 
 function puedeResponderTarea(user) {
-  return esEstudiante(user)
+  return tienePermiso(user, PERMISOS.RESPONDER_SEGUIMIENTOS)
+}
+
+function puedeVerAlertasDisciplinarias(user) {
+  return tienePermiso(user, PERMISOS.VER_ALERTAS_DISCIPLINARIAS)
+}
+
+function accionPermitidaPorRegistro(item, accion, permisoGlobal) {
+  const acciones = item?.accionesPermitidas
+
+  if (acciones && typeof acciones[accion] === "boolean") {
+    return acciones[accion]
+  }
+
+  return permisoGlobal
 }
 
 function labelConsulta(consulta) {
@@ -186,7 +245,12 @@ export function SeguimientosForm() {
 
   const puedeCrear = useMemo(() => puedeCrearTarea(user), [user])
   const puedeEditar = useMemo(() => puedeEditarTarea(user), [user])
+  const puedeEliminar = useMemo(() => puedeEliminarTarea(user), [user])
   const puedeResponder = useMemo(() => puedeResponderTarea(user), [user])
+  const puedeVerAlertas = useMemo(
+    () => puedeVerAlertasDisciplinarias(user),
+    [user]
+  )
 
   const consultasFiltradas = useMemo(() => {
     const texto = busquedaLocal.trim().toLowerCase()
@@ -215,6 +279,31 @@ export function SeguimientosForm() {
     cargarInicial()
   }, [])
 
+  async function fetchLista(url, mensaje403) {
+    const res = await fetch(url, { credentials: "include" })
+
+    if (res.status === 401) {
+      router.push("/")
+      throw new Error("UNAUTHORIZED")
+    }
+
+    if (res.status === 403) {
+      throw new Error(mensaje403)
+    }
+
+    if (!res.ok) {
+      const data = await leerRespuesta(res)
+      throw new Error(
+        data?.mensaje ||
+          data?.message ||
+          "No se pudo cargar la información solicitada"
+      )
+    }
+
+    const data = await leerRespuesta(res)
+    return extraerLista(data)
+  }
+
   async function cargarInicial() {
     try {
       setLoading(true)
@@ -236,33 +325,45 @@ export function SeguimientosForm() {
       const meData = await meRes.json()
       setUser(meData)
 
-      const [categoriasRes, consultasRes] = await Promise.all([
-        fetch(`${API_URL_BASE}/seguimientos/categorias/activas`, {
-          credentials: "include",
-        }),
-        fetch(`${API_URL_BASE}/consultas?search=`, {
-          credentials: "include",
-        }),
+      if (!puedeAccederTareasUsuario(meData)) {
+        toast.error("No tienes permiso para acceder a tareas")
+        router.push("/inicio")
+        return
+      }
+
+      if (!puedeVerConsultasUsuario(meData)) {
+        toast.error("No tienes permiso para consultar las consultas asociadas")
+        router.push("/inicio")
+        return
+      }
+
+      if (!puedeVerSeguimientosUsuario(meData)) {
+        toast.error("No tienes permiso para ver seguimientos")
+        router.push("/inicio")
+        return
+      }
+
+      const [categoriasData, consultasData] = await Promise.all([
+        puedeCargarCategoriasUsuario(meData)
+          ? fetchLista(
+              `${API_URL_BASE}/seguimientos/categorias/activas`,
+              "No tienes permiso para consultar categorías de seguimiento"
+            )
+          : Promise.resolve([]),
+        fetchLista(
+          `${API_URL_BASE}/consultas?search=&page=0&size=500`,
+          "No tienes permiso para consultar las consultas"
+        ),
       ])
 
-      if (categoriasRes.status === 401 || consultasRes.status === 401) {
-        router.push("/")
-        return
-      }
-
-      if (categoriasRes.status === 403 || consultasRes.status === 403) {
-        toast.error("No tienes permisos para consultar esta información")
-        return
-      }
-
-      const categoriasData = categoriasRes.ok ? await categoriasRes.json() : []
-      const consultasData = consultasRes.ok ? await consultasRes.json() : []
-
-      setCategorias(Array.isArray(categoriasData) ? categoriasData : [])
-      setConsultas(Array.isArray(consultasData) ? consultasData : [])
+      setCategorias(categoriasData)
+      setConsultas(consultasData)
     } catch (error) {
       console.error(error)
-      toast.error("Error cargando datos")
+
+      if (error.message !== "UNAUTHORIZED") {
+        toast.error(error.message || "Error cargando datos")
+      }
     } finally {
       setLoading(false)
     }
@@ -287,7 +388,7 @@ export function SeguimientosForm() {
       }
 
       const data = await res.json()
-      const tareasData = Array.isArray(data) ? data : []
+      const tareasData = extraerLista(data)
 
       setTareas(tareasData)
 
@@ -358,12 +459,12 @@ export function SeguimientosForm() {
     event.preventDefault()
 
     if (!puedeCrear && !tareaEditando) {
-      toast.error("Solo administradores y asesores pueden crear tareas")
+      toast.error("Necesitas el permiso Crear seguimientos")
       return
     }
 
     if (!puedeEditar && tareaEditando) {
-      toast.error("No tienes permisos para editar tareas")
+      toast.error("Necesitas el permiso Editar seguimientos")
       return
     }
 
@@ -390,7 +491,9 @@ export function SeguimientosForm() {
         categoriaSeguimientoId: Number(formTarea.categoriaId),
         descripcion: formTarea.descripcion,
         fechaEntrega: formTarea.fechaEntrega || null,
-        alertaDisciplinaria: Boolean(formTarea.alertaDisciplinaria),
+        alertaDisciplinaria: puedeVerAlertas
+          ? Boolean(formTarea.alertaDisciplinaria)
+          : false,
       }
 
       const url = tareaEditando
@@ -436,8 +539,11 @@ export function SeguimientosForm() {
   }
 
   function pedirConfirmacionEliminar(tarea) {
-    if (!puedeEditar) {
-      toast.error("No tienes permisos para eliminar tareas")
+    if (
+      !puedeEliminar ||
+      !accionPermitidaPorRegistro(tarea, "puedeEliminar", puedeEliminar)
+    ) {
+      toast.error("Necesitas el permiso Eliminar seguimientos")
       return
     }
 
@@ -594,7 +700,7 @@ export function SeguimientosForm() {
 
   async function guardarRespuesta(data) {
     if (!puedeResponder) {
-      toast.error("Solo los estudiantes pueden responder tareas")
+      toast.error("Necesitas el permiso Responder seguimientos")
       return
     }
 
@@ -764,7 +870,7 @@ export function SeguimientosForm() {
             </div>
           </div>
 
-          {(puedeCrear || tareaEditando) && (
+          {(puedeCrear || (tareaEditando && puedeEditar)) && (
             <form onSubmit={guardarTarea} className="rounded-xl border bg-card p-5 space-y-4">
               <div>
                 <h3 className="font-semibold">
@@ -819,16 +925,18 @@ export function SeguimientosForm() {
                 />
               </div>
 
-              <label className="flex items-center gap-2 text-sm">
-                <input
-                  type="checkbox"
-                  name="alertaDisciplinaria"
-                  checked={formTarea.alertaDisciplinaria}
-                  onChange={handleTareaChange}
-                  className="h-4 w-4"
-                />
-                Marcar como alerta disciplinaria
-              </label>
+              {puedeVerAlertas && (
+                <label className="flex items-center gap-2 text-sm">
+                  <input
+                    type="checkbox"
+                    name="alertaDisciplinaria"
+                    checked={formTarea.alertaDisciplinaria}
+                    onChange={handleTareaChange}
+                    className="h-4 w-4"
+                  />
+                  Marcar como alerta disciplinaria
+                </label>
+              )}
 
               <div className="flex justify-end gap-3">
                 {tareaEditando && (
@@ -880,6 +988,23 @@ export function SeguimientosForm() {
                 {tareas.map((tarea) => {
                   const esRespuesta = esRespuestaDeTarea(tarea)
                   const tareaPadreId = obtenerTareaPadreId(tarea)
+                  const puedeEditarEstaTarea =
+                    !esRespuesta &&
+                    accionPermitidaPorRegistro(tarea, "puedeEditar", puedeEditar)
+                  const puedeEliminarEstaTarea =
+                    !esRespuesta &&
+                    accionPermitidaPorRegistro(
+                      tarea,
+                      "puedeEliminar",
+                      puedeEliminar
+                    )
+                  const puedeResponderEstaTarea =
+                    !esRespuesta &&
+                    accionPermitidaPorRegistro(
+                      tarea,
+                      "puedeResponder",
+                      puedeResponder
+                    )
 
                   return (
                     <div key={tarea.id} className="rounded-lg border bg-background p-4 space-y-3">
@@ -896,7 +1021,7 @@ export function SeguimientosForm() {
                               </span>
                             )}
 
-                            {tarea.alertaDisciplinaria && (
+                            {puedeVerAlertas && tarea.alertaDisciplinaria && (
                               <span className="rounded-full border border-destructive/30 bg-destructive/10 px-2.5 py-1 text-xs font-medium text-destructive">
                                 Alerta disciplinaria
                               </span>
@@ -909,29 +1034,29 @@ export function SeguimientosForm() {
                         </div>
 
                         <div className="flex flex-wrap gap-2">
-                          {puedeEditar && (
-                            <>
-                              <Button
-                                type="button"
-                                variant="outline"
-                                size="sm"
-                                onClick={() => editarTarea(tarea)}
-                              >
-                                Editar
-                              </Button>
-
-                              <Button
-                                type="button"
-                                variant="destructive"
-                                size="sm"
-                                onClick={() => pedirConfirmacionEliminar(tarea)}
-                              >
-                                Eliminar
-                              </Button>
-                            </>
+                          {puedeEditarEstaTarea && (
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={() => editarTarea(tarea)}
+                            >
+                              Editar
+                            </Button>
                           )}
 
-                          {puedeResponder && !esRespuesta && (
+                          {puedeEliminarEstaTarea && (
+                            <Button
+                              type="button"
+                              variant="destructive"
+                              size="sm"
+                              onClick={() => pedirConfirmacionEliminar(tarea)}
+                            >
+                              Eliminar
+                            </Button>
+                          )}
+
+                          {puedeResponderEstaTarea && (
                             <Button
                               type="button"
                               size="sm"
