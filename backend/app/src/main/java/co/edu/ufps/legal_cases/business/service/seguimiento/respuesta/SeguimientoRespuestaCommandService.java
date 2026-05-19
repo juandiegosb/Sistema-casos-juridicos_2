@@ -57,11 +57,9 @@ public class SeguimientoRespuestaCommandService {
 
         Long estudianteActualId = seguimientoRespuestaAccessService.obtenerEstudianteActualId();
 
-        if (seguimientoRespuestaRepository.existsBySeguimiento_IdAndEstudiante_Id(seguimientoId, estudianteActualId)) {
-            throw new BusinessException("Ya existe una respuesta para este seguimiento");
-        }
-
         Seguimiento seguimiento = obtenerSeguimientoActivo(seguimientoId);
+        validarPuedeCrearNuevoIntento(seguimientoId, estudianteActualId);
+
         Estudiante estudiante = obtenerEstudianteActivo(estudianteActualId);
 
         SeguimientoRespuesta respuesta = new SeguimientoRespuesta();
@@ -69,6 +67,10 @@ public class SeguimientoRespuestaCommandService {
         respuesta.setEstudiante(estudiante);
         respuesta.setContenido(seguimientoRespuestaValidator.normalizarContenido(dto.getContenido()));
         respuesta.setEstado(EstadoRespuestaSeguimiento.PENDIENTE);
+
+        // El sistema permite responder tarde, pero deja marcado si fue fuera de plazo.
+        respuesta.setFueraPlazo(estaFueraDePlazo(seguimiento));
+
         respuesta.setActivo(true);
 
         return seguimientoRespuestaMapper.convertirAResponseDTO(
@@ -89,6 +91,13 @@ public class SeguimientoRespuestaCommandService {
         }
 
         respuesta.setContenido(contenido);
+
+        // Si se edita después del plazo, queda marcada como fuera de plazo.
+        // Si ya estaba marcada, se conserva.
+        respuesta.setFueraPlazo(
+                Boolean.TRUE.equals(respuesta.getFueraPlazo())
+                        || estaFueraDePlazo(respuesta.getSeguimiento())
+        );
 
         return seguimientoRespuestaMapper.convertirAResponseDTO(
                 seguimientoRespuestaRepository.save(respuesta)
@@ -115,6 +124,36 @@ public class SeguimientoRespuestaCommandService {
         );
     }
 
+    private void validarPuedeCrearNuevoIntento(Long seguimientoId, Long estudianteId) {
+        seguimientoRespuestaRepository
+                .findFirstBySeguimiento_IdAndEstudiante_IdAndActivoTrueOrderByFechaCreacionDescIdDesc(
+                        seguimientoId,
+                        estudianteId)
+                .ifPresent(ultimaRespuesta -> {
+                    if (ultimaRespuesta.getEstado() == EstadoRespuestaSeguimiento.PENDIENTE) {
+                        throw new BusinessException("Ya existe una respuesta pendiente para este seguimiento");
+                    }
+
+                    if (ultimaRespuesta.getEstado() == EstadoRespuestaSeguimiento.APROBADA) {
+                        throw new BusinessException(
+                                "La respuesta ya fue aprobada y no se pueden enviar más respuestas");
+                    }
+
+                    // Si la última respuesta fue RECHAZADA, se permite crear un nuevo intento.
+                    // Si está fuera de plazo, el nuevo intento se crea igual, pero queda marcado.
+                });
+    }
+
+    private boolean estaFueraDePlazo(Seguimiento seguimiento) {
+        if (seguimiento == null || seguimiento.getFechaEntrega() == null) {
+            return false;
+        }
+
+        return LocalDateTime.now()
+                .toLocalDate()
+                .isAfter(seguimiento.getFechaEntrega());
+    }
+
     private Seguimiento obtenerSeguimientoActivo(Long seguimientoId) {
         if (seguimientoId == null) {
             throw new BusinessException("El id del seguimiento es obligatorio");
@@ -130,7 +169,8 @@ public class SeguimientoRespuestaCommandService {
         }
 
         return seguimientoRespuestaRepository.findByIdAndActivoTrue(respuestaId)
-                .orElseThrow(() -> new BusinessException("Respuesta de seguimiento no encontrada con id: " + respuestaId));
+                .orElseThrow(() -> new BusinessException(
+                        "Respuesta de seguimiento no encontrada con id: " + respuestaId));
     }
 
     private Estudiante obtenerEstudianteActivo(Long estudianteId) {

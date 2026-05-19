@@ -25,6 +25,9 @@ public class SeguimientoRespuestaResponseDTO {
 
     private EstadoRespuestaSeguimiento estado;
 
+    // Permite que el frontend muestre si la respuesta fue enviada fuera del plazo.
+    private Boolean fueraPlazo;
+
     private String observacionRevision;
 
     private Long revisadoPorId;

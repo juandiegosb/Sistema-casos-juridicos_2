@@ -41,6 +41,7 @@ public class SeguimientoRespuestaMapper {
 
         dto.setContenido(respuesta.getContenido());
         dto.setEstado(respuesta.getEstado());
+        dto.setFueraPlazo(respuesta.getFueraPlazo());
         dto.setObservacionRevision(respuesta.getObservacionRevision());
 
         dto.setRevisadoPorId(

@@ -18,20 +18,11 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
-import jakarta.persistence.UniqueConstraint;
 import lombok.Getter;
 import lombok.Setter;
 
 @Entity
-@Table(
-        name = "seguimiento_respuesta",
-        uniqueConstraints = {
-                @UniqueConstraint(
-                        name = "uk_seguimiento_respuesta_estudiante",
-                        columnNames = {"seguimiento_id", "estudiante_id"}
-                )
-        }
-)
+@Table(name = "seguimiento_respuesta")
 @Getter
 @Setter
 public class SeguimientoRespuesta {
@@ -57,6 +48,11 @@ public class SeguimientoRespuesta {
     @Enumerated(EnumType.STRING)
     @Column(name = "estado", nullable = false, length = 20)
     private EstadoRespuestaSeguimiento estado = EstadoRespuestaSeguimiento.PENDIENTE;
+
+    // Indica si esta respuesta fue enviada o editada después de la fecha de entrega.
+    // No bloquea el flujo; solo deja evidencia para revisión.
+    @Column(name = "fuera_plazo", nullable = false)
+    private Boolean fueraPlazo = false;
 
     // Observación opcional al aprobar o rechazar.
     @Column(name = "observacion_revision", length = 500)
@@ -100,6 +96,10 @@ public class SeguimientoRespuesta {
     private void normalizarValores() {
         if (estado == null) {
             estado = EstadoRespuestaSeguimiento.PENDIENTE;
+        }
+
+        if (fueraPlazo == null) {
+            fueraPlazo = false;
         }
 
         if (activo == null) {

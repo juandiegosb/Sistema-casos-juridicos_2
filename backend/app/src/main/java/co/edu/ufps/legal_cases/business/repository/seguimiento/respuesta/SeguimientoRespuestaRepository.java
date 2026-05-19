@@ -14,19 +14,13 @@ public interface SeguimientoRespuestaRepository extends JpaRepository<Seguimient
 
     Optional<SeguimientoRespuesta> findByIdAndActivoTrue(Long id);
 
-    Optional<SeguimientoRespuesta> findBySeguimiento_IdAndEstudiante_Id(
-            Long seguimientoId,
-            Long estudianteId);
-
     Optional<SeguimientoRespuesta> findBySeguimiento_IdAndEstudiante_IdAndActivoTrue(
             Long seguimientoId,
             Long estudianteId);
 
-    boolean existsBySeguimiento_IdAndEstudiante_Id(
-            Long seguimientoId,
-            Long estudianteId);
-
-    boolean existsBySeguimiento_IdAndEstudiante_IdAndActivoTrue(
+    // Trae el último intento activo del estudiante para ese seguimiento.
+    // Se usa para decidir si puede crear una nueva respuesta.
+    Optional<SeguimientoRespuesta> findFirstBySeguimiento_IdAndEstudiante_IdAndActivoTrueOrderByFechaCreacionDescIdDesc(
             Long seguimientoId,
             Long estudianteId);
 
