@@ -11,6 +11,9 @@ import co.edu.ufps.legal_cases.business.dto.seguimiento.DatosCorreoSeguimientoDT
 import co.edu.ufps.legal_cases.business.model.seguimiento.SeguimientoNotificacion;
 import co.edu.ufps.legal_cases.business.repository.seguimiento.SeguimientoNotificacionRepository;
 import co.edu.ufps.legal_cases.business.repository.seguimiento.SeguimientoRepository;
+import co.edu.ufps.legal_cases.business.service.seguimiento.notificacion.SeguimientoEnvioNotificacionService;
+import co.edu.ufps.legal_cases.business.service.seguimiento.notificacion.SeguimientoNotificacionInmediataService;
+import co.edu.ufps.legal_cases.business.service.seguimiento.notificacion.SeguimientoRecordatorioService;
 import co.edu.ufps.legal_cases.common.exception.BusinessException;
 import lombok.RequiredArgsConstructor;
 

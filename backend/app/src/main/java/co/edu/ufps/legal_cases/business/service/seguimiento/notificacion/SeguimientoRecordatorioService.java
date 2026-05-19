@@ -1,4 +1,4 @@
-package co.edu.ufps.legal_cases.business.service.seguimiento;
+package co.edu.ufps.legal_cases.business.service.seguimiento.notificacion;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -15,72 +15,99 @@ import co.edu.ufps.legal_cases.business.repository.seguimiento.SeguimientoNotifi
 import co.edu.ufps.legal_cases.business.repository.seguimiento.SeguimientoRepository;
 import lombok.RequiredArgsConstructor;
 
-// Crear, reactivar, cancelar y enviar notificaciones inmediatas.
+// Este servicio envia una notificación y actualizar su estado.
 @Service
 @RequiredArgsConstructor
-public class SeguimientoNotificacionInmediataService {
+public class SeguimientoRecordatorioService {
 
     private final SeguimientoRepository seguimientoRepository;
     private final SeguimientoNotificacionRepository seguimientoNotificacionRepository;
-    private final SeguimientoEnvioNotificacionService seguimientoEnvioNotificacionService;
 
     @Transactional
     public void sincronizar(DatosCorreoSeguimientoDTO datos) {
-        // Las notificaciones inmediatas dependen de las banderas del seguimiento.
-        sincronizarNotificacionInmediata(
+        // Si no hay fecha de entrega o dias de notificacion,
+        // no se puede programar ningun recordatorio.
+        if (!tieneDatosParaRecordatorio(datos)) {
+            cancelarRecordatorio(datos, TipoNotificacionSeguimiento.AUTOR);
+            cancelarRecordatorio(datos, TipoNotificacionSeguimiento.PARTES);
+            cancelarRecordatorio(datos, TipoNotificacionSeguimiento.ESTUDIANTE);
+            cancelarRecordatorio(datos, TipoNotificacionSeguimiento.ALERTA_DISCIPLINARIA);
+            return;
+        }
+
+        // La fecha del recordatorio se calcula una sola vez.
+        LocalDate fechaProgramada = datos.getFechaEntrega().minusDays(datos.getDiasNotificacion());
+
+        // El autor siempre recibe recordatorio si hay fecha y dias de notificacion.
+        sincronizarRecordatorio(datos, TipoNotificacionSeguimiento.AUTOR, true, fechaProgramada);
+
+        // Los demas recordatorios dependen de las banderas del seguimiento.
+        sincronizarRecordatorio(
                 datos,
                 TipoNotificacionSeguimiento.PARTES,
-                Boolean.TRUE.equals(datos.getNotificarPartes()));
+                Boolean.TRUE.equals(datos.getNotificarPartes()),
+                fechaProgramada);
 
-        sincronizarNotificacionInmediata(
+        sincronizarRecordatorio(
                 datos,
                 TipoNotificacionSeguimiento.ESTUDIANTE,
-                Boolean.TRUE.equals(datos.getNotificarEstudiante()));
+                Boolean.TRUE.equals(datos.getNotificarEstudiante()),
+                fechaProgramada);
 
-        sincronizarNotificacionInmediata(
+        sincronizarRecordatorio(
                 datos,
                 TipoNotificacionSeguimiento.ALERTA_DISCIPLINARIA,
-                Boolean.TRUE.equals(datos.getAlertaDisciplinaria()));
+                Boolean.TRUE.equals(datos.getAlertaDisciplinaria()),
+                fechaProgramada);
     }
 
-    private void sincronizarNotificacionInmediata(
+    private void sincronizarRecordatorio(
             DatosCorreoSeguimientoDTO datos,
             TipoNotificacionSeguimiento tipoNotificacion,
-            boolean aplica) {
+            boolean aplica,
+            LocalDate fechaProgramada) {
 
-        // Busca si ya existe una notificacion inmediata de este tipo para el seguimiento.
-        // Esto evita duplicados cuando el seguimiento se actualiza varias veces.
-        SeguimientoNotificacion notificacion = buscarNotificacion(
+        // Busca si ya existe un recordatorio de este tipo para el seguimiento.
+        SeguimientoNotificacion notificacion = buscarRecordatorio(
                 datos.getSeguimientoId(),
                 tipoNotificacion);
 
-        // Si esta notificacion ya no aplica, se cancela si esta pendiente.
+        // Si el recordatorio ya no aplica, se cancela si esta pendiente.
         if (!aplica) {
             desactivarSiEstaPendiente(notificacion);
             return;
         }
 
-        // Si aplica y no existe, se crea para enviarla inmediatamente.
+        // Si aplica y no existe, se crea programado para la fecha calculada.
         if (notificacion == null) {
-            notificacion = crearNotificacion(
+            crearRecordatorio(
                     datos.getSeguimientoId(),
                     tipoNotificacion,
-                    LocalDate.now());
-
-        // Si ya existia pero no se ha enviado, se reactiva por si estaba cancelada.
-        } else if (!Boolean.TRUE.equals(notificacion.getEnviada())) {
-            reactivarNotificacion(notificacion, LocalDate.now());
+                    fechaProgramada);
+            return;
         }
 
-        // Si sigue pendiente y activa, se envia.
-        // Si ya fue enviada antes, no se reenvia para evitar correos duplicados.
-        if (!Boolean.TRUE.equals(notificacion.getEnviada())
-                && Boolean.TRUE.equals(notificacion.getActiva())) {
-            seguimientoEnvioNotificacionService.enviarNotificacionPendiente(notificacion);
+        // Si ya fue enviado, no se modifica para respetar el historial del envio.
+        if (Boolean.TRUE.equals(notificacion.getEnviada())) {
+            return;
         }
+
+        // Si existe y sigue pendiente, se actualiza la fecha y se reactiva si estaba cancelado.
+        reactivarRecordatorio(notificacion, fechaProgramada);
     }
 
-    private SeguimientoNotificacion crearNotificacion(
+    private void cancelarRecordatorio(
+            DatosCorreoSeguimientoDTO datos,
+            TipoNotificacionSeguimiento tipoNotificacion) {
+
+        SeguimientoNotificacion notificacion = buscarRecordatorio(
+                datos.getSeguimientoId(),
+                tipoNotificacion);
+
+        desactivarSiEstaPendiente(notificacion);
+    }
+
+    private SeguimientoNotificacion crearRecordatorio(
             Long seguimientoId,
             TipoNotificacionSeguimiento tipoNotificacion,
             LocalDate fechaProgramada) {
@@ -91,10 +118,10 @@ public class SeguimientoNotificacionInmediataService {
         SeguimientoNotificacion notificacion = new SeguimientoNotificacion();
         notificacion.setSeguimiento(seguimiento);
         notificacion.setTipoNotificacion(tipoNotificacion);
-        notificacion.setMomentoNotificacion(MomentoNotificacionSeguimiento.INMEDIATA);
+        notificacion.setMomentoNotificacion(MomentoNotificacionSeguimiento.RECORDATORIO);
         notificacion.setFechaProgramada(fechaProgramada);
 
-        // Estado inicial de una notificacion nueva.
+        // Estado inicial de un recordatorio nuevo.
         notificacion.setEnviada(false);
         notificacion.setActiva(true);
         notificacion.setIntentos(0);
@@ -104,14 +131,14 @@ public class SeguimientoNotificacionInmediataService {
         return seguimientoNotificacionRepository.save(notificacion);
     }
 
-    private void reactivarNotificacion(
+    private void reactivarRecordatorio(
             SeguimientoNotificacion notificacion,
             LocalDate fechaProgramada) {
 
-        // Se activa de nuevo porque la bandera del seguimiento volvio a aplicar.
+        // Se activa de nuevo porque el recordatorio vuelve a aplicar.
         notificacion.setActiva(true);
 
-        // Para inmediatas la fecha programada es hoy.
+        // Se actualiza por si cambio fechaEntrega o diasNotificacion.
         notificacion.setFechaProgramada(fechaProgramada);
 
         // Se limpian datos de cancelacion y errores anteriores.
@@ -142,7 +169,7 @@ public class SeguimientoNotificacionInmediataService {
         seguimientoNotificacionRepository.save(notificacion);
     }
 
-    private SeguimientoNotificacion buscarNotificacion(
+    private SeguimientoNotificacion buscarRecordatorio(
             Long seguimientoId,
             TipoNotificacionSeguimiento tipoNotificacion) {
 
@@ -150,7 +177,12 @@ public class SeguimientoNotificacionInmediataService {
                 .findBySeguimiento_IdAndTipoNotificacionAndMomentoNotificacion(
                         seguimientoId,
                         tipoNotificacion,
-                        MomentoNotificacionSeguimiento.INMEDIATA)
+                        MomentoNotificacionSeguimiento.RECORDATORIO)
                 .orElse(null);
+    }
+
+    private boolean tieneDatosParaRecordatorio(DatosCorreoSeguimientoDTO datos) {
+        return datos.getFechaEntrega() != null
+                && datos.getDiasNotificacion() != null;
     }
 }

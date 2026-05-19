@@ -1,4 +1,4 @@
-package co.edu.ufps.legal_cases.business.service.seguimiento;
+package co.edu.ufps.legal_cases.business.service.seguimiento.notificacion;
 
 import java.time.LocalDateTime;
 import java.util.List;
