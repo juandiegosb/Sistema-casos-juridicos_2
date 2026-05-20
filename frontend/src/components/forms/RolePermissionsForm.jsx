@@ -1,71 +1,160 @@
 "use client";
 
 import React, { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { API_URL_BASE } from "@/lib/config";
+import { PERMISOS } from "@/lib/permission";
+import { tienePermiso } from "@/lib/authz";
 
 const PAGINAS = [
   {
     title: "Inicio",
     path: "/inicio",
-    authOnly: true,
-    permisoAcceso: "Acceder inicio",
-    permisosFallback: [],
-  },
-  {
-    title: "Tareas",
-    path: "/tareas",
-    permisoAcceso: "Acceder tareas",
-    permisosFallback: [],
-    allowedRoles: ["Asesor", "Administrador", "Estudiante"],
-  },
-  {
-    title: "Nueva consulta",
-    path: "/nuevaconsulta",
-    permisoAcceso: "Acceder nueva consulta",
-    permisosFallback: ["Gestionar consultas"],
-  },
-  {
-    title: "Consultas jurídicas",
-    path: "/consultasjuridicas",
-    permisoAcceso: "Acceder consultas jurídicas",
-    permisosFallback: ["Gestionar consultas"],
-  },
-  {
-    title: "Administración",
-    path: "/admin",
-    permisoAcceso: "Acceder administración",
-    permisosFallback: ["Gestionar catálogos", "Gestionar permisos"],
-    match: "any",
+    permisos: [PERMISOS.ACCEDER_INICIO],
   },
   {
     title: "Recepción",
     path: "/recepcion",
-    permisoAcceso: "Acceder recepción",
-    permisosFallback: [],
+    permisos: [
+      PERMISOS.ACCEDER_RECEPCION,
+      PERMISOS.VER_PERSONAS,
+      PERMISOS.CREAR_PERSONAS,
+      PERMISOS.VER_CATALOGOS,
+    ],
+  },
+  {
+    title: "Personas",
+    path: "/personas",
+    permisos: [
+      PERMISOS.ACCEDER_PERSONAS,
+      PERMISOS.VER_PERSONAS,
+      PERMISOS.CREAR_PERSONAS,
+      PERMISOS.EDITAR_PERSONAS,
+    ],
+  },
+  {
+    title: "Nueva consulta",
+    path: "/nuevaconsulta",
+    permisos: [
+      PERMISOS.ACCEDER_NUEVA_CONSULTA,
+      PERMISOS.VER_CATALOGOS,
+      PERMISOS.VER_PERSONAS,
+      PERMISOS.VER_CONSULTAS,
+      PERMISOS.CREAR_CONSULTAS,
+    ],
+  },
+  {
+    title: "Consultas jurídicas",
+    path: "/consultasjuridicas",
+    permisos: [
+      PERMISOS.ACCEDER_CONSULTAS_JURIDICAS,
+      PERMISOS.VER_CONSULTAS,
+      PERMISOS.EDITAR_CONSULTAS,
+      PERMISOS.CAMBIAR_ESTADO_CONSULTAS,
+      PERMISOS.ARCHIVAR_CONSULTAS,
+      PERMISOS.ASIGNAR_RESPONSABLES_CONSULTA,
+    ],
+  },
+  {
+    title: "Tareas",
+    path: "/tareas",
+    permisos: [
+      PERMISOS.ACCEDER_TAREAS,
+      PERMISOS.VER_SEGUIMIENTOS,
+      PERMISOS.CREAR_SEGUIMIENTOS,
+      PERMISOS.EDITAR_SEGUIMIENTOS,
+      PERMISOS.ELIMINAR_SEGUIMIENTOS,
+      PERMISOS.RESPONDER_SEGUIMIENTOS,
+      PERMISOS.APROBAR_RESPUESTAS_SEGUIMIENTO,
+      PERMISOS.VER_ALERTAS_DISCIPLINARIAS,
+    ],
+  },
+  {
+    title: "Nuevo proceso",
+    path: "/nuevoproceso",
+    permisos: [
+      PERMISOS.ACCEDER_PROCESOS,
+      PERMISOS.VER_PROCESOS,
+      PERMISOS.GESTIONAR_PROCESOS,
+      PERMISOS.VER_CONSULTAS,
+      PERMISOS.VER_CATALOGOS,
+    ],
+  },
+  {
+    title: "Procesos",
+    path: "/procesos",
+    permisos: [
+      PERMISOS.ACCEDER_PROCESOS,
+      PERMISOS.VER_PROCESOS,
+      PERMISOS.GESTIONAR_PROCESOS,
+      PERMISOS.VER_CONSULTAS,
+      PERMISOS.VER_CATALOGOS,
+    ],
+  },
+  {
+    title: "Administración",
+    path: "/admin",
+    permisos: [
+      PERMISOS.ACCEDER_ADMINISTRACION,
+      PERMISOS.VER_CATALOGOS,
+      PERMISOS.GESTIONAR_CATALOGOS,
+      PERMISOS.VER_USUARIOS,
+      PERMISOS.CREAR_USUARIOS,
+      PERMISOS.EDITAR_USUARIOS,
+      PERMISOS.CAMBIAR_ESTADO_USUARIOS,
+      PERMISOS.ASIGNAR_ROL_USUARIOS,
+    ],
   },
   {
     title: "Roles",
     path: "/roles",
-    permisoAcceso: "Acceder roles",
-    permisosFallback: ["Gestionar usuarios"],
+    permisos: [
+      PERMISOS.ACCEDER_ROLES,
+      PERMISOS.VER_ROLES,
+      PERMISOS.CREAR_ROLES,
+      PERMISOS.EDITAR_ROLES,
+      PERMISOS.ASIGNAR_PERMISOS_ROLES,
+    ],
   },
   {
     title: "Estudiantes",
     path: "/estudiantes",
-    permisoAcceso: "Acceder estudiantes",
-    permisosFallback: ["Gestionar usuarios"],
+    permisos: [
+      PERMISOS.ACCEDER_ESTUDIANTES,
+      PERMISOS.VER_ESTUDIANTES,
+      PERMISOS.CAMBIAR_ESTADO_ESTUDIANTES,
+    ],
   },
   {
     title: "Asesores y monitores",
     path: "/asesoresymonitores",
-    permisoAcceso: "Acceder asesores y monitores",
-    permisosFallback: ["Gestionar usuarios"],
+    permisos: [
+      PERMISOS.ACCEDER_ASESORES_MONITORES,
+      PERMISOS.VER_ASESORES_MONITORES,
+      PERMISOS.GESTIONAR_ASESORES_MONITORES,
+    ],
+  },
+  {
+    title: "Eliminación",
+    path: "/eliminacion",
+    permisos: [
+      PERMISOS.ACCEDER_ELIMINACION,
+      PERMISOS.CAMBIAR_ESTADO_PERSONAS,
+      PERMISOS.CAMBIAR_ESTADO_USUARIOS,
+      PERMISOS.CAMBIAR_ESTADO_ESTUDIANTES,
+      PERMISOS.CAMBIAR_ESTADO_CONSULTAS,
+      PERMISOS.ARCHIVAR_CONSULTAS,
+    ],
   },
 ];
 
 function normalizar(value) {
-  return String(value || "").trim().toUpperCase();
+  return String(value || "")
+    .trim()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toUpperCase();
 }
 
 function nombrePermiso(permiso) {
@@ -88,95 +177,22 @@ function nombreRol(rol) {
   return rol?.nombre || rol?.rolNombre || rol?.name || "";
 }
 
-function obtenerPermisosUsuario(user) {
-  if (!Array.isArray(user?.permisos)) return [];
-
-  return user.permisos.map(nombrePermiso).filter(Boolean);
-}
-
-function tieneTodos(userPermissions, requiredPermissions = []) {
-  const permisos = userPermissions.map(normalizar);
-
-  return requiredPermissions.every((permission) =>
-    permisos.includes(normalizar(permission))
+function buscarPermiso(permisos, nombre) {
+  return permisos.find(
+    (permiso) => normalizar(nombrePermiso(permiso)) === normalizar(nombre)
   );
 }
 
-function tieneAlguno(userPermissions, requiredPermissions = []) {
-  const permisos = userPermissions.map(normalizar);
-
-  return requiredPermissions.some((permission) =>
-    permisos.includes(normalizar(permission))
+function paginaMarcada(page, permisosRol) {
+  const permisosRolNormalizados = permisosRol.map((permiso) =>
+    normalizar(nombrePermiso(permiso))
   );
-}
 
-function tieneRolPermitido(user, allowedRoles = []) {
-  if (!Array.isArray(allowedRoles) || allowedRoles.length === 0) return true;
+  const permisosPagina = page.permisos.filter(Boolean);
 
-  const rolActual = normalizar(user?.rolNombre);
-  const roles = allowedRoles.map(normalizar);
-
-  return roles.includes(rolActual);
-}
-
-function crearMapaPermisos(permisos) {
-  const map = new Map();
-
-  permisos.forEach((permiso) => {
-    map.set(normalizar(nombrePermiso(permiso)), permiso);
-  });
-
-  return map;
-}
-
-function permisosPagina(page, permisosMap) {
-  const permisoAccesoExiste = permisosMap.has(normalizar(page.permisoAcceso));
-
-  if (permisoAccesoExiste) {
-    return [page.permisoAcceso];
-  }
-
-  return page.permisosFallback || [];
-}
-
-function puedeVerPagina(page, user, permisosMap) {
-  if (!user) return false;
-
-  if (!tieneRolPermitido(user, page.allowedRoles)) {
-    return false;
-  }
-
-  const requiredPermissions = permisosPagina(page, permisosMap);
-
-  if (page.authOnly && requiredPermissions.length === 0) {
-    return true;
-  }
-
-  if (requiredPermissions.length === 0) {
-    return true;
-  }
-
-  const userPermissions = obtenerPermisosUsuario(user);
-
-  if (page.match === "any") {
-    return tieneAlguno(userPermissions, requiredPermissions);
-  }
-
-  return tieneTodos(userPermissions, requiredPermissions);
-}
-
-function paginaMarcada(page, permisosRol, permisosMap) {
-  const requiredPermissions = permisosPagina(page, permisosMap);
-
-  if (requiredPermissions.length === 0) {
-    return false;
-  }
-
-  if (page.match === "any") {
-    return tieneAlguno(permisosRol, requiredPermissions);
-  }
-
-  return tieneTodos(permisosRol, requiredPermissions);
+  return permisosPagina.every((permiso) =>
+    permisosRolNormalizados.includes(normalizar(permiso))
+  );
 }
 
 async function leerRespuesta(response) {
@@ -191,7 +207,44 @@ async function leerRespuesta(response) {
   }
 }
 
+function extraerLista(data) {
+  if (Array.isArray(data)) return data;
+  if (!data || typeof data !== "object") return [];
+
+  const claves = [
+    "content",
+    "data",
+    "items",
+    "rows",
+    "permisos",
+    "roles",
+    "resultado",
+    "payload",
+  ];
+
+  for (const clave of claves) {
+    const valor = data[clave];
+
+    if (Array.isArray(valor)) return valor;
+
+    if (valor && typeof valor === "object") {
+      const interno = extraerLista(valor);
+      if (interno.length > 0) return interno;
+    }
+  }
+
+  return [];
+}
+
+function esErrorDuplicadoPermiso(data) {
+  const mensaje = normalizar(data?.mensaje || data?.message || data?.error);
+
+  return mensaje.includes("YA EXISTE") && mensaje.includes("PERMISO");
+}
+
 export function RolePermissionsForm() {
+  const router = useRouter();
+
   const [me, setMe] = useState(null);
   const [roles, setRoles] = useState([]);
   const [permisos, setPermisos] = useState([]);
@@ -204,11 +257,12 @@ export function RolePermissionsForm() {
   const [mensaje, setMensaje] = useState("");
   const [error, setError] = useState("");
 
-  const permisosMap = useMemo(() => crearMapaPermisos(permisos), [permisos]);
+  const puedeAsignarPermisos = tienePermiso(
+    me,
+    PERMISOS.ASIGNAR_PERMISOS_ROLES
+  );
 
-  const paginasVisibles = useMemo(() => {
-    return PAGINAS.filter((page) => puedeVerPagina(page, me, permisosMap));
-  }, [me, permisosMap]);
+  const paginasConfigurables = useMemo(() => PAGINAS, []);
 
   useEffect(() => {
     cargarDatosIniciales();
@@ -229,48 +283,187 @@ export function RolePermissionsForm() {
       setError("");
       setMensaje("");
 
-      const [meRes, rolesRes, permisosRes] = await Promise.all([
-        fetch(`${API_URL_BASE}/auth/me`, {
-          method: "GET",
-          credentials: "include",
-        }),
-        fetch(`${API_URL_BASE}/roles/activos`, {
-          credentials: "include",
-        }),
-        fetch(`${API_URL_BASE}/permisos/activos`, {
-          credentials: "include",
-        }),
-      ]);
+      const meRes = await fetch(`${API_URL_BASE}/auth/me`, {
+        method: "GET",
+        credentials: "include",
+      });
 
       if (meRes.status === 401) {
-        throw new Error("La sesión expiró");
+        router.replace("/");
+        return;
       }
 
       if (!meRes.ok) {
-        throw new Error("No se pudo cargar el usuario actual");
-      }
-
-      if (!rolesRes.ok) {
-        throw new Error("No se pudieron cargar los roles");
-      }
-
-      if (!permisosRes.ok) {
-        throw new Error("No se pudieron cargar los permisos");
+        router.replace("/");
+        return;
       }
 
       const meData = await meRes.json();
-      const rolesData = await rolesRes.json();
-      const permisosData = await permisosRes.json();
+
+      const puedeEntrar =
+        tienePermiso(meData, PERMISOS.ACCEDER_ROLES) &&
+        tienePermiso(meData, PERMISOS.ASIGNAR_PERMISOS_ROLES);
+
+      if (!puedeEntrar) {
+        router.replace("/inicio");
+        return;
+      }
+
+      const [rolesData, permisosData] = await Promise.all([
+        cargarRolesActivos(),
+        cargarPermisosActivos(),
+      ]);
 
       setMe(meData);
-      setRoles(Array.isArray(rolesData) ? rolesData : []);
-      setPermisos(Array.isArray(permisosData) ? permisosData : []);
+      setRoles(rolesData);
+      setPermisos(permisosData);
     } catch (err) {
       console.error(err);
       setError(err.message || "Error cargando datos");
     } finally {
       setLoading(false);
     }
+  }
+
+  async function cargarRolesActivos() {
+    const res = await fetch(`${API_URL_BASE}/roles/activos`, {
+      credentials: "include",
+    });
+
+    if (res.status === 401) {
+      router.replace("/");
+      return [];
+    }
+
+    if (res.status === 403) {
+      router.replace("/inicio");
+      return [];
+    }
+
+    if (!res.ok) {
+      throw new Error("No se pudieron cargar los roles");
+    }
+
+    const data = await res.json();
+    return extraerLista(data);
+  }
+
+  async function cargarPermisosActivos() {
+    const res = await fetch(`${API_URL_BASE}/permisos/activos`, {
+      credentials: "include",
+    });
+
+    if (res.status === 401) {
+      router.replace("/");
+      return [];
+    }
+
+    if (res.status === 403) {
+      router.replace("/inicio");
+      return [];
+    }
+
+    if (!res.ok) {
+      throw new Error("No se pudieron cargar los permisos");
+    }
+
+    const data = await res.json();
+    const lista = extraerLista(data);
+
+    if (lista.length > 0) return lista;
+
+    try {
+      const resTodos = await fetch(`${API_URL_BASE}/permisos`, {
+        credentials: "include",
+      });
+
+      if (!resTodos.ok) return lista;
+
+      const dataTodos = await resTodos.json();
+      return extraerLista(dataTodos);
+    } catch {
+      return lista;
+    }
+  }
+
+  async function crearPermiso(nombre) {
+    const res = await fetch(`${API_URL_BASE}/permisos`, {
+      method: "POST",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        nombre,
+        activo: true,
+      }),
+    });
+
+    const data = await leerRespuesta(res);
+
+    if (res.status === 401) {
+      router.replace("/");
+      return null;
+    }
+
+    if (res.status === 403) {
+      router.replace("/inicio");
+      return null;
+    }
+
+    if (!res.ok) {
+      if (res.status === 400 && esErrorDuplicadoPermiso(data)) {
+        return {
+          duplicado: true,
+          nombre,
+        };
+      }
+
+      throw new Error(
+        data?.mensaje ||
+          data?.message ||
+          `No se pudo crear el permiso "${nombre}"`
+      );
+    }
+
+    return data;
+  }
+
+  async function asegurarPermisos(nombres) {
+    let lista = [...permisos];
+
+    for (const nombre of nombres.filter(Boolean)) {
+      if (buscarPermiso(lista, nombre)) continue;
+
+      const creado = await crearPermiso(nombre);
+
+      if (creado?.duplicado) {
+        lista = await cargarPermisosActivos();
+
+        if (buscarPermiso(lista, nombre)) {
+          continue;
+        }
+
+        throw new Error(
+          `El permiso "${nombre}" ya existe en la base de datos, pero no aparece como activo. Actívalo o revisa el endpoint /permisos/activos.`
+        );
+      }
+
+      if (creado && idPermiso(creado)) {
+        lista = [...lista, creado];
+      } else {
+        lista = await cargarPermisosActivos();
+      }
+
+      if (!buscarPermiso(lista, nombre)) {
+        lista = await cargarPermisosActivos();
+      }
+
+      if (!buscarPermiso(lista, nombre)) {
+        throw new Error(`El permiso "${nombre}" no existe y no se pudo crear`);
+      }
+    }
+
+    setPermisos(lista);
+    return lista;
   }
 
   async function cargarRol(id) {
@@ -283,16 +476,25 @@ export function RolePermissionsForm() {
         credentials: "include",
       });
 
+      if (res.status === 401) {
+        router.replace("/");
+        return;
+      }
+
+      if (res.status === 403) {
+        router.replace("/inicio");
+        return;
+      }
+
       if (!res.ok) {
         throw new Error("No se pudo cargar el rol");
       }
 
       const rol = await res.json();
       const permisosRol = Array.isArray(rol?.permisos) ? rol.permisos : [];
-      const nombresRol = permisosRol.map(nombrePermiso).filter(Boolean);
 
-      const paginas = paginasVisibles
-        .filter((page) => paginaMarcada(page, nombresRol, permisosMap))
+      const paginas = paginasConfigurables
+        .filter((page) => paginaMarcada(page, permisosRol))
         .map((page) => page.path);
 
       setPermisosActualesRol(permisosRol);
@@ -308,53 +510,94 @@ export function RolePermissionsForm() {
   }
 
   function togglePagina(path) {
+    if (!puedeAsignarPermisos) {
+      router.replace("/inicio");
+      return;
+    }
+
     setError("");
     setMensaje("");
 
-    setPaginasSeleccionadas((prev) => {
-      if (prev.includes(path)) {
-        return prev.filter((item) => item !== path);
+    setPaginasSeleccionadas((prev) =>
+      prev.includes(path)
+        ? prev.filter((item) => item !== path)
+        : [...prev, path]
+    );
+  }
+
+  function nombresPermisosObjetivo() {
+    const paths = new Set(paginasSeleccionadas);
+    const nombres = new Set();
+
+    paginasConfigurables.forEach((page) => {
+      if (!paths.has(page.path)) return;
+
+      page.permisos.filter(Boolean).forEach((permiso) => {
+        nombres.add(permiso);
+      });
+    });
+
+    return [...nombres];
+  }
+
+  function nombresPermisosGestionados() {
+    const nombres = new Set();
+
+    paginasConfigurables.forEach((page) => {
+      page.permisos.filter(Boolean).forEach((permiso) => {
+        nombres.add(permiso);
+      });
+    });
+
+    return [...nombres];
+  }
+
+  function idsDesdeNombres(listaPermisos, nombres) {
+    return nombres
+      .filter(Boolean)
+      .map((nombre) => buscarPermiso(listaPermisos, nombre))
+      .map(idPermiso)
+      .filter((id) => id !== null && id !== undefined);
+  }
+
+  async function cambiarPermisoRol(permisoId, method) {
+    const res = await fetch(
+      `${API_URL_BASE}/roles/${rolId}/permisos/${permisoId}`,
+      {
+        method,
+        credentials: "include",
       }
+    );
 
-      return [...prev, path];
-    });
-  }
+    if (res.status === 401) {
+      router.replace("/");
+      return;
+    }
 
-  function calcularPermisoIdsObjetivo() {
-    const nombres = new Set();
+    if (res.status === 403) {
+      router.replace("/inicio");
+      return;
+    }
 
-    paginasSeleccionadas.forEach((path) => {
-      const page = PAGINAS.find((item) => item.path === path);
+    if (!res.ok) {
+      const data = await leerRespuesta(res);
 
-      if (!page) return;
-
-      permisosPagina(page, permisosMap).forEach((permiso) => {
-        nombres.add(normalizar(permiso));
-      });
-    });
-
-    return permisos
-      .filter((permiso) => nombres.has(normalizar(nombrePermiso(permiso))))
-      .map(idPermiso)
-      .filter((id) => id !== null && id !== undefined);
-  }
-
-  function calcularPermisoIdsGestionados() {
-    const nombres = new Set();
-
-    PAGINAS.forEach((page) => {
-      permisosPagina(page, permisosMap).forEach((permiso) => {
-        nombres.add(normalizar(permiso));
-      });
-    });
-
-    return permisos
-      .filter((permiso) => nombres.has(normalizar(nombrePermiso(permiso))))
-      .map(idPermiso)
-      .filter((id) => id !== null && id !== undefined);
+      throw new Error(
+        data?.mensaje ||
+          data?.message ||
+          (method === "PATCH"
+            ? "No se pudo agregar un permiso"
+            : "No se pudo quitar un permiso")
+      );
+    }
   }
 
   async function guardar() {
+    if (!puedeAsignarPermisos) {
+      router.replace("/inicio");
+      return;
+    }
+
     if (!rolId) {
       setError("Selecciona un rol");
       return;
@@ -365,48 +608,37 @@ export function RolePermissionsForm() {
       setError("");
       setMensaje("");
 
+      const nombresObjetivo = nombresPermisosObjetivo();
+      const nombresGestionados = nombresPermisosGestionados();
+
+      const permisosActualizados = await asegurarPermisos(nombresObjetivo);
+
       const actuales = new Set(
         permisosActualesRol
           .map(idPermiso)
           .filter((id) => id !== null && id !== undefined)
       );
 
-      const objetivo = new Set(calcularPermisoIdsObjetivo());
-      const gestionados = new Set(calcularPermisoIdsGestionados());
+      const objetivo = new Set(
+        idsDesdeNombres(permisosActualizados, nombresObjetivo)
+      );
+
+      const gestionados = new Set(
+        idsDesdeNombres(permisosActualizados, nombresGestionados)
+      );
 
       const agregar = [...objetivo].filter((id) => !actuales.has(id));
+
       const quitar = [...actuales].filter(
         (id) => gestionados.has(id) && !objetivo.has(id)
       );
 
       for (const permisoId of agregar) {
-        const res = await fetch(
-          `${API_URL_BASE}/roles/${rolId}/permisos/${permisoId}`,
-          {
-            method: "PATCH",
-            credentials: "include",
-          }
-        );
-
-        if (!res.ok) {
-          const data = await leerRespuesta(res);
-          throw new Error(data?.mensaje || "No se pudo agregar un permiso");
-        }
+        await cambiarPermisoRol(permisoId, "PATCH");
       }
 
       for (const permisoId of quitar) {
-        const res = await fetch(
-          `${API_URL_BASE}/roles/${rolId}/permisos/${permisoId}`,
-          {
-            method: "DELETE",
-            credentials: "include",
-          }
-        );
-
-        if (!res.ok) {
-          const data = await leerRespuesta(res);
-          throw new Error(data?.mensaje || "No se pudo quitar un permiso");
-        }
+        await cambiarPermisoRol(permisoId, "DELETE");
       }
 
       setMensaje("Permisos actualizados correctamente");
@@ -452,6 +684,7 @@ export function RolePermissionsForm() {
           className="h-10 rounded-md border bg-background px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
           <option value="">Selecciona un rol</option>
+
           {roles.map((rol) => (
             <option key={rol.id} value={rol.id}>
               {nombreRol(rol)}
@@ -468,7 +701,7 @@ export function RolePermissionsForm() {
             </div>
           ) : (
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-              {paginasVisibles.map((page) => {
+              {paginasConfigurables.map((page) => {
                 const selected = paginasSeleccionadas.includes(page.path);
 
                 return (
@@ -490,7 +723,11 @@ export function RolePermissionsForm() {
           )}
 
           <div className="flex justify-end">
-            <Button type="button" onClick={guardar} disabled={saving || loadingRol}>
+            <Button
+              type="button"
+              onClick={guardar}
+              disabled={saving || loadingRol}
+            >
               {saving ? "Guardando..." : "Guardar"}
             </Button>
           </div>

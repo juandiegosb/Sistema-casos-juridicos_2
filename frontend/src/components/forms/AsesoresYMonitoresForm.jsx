@@ -5,6 +5,9 @@ import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { API_URL_BASE } from "@/lib/config";
+import { ConfirmActionDialog } from "@/components/ui/ConfirmActionDialog";
+import { PERMISOS } from "@/lib/permission";
+import { tienePermiso } from "@/lib/authz";
 
 export function AsesoresYMonitoresForm() {
   const router = useRouter();
@@ -13,6 +16,10 @@ export function AsesoresYMonitoresForm() {
   const [monitores, setMonitores] = useState([]);
   const [busqueda, setBusqueda] = useState("");
   const [cargando, setCargando] = useState(true);
+
+  const [confirmDialog, setConfirmDialog] = useState(null);
+  const [confirmLoading, setConfirmLoading] = useState(false);
+  const [puedeGestionar, setPuedeGestionar] = useState(false);
 
   useEffect(() => {
     const verificarYcargar = async () => {
@@ -23,39 +30,56 @@ export function AsesoresYMonitoresForm() {
         });
 
         if (res.status === 401) {
-          router.push("/");
+          router.replace("/");
+          return;
+        }
+
+        if (!res.ok) {
+          router.replace("/");
           return;
         }
 
         const usuario = await res.json();
 
-        if (!usuario.permisos?.includes("Gestionar usuarios")) {
-          router.push("/inicio");
+        const puedeEntrar =
+          tienePermiso(usuario, PERMISOS.ACCEDER_ASESORES_MONITORES) &&
+          tienePermiso(usuario, PERMISOS.VER_ASESORES_MONITORES);
+
+        if (!puedeEntrar) {
+          router.replace("/inicio");
           return;
         }
 
+        setPuedeGestionar(
+          tienePermiso(usuario, PERMISOS.GESTIONAR_ASESORES_MONITORES)
+        );
+
         const [asesoresRes, monitoresRes] = await Promise.all([
-          fetch(`${API_URL_BASE}/asesores/activos`, { credentials: "include" }),
-          fetch(`${API_URL_BASE}/monitores/activos`, { credentials: "include" }),
+          fetch(`${API_URL_BASE}/asesores/activos`, {
+            credentials: "include",
+          }),
+          fetch(`${API_URL_BASE}/monitores/activos`, {
+            credentials: "include",
+          }),
         ]);
 
         if (asesoresRes.status === 401 || monitoresRes.status === 401) {
-          router.push("/");
+          router.replace("/");
           return;
         }
 
         if (asesoresRes.status === 403 || monitoresRes.status === 403) {
-          router.push("/inicio");
+          router.replace("/inicio");
           return;
         }
 
         const asesoresData = await asesoresRes.json();
         const monitoresData = await monitoresRes.json();
 
-        setAsesores(asesoresData);
-        setMonitores(monitoresData);
-
+        setAsesores(Array.isArray(asesoresData) ? asesoresData : []);
+        setMonitores(Array.isArray(monitoresData) ? monitoresData : []);
       } catch (err) {
+        console.error(err);
         toast.error("Error cargando usuarios");
       } finally {
         setCargando(false);
@@ -65,22 +89,58 @@ export function AsesoresYMonitoresForm() {
     verificarYcargar();
   }, [router]);
 
-  async function desactivar(id, rol) {
-    if (!confirm(`¿Desactivar este ${rol.toLowerCase()}?`)) return;
-    const endpoint = rol === "Asesor" ? "asesores" : "monitores";
-    const res = await fetch(`${API_URL_BASE}/${endpoint}/${id}/activo?activo=false`, {
-      method: "PATCH",
-      credentials: "include",
-    });
-    if (res.ok) {
-      toast.success(`${rol} desactivado`);
-      if (rol === "Asesor") {
-        setAsesores(prev => prev.map(a => a.id === id ? { ...a, activo: false } : a));
+  function abrirConfirmacionDesactivar(usuario) {
+    if (!puedeGestionar) {
+      router.replace("/inicio");
+      return;
+    }
+
+    setConfirmDialog(usuario);
+  }
+
+  async function confirmarDesactivar() {
+    if (!confirmDialog?.id || !confirmDialog?.rol) return;
+
+    try {
+      setConfirmLoading(true);
+
+      const endpoint =
+        confirmDialog.rol === "Asesor" ? "asesores" : "monitores";
+
+      const res = await fetch(
+        `${API_URL_BASE}/${endpoint}/${confirmDialog.id}/activo?activo=false`,
+        {
+          method: "PATCH",
+          credentials: "include",
+        }
+      );
+
+      if (res.ok) {
+        toast.success(`${confirmDialog.rol} desactivado`);
+
+        if (confirmDialog.rol === "Asesor") {
+          setAsesores((prev) =>
+            prev.map((a) =>
+              a.id === confirmDialog.id ? { ...a, activo: false } : a
+            )
+          );
+        } else {
+          setMonitores((prev) =>
+            prev.map((m) =>
+              m.id === confirmDialog.id ? { ...m, activo: false } : m
+            )
+          );
+        }
+
+        setConfirmDialog(null);
       } else {
-        setMonitores(prev => prev.map(m => m.id === id ? { ...m, activo: false } : m));
+        toast.error("Error al desactivar");
       }
-    } else {
-      toast.error("Error al desactivar");
+    } catch (error) {
+      console.error(error);
+      toast.error("Error de conexión");
+    } finally {
+      setConfirmLoading(false);
     }
   }
 
@@ -89,30 +149,26 @@ export function AsesoresYMonitoresForm() {
   }
 
   const usuarios = [
-    ...asesores.map(a => ({ ...a, rol: "Asesor" })),
-    ...monitores.map(m => ({ ...m, rol: "Monitor" }))
+    ...asesores.map((a) => ({ ...a, rol: "Asesor" })),
+    ...monitores.map((m) => ({ ...m, rol: "Monitor" })),
   ];
 
-  const filtrados = usuarios.filter(u =>
-    `${u.nombre} ${u.documento} ${u.email}`
+  const filtrados = usuarios.filter((u) =>
+    `${u.nombre || ""} ${u.documento || ""} ${u.email || ""}`
       .toLowerCase()
       .includes(busqueda.toLowerCase())
   );
 
   return (
     <div className="space-y-6">
-
-      {/* BUSCADOR */}
       <Input
         placeholder="Buscar por nombre, documento o email..."
         value={busqueda}
         onChange={(e) => setBusqueda(e.target.value)}
       />
 
-      {/* TABLA */}
       <div className="overflow-x-auto border rounded-xl">
         <table className="w-full text-sm">
-
           <thead className="bg-muted/50">
             <tr className="text-left">
               <th className="p-3">Nombre</th>
@@ -137,32 +193,38 @@ export function AsesoresYMonitoresForm() {
                 <td className="p-3">{u.email}</td>
                 <td className="p-3">{u.telefono}</td>
                 <td className="p-3">{u.codigo}</td>
+
                 <td className="p-3">
                   <span className="px-2 py-1 text-xs rounded bg-primary/10 text-primary">
                     {u.rol}
                   </span>
                 </td>
+
                 <td className="p-3">
-                  <span className={`text-xs px-2 py-1 rounded ${
-                    u.activo
-                      ? "bg-blue-100 text-blue-700"
-                      : "bg-red-100 text-red-700"
-                  }`}>
+                  <span
+                    className={`text-xs px-2 py-1 rounded ${u.activo
+                        ? "bg-blue-100 text-blue-700"
+                        : "bg-red-100 text-red-700"
+                      }`}
+                  >
                     {u.activo ? "Activo" : "Inactivo"}
                   </span>
                 </td>
+
                 <td className="p-3">
-                  <button
-                    onClick={() => desactivar(u.id, u.rol)}
-                    disabled={!u.activo}
-                    className={`text-xs px-3 py-1 rounded ${
-                      u.activo
-                        ? "bg-red-100 text-red-700 hover:bg-red-200"
-                        : "bg-gray-100 text-gray-400 cursor-not-allowed"
-                    }`}
-                  >
-                    {u.activo ? "Desactivar" : "Inactivo"}
-                  </button>
+                  {puedeGestionar && (
+                    <button
+                      type="button"
+                      onClick={() => abrirConfirmacionDesactivar(u)}
+                      disabled={!u.activo}
+                      className={`text-xs px-3 py-1 rounded ${u.activo
+                          ? "bg-red-100 text-red-700 hover:bg-red-200"
+                          : "bg-gray-100 text-gray-400 cursor-not-allowed"
+                        }`}
+                    >
+                      {u.activo ? "Desactivar" : "Inactivo"}
+                    </button>
+                  )}
                 </td>
               </tr>
             ))}
@@ -170,12 +232,23 @@ export function AsesoresYMonitoresForm() {
         </table>
       </div>
 
-      {/* VACÍO */}
       {filtrados.length === 0 && (
         <p className="text-center text-muted-foreground">
           No se encontraron resultados
         </p>
       )}
+
+      <ConfirmActionDialog
+        open={Boolean(confirmDialog)}
+        title={`Desactivar ${confirmDialog?.rol?.toLowerCase() || "usuario"}`}
+        description={`¿Deseas desactivar a "${confirmDialog?.nombre || "este usuario"
+          }"? Podrás reactivarlo después desde la página de eliminación.`}
+        confirmText="Desactivar"
+        cancelText="Cancelar"
+        loading={confirmLoading}
+        onClose={() => setConfirmDialog(null)}
+        onConfirm={confirmarDesactivar}
+      />
     </div>
   );
 }

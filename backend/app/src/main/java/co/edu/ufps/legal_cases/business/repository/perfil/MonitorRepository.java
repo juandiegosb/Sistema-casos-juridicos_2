@@ -8,7 +8,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
-import co.edu.ufps.legal_cases.business.dto.seguimiento.SeguimientoDestinatarioDTO;
+import co.edu.ufps.legal_cases.business.dto.seguimiento.notificacion.SeguimientoDestinatarioDTO;
 import co.edu.ufps.legal_cases.business.model.perfil.Monitor;
 
 @Repository
@@ -42,7 +42,7 @@ public interface MonitorRepository extends JpaRepository<Monitor, Long> {
 
     // Para obtener los datos de notificar
     @Query("""
-            SELECT new co.edu.ufps.legal_cases.business.dto.seguimiento.SeguimientoDestinatarioDTO(
+            SELECT new co.edu.ufps.legal_cases.business.dto.seguimiento.notificacion.SeguimientoDestinatarioDTO(
                 m.email,
                 m.nombre
             )

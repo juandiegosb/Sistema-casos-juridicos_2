@@ -1,5 +1,8 @@
 package co.edu.ufps.legal_cases.business.controller.catalogo;
 
+import static co.edu.ufps.legal_cases.security.constant.PermisoNombre.GESTIONAR_CATALOGOS;
+import static co.edu.ufps.legal_cases.security.constant.PermisoNombre.VER_CATALOGOS;
+
 import java.util.List;
 
 import org.springframework.http.HttpStatus;
@@ -12,7 +15,6 @@ import jakarta.validation.Valid;
 
 @RestController
 @RequestMapping("/api/sedes")
-@PreAuthorize("hasAuthority('Gestionar catálogos')")
 public class SedeController {
 
     private final SedeService sedeService;
@@ -22,28 +24,33 @@ public class SedeController {
     }
 
     @GetMapping
+    @PreAuthorize("hasAnyAuthority('" + VER_CATALOGOS + "', '" + GESTIONAR_CATALOGOS + "')")
     public List<SedeDTO> listar() {
         return sedeService.listar();
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasAnyAuthority('" + VER_CATALOGOS + "', '" + GESTIONAR_CATALOGOS + "')")
     public SedeDTO obtenerPorId(@PathVariable Long id) {
         return sedeService.obtenerPorId(id);
     }
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
+    @PreAuthorize("hasAuthority('" + GESTIONAR_CATALOGOS + "')")
     public SedeDTO crear(@Valid @RequestBody SedeDTO dto) {
         return sedeService.crear(dto);
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize("hasAuthority('" + GESTIONAR_CATALOGOS + "')")
     public SedeDTO actualizar(@PathVariable Long id, @Valid @RequestBody SedeDTO dto) {
         return sedeService.actualizar(id, dto);
     }
 
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
+    @PreAuthorize("hasAuthority('" + GESTIONAR_CATALOGOS + "')")
     public void eliminar(@PathVariable Long id) {
         sedeService.eliminar(id);
     }

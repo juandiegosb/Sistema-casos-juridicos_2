@@ -7,10 +7,13 @@ import java.util.List;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import co.edu.ufps.legal_cases.business.dto.seguimiento.DatosCorreoSeguimientoDTO;
-import co.edu.ufps.legal_cases.business.model.seguimiento.SeguimientoNotificacion;
-import co.edu.ufps.legal_cases.business.repository.seguimiento.SeguimientoNotificacionRepository;
+import co.edu.ufps.legal_cases.business.dto.seguimiento.notificacion.DatosCorreoSeguimientoDTO;
+import co.edu.ufps.legal_cases.business.model.seguimiento.notificacion.SeguimientoNotificacion;
 import co.edu.ufps.legal_cases.business.repository.seguimiento.SeguimientoRepository;
+import co.edu.ufps.legal_cases.business.repository.seguimiento.notificacion.SeguimientoNotificacionRepository;
+import co.edu.ufps.legal_cases.business.service.seguimiento.notificacion.SeguimientoEnvioNotificacionService;
+import co.edu.ufps.legal_cases.business.service.seguimiento.notificacion.SeguimientoNotificacionInmediataService;
+import co.edu.ufps.legal_cases.business.service.seguimiento.notificacion.SeguimientoRecordatorioService;
 import co.edu.ufps.legal_cases.common.exception.BusinessException;
 import lombok.RequiredArgsConstructor;
 

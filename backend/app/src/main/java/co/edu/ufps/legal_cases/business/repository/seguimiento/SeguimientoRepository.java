@@ -9,8 +9,8 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
-import co.edu.ufps.legal_cases.business.dto.seguimiento.DatosCorreoSeguimientoDTO;
-import co.edu.ufps.legal_cases.business.dto.seguimiento.DatosNotificacionSeguimientoDTO;
+import co.edu.ufps.legal_cases.business.dto.seguimiento.notificacion.DatosCorreoSeguimientoDTO;
+import co.edu.ufps.legal_cases.business.dto.seguimiento.notificacion.DatosNotificacionSeguimientoDTO;
 import co.edu.ufps.legal_cases.business.model.seguimiento.Seguimiento;
 
 @Repository
@@ -43,7 +43,7 @@ public interface SeguimientoRepository extends JpaRepository<Seguimiento, Long> 
     List<Seguimiento> findByFechaEntregaAndActivoTrueOrderByFechaCreacionDesc(LocalDate fechaEntrega);
 
     @Query("""
-            SELECT new co.edu.ufps.legal_cases.business.dto.seguimiento.DatosNotificacionSeguimientoDTO(
+            SELECT new co.edu.ufps.legal_cases.business.dto.seguimiento.notificacion.DatosNotificacionSeguimientoDTO(
                 s.id,
                 s.consulta.id,
                 s.autor.id,
@@ -58,7 +58,7 @@ public interface SeguimientoRepository extends JpaRepository<Seguimiento, Long> 
 
     // Para enviar datos al servicio de correo sin exponer toda la entidad de seguimiento.
     @Query("""
-            SELECT new co.edu.ufps.legal_cases.business.dto.seguimiento.DatosCorreoSeguimientoDTO(
+            SELECT new co.edu.ufps.legal_cases.business.dto.seguimiento.notificacion.DatosCorreoSeguimientoDTO(
                 s.id,
                 s.descripcion,
                 s.categoriaSeguimiento.nombre,

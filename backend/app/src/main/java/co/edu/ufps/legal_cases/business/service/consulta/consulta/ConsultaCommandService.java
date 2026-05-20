@@ -1,0 +1,241 @@
+package co.edu.ufps.legal_cases.business.service.consulta;
+
+import static co.edu.ufps.legal_cases.common.util.NormalizacionUtils.normalizarTexto;
+
+import java.util.List;
+
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import co.edu.ufps.legal_cases.business.dto.consulta.ConsultaDTO;
+import co.edu.ufps.legal_cases.business.model.catalogo.Area;
+import co.edu.ufps.legal_cases.business.model.catalogo.Sede;
+import co.edu.ufps.legal_cases.business.model.catalogo.Tema;
+import co.edu.ufps.legal_cases.business.model.catalogo.Tipo;
+import co.edu.ufps.legal_cases.business.model.consulta.Consulta;
+import co.edu.ufps.legal_cases.business.model.perfil.Asesor;
+import co.edu.ufps.legal_cases.business.model.perfil.Estudiante;
+import co.edu.ufps.legal_cases.business.model.perfil.Monitor;
+import co.edu.ufps.legal_cases.business.model.persona.Persona;
+import co.edu.ufps.legal_cases.business.repository.catalogo.AreaRepository;
+import co.edu.ufps.legal_cases.business.repository.catalogo.SedeRepository;
+import co.edu.ufps.legal_cases.business.repository.catalogo.TemaRepository;
+import co.edu.ufps.legal_cases.business.repository.catalogo.TipoRepository;
+import co.edu.ufps.legal_cases.business.repository.consulta.ConsultaRepository;
+import co.edu.ufps.legal_cases.business.repository.perfil.AsesorRepository;
+import co.edu.ufps.legal_cases.business.repository.perfil.EstudianteRepository;
+import co.edu.ufps.legal_cases.business.repository.perfil.MonitorRepository;
+import co.edu.ufps.legal_cases.business.repository.persona.PersonaRepository;
+import co.edu.ufps.legal_cases.business.service.acceso.ConsultaAccessService;
+import co.edu.ufps.legal_cases.common.exception.BusinessException;
+import co.edu.ufps.legal_cases.security.dto.account.PerfilUsuarioActual;
+import co.edu.ufps.legal_cases.security.model.account.TipoPerfilUsuario;
+import lombok.AllArgsConstructor;
+
+// Este servicio maneja los cambios de Consulta en la BD
+// a diferencia del QueryService que solo lee
+@Service
+@AllArgsConstructor
+public class ConsultaCommandService {
+
+    private static final String ESTADO_ARCHIVADO = "Archivado";
+
+    private final ConsultaRepository consultaRepository;
+    private final PersonaRepository personaRepository;
+    private final SedeRepository sedeRepository;
+    private final AreaRepository areaRepository;
+    private final TemaRepository temaRepository;
+    private final TipoRepository tipoRepository;
+    private final AsesorRepository asesorRepository;
+    private final MonitorRepository monitorRepository;
+    private final EstudianteRepository estudianteRepository;
+    private final ConsultaAccessService consultaAccessService;
+    private final ConsultaValidator consultaValidator;
+    private final ConsultaMapper consultaMapper;
+
+    @Transactional
+    public ConsultaDTO crear(ConsultaDTO dto) {
+        consultaAccessService.validarPuedeCrearConsulta();
+        consultaValidator.validarIdNoEnviadoEnCreacion(dto.getId());
+        consultaValidator.validarCamposObligatorios(dto);
+
+        Consulta consulta = construirDesdeDTO(
+                new Consulta(),
+                dto,
+                consultaAccessService.usuarioPuedeAsignarResponsables());
+
+        if (!consultaAccessService.usuarioPuedeAsignarResponsables()) {
+            asignarResponsablesSegunUsuarioActual(consulta);
+        }
+
+        return consultaMapper.convertirADTO(consultaRepository.save(consulta));
+    }
+
+    @Transactional
+    public ConsultaDTO actualizar(Long id, ConsultaDTO dto) {
+        consultaAccessService.validarPuedeEditarConsulta(id);
+
+        Consulta existente = consultaRepository.findByIdConPartes(id)
+                .orElseThrow(() -> new BusinessException("Consulta no encontrada con id: " + id));
+        consultaRepository.findByIdConContrapartes(id);
+
+        consultaValidator.validarCamposObligatorios(dto);
+        consultaValidator.validarIdNoCambiado(existente.getId(), dto.getId());
+        consultaValidator.validarCambioEstadoPermitido(existente, dto);
+
+        construirDesdeDTO(
+                existente,
+                dto,
+                consultaAccessService.usuarioPuedeAsignarResponsables());
+
+        return consultaMapper.convertirADTO(consultaRepository.save(existente));
+    }
+
+    /**
+     * Se conserva el nombre eliminar por compatibilidad con el endpoint antiguo.
+     * Para evitar eliminar información, ahora funciona como archivado lógico.
+     */
+    @Transactional
+    public void eliminar(Long id) {
+        consultaAccessService.validarPuedeArchivarConsulta(id);
+
+        Consulta consulta = consultaRepository.findById(id)
+                .orElseThrow(() -> new BusinessException("Consulta no encontrada con id: " + id));
+
+        consulta.setEstado(ESTADO_ARCHIVADO);
+        consultaRepository.save(consulta);
+    }
+
+    @Transactional
+    public ConsultaDTO archivar(Long id) {
+        consultaAccessService.validarPuedeArchivarConsulta(id);
+
+        Consulta consulta = consultaRepository.findById(id)
+                .orElseThrow(() -> new BusinessException("Consulta no encontrada con id: " + id));
+
+        consulta.setEstado(ESTADO_ARCHIVADO);
+
+        return consultaMapper.convertirADTO(consultaRepository.save(consulta));
+    }
+
+    // -------------------------------------------------------------------------
+    // Helpers de lookup
+    // -------------------------------------------------------------------------
+
+    private Persona obtenerPersona(Long id) {
+        return personaRepository.findById(id)
+                .orElseThrow(() -> new BusinessException("Persona no encontrada con id: " + id));
+    }
+
+    private Sede obtenerSede(Long id) {
+        return sedeRepository.findById(id)
+                .orElseThrow(() -> new BusinessException("Sede no encontrada con id: " + id));
+    }
+
+    private Area obtenerArea(Long id) {
+        return areaRepository.findById(id)
+                .orElseThrow(() -> new BusinessException("Área no encontrada con id: " + id));
+    }
+
+    private Tema obtenerTema(Long id) {
+        return temaRepository.findById(id)
+                .orElseThrow(() -> new BusinessException("Tema no encontrado con id: " + id));
+    }
+
+    private Tipo obtenerTipo(Long id) {
+        if (id == null) return null;
+        return tipoRepository.findById(id)
+                .orElseThrow(() -> new BusinessException("Tipo no encontrado con id: " + id));
+    }
+
+    private Asesor obtenerAsesor(Long id) {
+        if (id == null) return null;
+        return asesorRepository.findById(id)
+                .orElseThrow(() -> new BusinessException("Asesor no encontrado con id: " + id));
+    }
+
+    private Monitor obtenerMonitor(Long id) {
+        if (id == null) return null;
+        return monitorRepository.findById(id)
+                .orElseThrow(() -> new BusinessException("Monitor no encontrado con id: " + id));
+    }
+
+    private Estudiante obtenerEstudiante(Long id) {
+        if (id == null) return null;
+        return estudianteRepository.findById(id)
+                .orElseThrow(() -> new BusinessException("Estudiante no encontrado con id: " + id));
+    }
+
+    // -------------------------------------------------------------------------
+    // Construcción y asignación
+    // -------------------------------------------------------------------------
+
+    private Consulta construirDesdeDTO(
+            Consulta consulta,
+            ConsultaDTO dto,
+            boolean puedeAsignarResponsables) {
+
+        consulta.setFecha(dto.getFecha());
+        consulta.setDescripcion(normalizarTexto(dto.getDescripcion()));
+        consulta.setHechos(normalizarTexto(dto.getHechos()));
+        consulta.setPretensiones(normalizarTexto(dto.getPretensiones()));
+        consulta.setConceptoJuridico(normalizarTexto(dto.getConceptoJuridico()));
+        consulta.setTramite(normalizarTexto(dto.getTramite()));
+        consulta.setObservaciones(normalizarTexto(dto.getObservaciones()));
+        consulta.setTipoViolencia(normalizarTexto(dto.getTipoViolencia()));
+        consulta.setEstado(normalizarTexto(dto.getEstado()));
+        consulta.setResultado(normalizarTexto(dto.getResultado()));
+
+        consulta.setPersona(obtenerPersona(dto.getPersonaId()));
+        consulta.setSede(obtenerSede(dto.getSedeId()));
+        consulta.setArea(obtenerArea(dto.getAreaId()));
+        consulta.setTema(obtenerTema(dto.getTemaId()));
+        consulta.setTipo(obtenerTipo(dto.getTipoId()));
+
+        if (puedeAsignarResponsables) {
+            consulta.setAsesor(obtenerAsesor(dto.getAsesorId()));
+            consulta.setMonitor(obtenerMonitor(dto.getMonitorId()));
+            consulta.setEstudiante(obtenerEstudiante(dto.getEstudianteId()));
+        }
+
+        if (dto.getPartesIds() != null) {
+            List<Persona> partes = dto.getPartesIds().stream()
+                    .map(this::obtenerPersona).toList();
+            consulta.getPartes().clear();
+            consulta.getPartes().addAll(partes);
+        } else {
+            consulta.getPartes().clear();
+        }
+
+        if (dto.getContrapartesIds() != null) {
+            List<Persona> contrapartes = dto.getContrapartesIds().stream()
+                    .map(this::obtenerPersona).toList();
+            consulta.getContrapartes().clear();
+            consulta.getContrapartes().addAll(contrapartes);
+        } else {
+            consulta.getContrapartes().clear();
+        }
+
+        return consulta;
+    }
+
+    private void asignarResponsablesSegunUsuarioActual(Consulta consulta) {
+        PerfilUsuarioActual perfil = consultaAccessService.obtenerPerfilActual();
+
+        if (perfil.getTipoPerfil() == TipoPerfilUsuario.ESTUDIANTE) {
+            Estudiante estudiante = obtenerEstudiante(perfil.getPerfilId());
+            consulta.setEstudiante(estudiante);
+            consulta.setAsesor(estudiante.getAsesor());
+            return;
+        }
+
+        if (perfil.getTipoPerfil() == TipoPerfilUsuario.ASESOR) {
+            consulta.setAsesor(obtenerAsesor(perfil.getPerfilId()));
+            return;
+        }
+
+        if (perfil.getTipoPerfil() == TipoPerfilUsuario.MONITOR) {
+            consulta.setMonitor(obtenerMonitor(perfil.getPerfilId()));
+        }
+    }
+}

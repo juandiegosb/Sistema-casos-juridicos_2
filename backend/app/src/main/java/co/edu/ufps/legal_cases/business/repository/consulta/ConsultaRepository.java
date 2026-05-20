@@ -9,7 +9,7 @@ import org.springframework.data.repository.query.Param;
 
 import org.springframework.stereotype.Repository;
 
-import co.edu.ufps.legal_cases.business.dto.seguimiento.SeguimientoDestinatarioDTO;
+import co.edu.ufps.legal_cases.business.dto.seguimiento.notificacion.SeguimientoDestinatarioDTO;
 import co.edu.ufps.legal_cases.business.model.consulta.Consulta;
 
 @Repository
@@ -36,22 +36,96 @@ public interface ConsultaRepository extends JpaRepository<Consulta, Long> {
         @Query("""
                         SELECT c FROM Consulta c
                         JOIN c.persona p
-                        WHERE :search IS NULL OR :search = ''
+                        WHERE LOWER(c.estado) <> 'archivado'
+                          AND (:search IS NULL OR :search = ''
                            OR LOWER(c.descripcion)       LIKE LOWER(CONCAT('%', :search, '%'))
                            OR LOWER(p.nombres)           LIKE LOWER(CONCAT('%', :search, '%'))
                            OR LOWER(p.apellidos)         LIKE LOWER(CONCAT('%', :search, '%'))
-                           OR LOWER(p.numeroDocumento)   LIKE LOWER(CONCAT('%', :search, '%'))
+                           OR LOWER(p.numeroDocumento)   LIKE LOWER(CONCAT('%', :search, '%')))
                         ORDER BY c.fecha DESC
                         """)
         List<Consulta> buscar(@Param("search") String search);
 
-        // Búsqueda filtrada por rol del usuario autenticado.
-        // Los parámetros de filtro son opcionales: si vienen null, esa condición se ignora.
-        // ADMINISTRATIVO y CONCILIADOR pasan todos null → ven todas las consultas.
+        // Búsqueda para administrador.
+        // El administrador puede ver todas las consultas activas.
         @Query("""
                         SELECT c FROM Consulta c
                         JOIN c.persona p
-                        WHERE (:search IS NULL OR :search = ''
+                        WHERE LOWER(c.estado) <> 'archivado'
+                          AND (:search IS NULL OR :search = ''
+                           OR LOWER(c.descripcion)       LIKE LOWER(CONCAT('%', :search, '%'))
+                           OR LOWER(p.nombres)           LIKE LOWER(CONCAT('%', :search, '%'))
+                           OR LOWER(p.apellidos)         LIKE LOWER(CONCAT('%', :search, '%'))
+                           OR LOWER(p.numeroDocumento)   LIKE LOWER(CONCAT('%', :search, '%')))
+                        ORDER BY c.fecha DESC
+                        """)
+        List<Consulta> buscarParaAdministrador(@Param("search") String search);
+
+        // Búsqueda para estudiante.
+        // El estudiante solo ve las consultas asociadas a su perfil.
+        @Query("""
+                        SELECT c FROM Consulta c
+                        JOIN c.persona p
+                        WHERE LOWER(c.estado) <> 'archivado'
+                          AND (:search IS NULL OR :search = ''
+                           OR LOWER(c.descripcion)       LIKE LOWER(CONCAT('%', :search, '%'))
+                           OR LOWER(p.nombres)           LIKE LOWER(CONCAT('%', :search, '%'))
+                           OR LOWER(p.apellidos)         LIKE LOWER(CONCAT('%', :search, '%'))
+                           OR LOWER(p.numeroDocumento)   LIKE LOWER(CONCAT('%', :search, '%')))
+                          AND c.estudiante.id = :estudianteId
+                        ORDER BY c.fecha DESC
+                        """)
+        List<Consulta> buscarParaEstudiante(
+                        @Param("search") String search,
+                        @Param("estudianteId") Long estudianteId);
+
+        // Búsqueda para asesor.
+        // El asesor ve consultas asignadas directamente a él
+        // y consultas de estudiantes que pertenecen a su asesoría.
+        @Query("""
+                        SELECT c FROM Consulta c
+                        JOIN c.persona p
+                        WHERE LOWER(c.estado) <> 'archivado'
+                          AND (:search IS NULL OR :search = ''
+                           OR LOWER(c.descripcion)       LIKE LOWER(CONCAT('%', :search, '%'))
+                           OR LOWER(p.nombres)           LIKE LOWER(CONCAT('%', :search, '%'))
+                           OR LOWER(p.apellidos)         LIKE LOWER(CONCAT('%', :search, '%'))
+                           OR LOWER(p.numeroDocumento)   LIKE LOWER(CONCAT('%', :search, '%')))
+                          AND (
+                                c.asesor.id = :asesorId
+                                OR c.estudiante.asesor.id = :asesorId
+                          )
+                        ORDER BY c.fecha DESC
+                        """)
+        List<Consulta> buscarParaAsesor(
+                        @Param("search") String search,
+                        @Param("asesorId") Long asesorId);
+
+        // Búsqueda para monitor.
+        // El monitor solo ve consultas donde está asignado.
+        @Query("""
+                        SELECT c FROM Consulta c
+                        JOIN c.persona p
+                        WHERE LOWER(c.estado) <> 'archivado'
+                          AND (:search IS NULL OR :search = ''
+                           OR LOWER(c.descripcion)       LIKE LOWER(CONCAT('%', :search, '%'))
+                           OR LOWER(p.nombres)           LIKE LOWER(CONCAT('%', :search, '%'))
+                           OR LOWER(p.apellidos)         LIKE LOWER(CONCAT('%', :search, '%'))
+                           OR LOWER(p.numeroDocumento)   LIKE LOWER(CONCAT('%', :search, '%')))
+                          AND c.monitor.id = :monitorId
+                        ORDER BY c.fecha DESC
+                        """)
+        List<Consulta> buscarParaMonitor(
+                        @Param("search") String search,
+                        @Param("monitorId") Long monitorId);
+
+        // Búsqueda filtrada anterior.
+        // Se conserva temporalmente para no romper llamadas existentes mientras se migra el service.
+        @Query("""
+                        SELECT c FROM Consulta c
+                        JOIN c.persona p
+                        WHERE LOWER(c.estado) <> 'archivado'
+                          AND (:search IS NULL OR :search = ''
                            OR LOWER(c.descripcion)       LIKE LOWER(CONCAT('%', :search, '%'))
                            OR LOWER(p.nombres)           LIKE LOWER(CONCAT('%', :search, '%'))
                            OR LOWER(p.apellidos)         LIKE LOWER(CONCAT('%', :search, '%'))
@@ -69,7 +143,7 @@ public interface ConsultaRepository extends JpaRepository<Consulta, Long> {
 
         // Destinatario principal de la consulta.
         @Query("""
-                        SELECT new co.edu.ufps.legal_cases.business.dto.seguimiento.SeguimientoDestinatarioDTO(
+                        SELECT new co.edu.ufps.legal_cases.business.dto.seguimiento.notificacion.SeguimientoDestinatarioDTO(
                             p.correo,
                             TRIM(CONCAT(CONCAT(COALESCE(p.nombres, ''), ' '), COALESCE(p.apellidos, '')))
                         )
@@ -84,7 +158,7 @@ public interface ConsultaRepository extends JpaRepository<Consulta, Long> {
 
         // Partes adicionales de la consulta.
         @Query("""
-                        SELECT new co.edu.ufps.legal_cases.business.dto.seguimiento.SeguimientoDestinatarioDTO(
+                        SELECT new co.edu.ufps.legal_cases.business.dto.seguimiento.notificacion.SeguimientoDestinatarioDTO(
                             p.correo,
                             TRIM(CONCAT(CONCAT(COALESCE(p.nombres, ''), ' '), COALESCE(p.apellidos, '')))
                         )
@@ -99,7 +173,7 @@ public interface ConsultaRepository extends JpaRepository<Consulta, Long> {
 
         // Contrapartes de la consulta.
         @Query("""
-                        SELECT new co.edu.ufps.legal_cases.business.dto.seguimiento.SeguimientoDestinatarioDTO(
+                        SELECT new co.edu.ufps.legal_cases.business.dto.seguimiento.notificacion.SeguimientoDestinatarioDTO(
                             p.correo,
                             TRIM(CONCAT(CONCAT(COALESCE(p.nombres, ''), ' '), COALESCE(p.apellidos, '')))
                         )
@@ -114,7 +188,7 @@ public interface ConsultaRepository extends JpaRepository<Consulta, Long> {
 
         // Estudiante asignado a la consulta.
         @Query("""
-                        SELECT new co.edu.ufps.legal_cases.business.dto.seguimiento.SeguimientoDestinatarioDTO(
+                        SELECT new co.edu.ufps.legal_cases.business.dto.seguimiento.notificacion.SeguimientoDestinatarioDTO(
                             e.email,
                             e.nombre
                         )
@@ -125,4 +199,6 @@ public interface ConsultaRepository extends JpaRepository<Consulta, Long> {
                         """)
         Optional<SeguimientoDestinatarioDTO> findDestinatarioEstudianteByConsultaId(
                         @Param("consultaId") Long consultaId);
+
+        List<Consulta> findByEstadoIgnoreCase(String estado);
 }
