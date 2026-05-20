@@ -1,183 +1,277 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
-
 import { FormInput } from "./parts/FormInput";
 import { FormSelect } from "./parts/FormSelect";
 import { FormCheckbox } from "./parts/FormCheckbox";
 import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
 import { API_URL_BASE } from "@/lib/config";
+import { PERMISOS } from "@/lib/permission";
+import { tieneAlgunPermiso, tienePermiso } from "@/lib/authz";
+
+const REQUIRED = "Campo obligatorio";
+
+const PERMISO_GESTIONAR_USUARIOS_LEGACY = "Gestionar usuarios";
+
+function mapOption(item) {
+  return {
+    value: item.id,
+    label:
+      item.displayName ||
+      item.nombre ||
+      item.descripcion ||
+      item.codigo ||
+      String(item.id),
+  };
+}
+
+function extraerLista(data) {
+  if (Array.isArray(data)) return data;
+  if (Array.isArray(data?.content)) return data.content;
+  if (Array.isArray(data?.data)) return data.data;
+  if (Array.isArray(data?.items)) return data.items;
+  if (Array.isArray(data?.rows)) return data.rows;
+  return [];
+}
+
+function puedeCrearUsuariosUsuario(usuario) {
+  return tieneAlgunPermiso(usuario, [
+    PERMISOS.CREAR_USUARIOS,
+    PERMISO_GESTIONAR_USUARIOS_LEGACY,
+  ]);
+}
+
+function puedeGestionarAdministradoresUsuario(usuario) {
+  return tienePermiso(usuario, PERMISOS.GESTIONAR_ADMINISTRADORES);
+}
+
+function puedeVerCatalogosUsuario(usuario) {
+  return tieneAlgunPermiso(usuario, [
+    PERMISOS.VER_CATALOGOS,
+    PERMISOS.GESTIONAR_CATALOGOS,
+  ]);
+}
 
 export function UsuarioSistemaForm() {
   const router = useRouter();
+
   const [checking, setChecking] = useState(true);
+  const [user, setUser] = useState(null);
+  const [guardando, setGuardando] = useState(false);
+  const [tiposDocumento, setTiposDocumento] = useState([]);
+  const [sedes, setSedes] = useState([]);
+  const [areas, setAreas] = useState([]);
+  const [asesores, setAsesores] = useState([]);
 
   const {
     register,
     handleSubmit,
     watch,
     reset,
-    formState: { errors }
-  } = useForm();
-
-  const [mounted, setMounted] = useState(false);
-  const [tiposDocumento, setTiposDocumento] = useState([]);
-  const [sedes, setSedes] = useState([]);
-  const [areas, setAreas] = useState([]);
-  const [asesores, setAsesores] = useState([]);
-
-  const REQUIRED = "Campo obligatorio";
-
-  useEffect(() => {
-    const verificar = async () => {
-      try {
-        const res = await fetch(`${API_URL_BASE}/auth/me`, {
-          method: "GET",
-          credentials: "include",
-        });
-
-        if (res.status === 401) {
-          router.push("/");
-          return;
-        }
-
-        const user = await res.json();
-
-        if (!user.permisos?.includes("Gestionar usuarios")) {
-          router.push("/inicio");
-          return;
-        }
-      } catch {
-        router.push("/");
-      } finally {
-        setChecking(false);
-      }
-    };
-
-    verificar();
-  }, [router]);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  useEffect(() => {
-    const cargarTipos = async () => {
-      try {
-        const res = await fetch(`${API_URL_BASE}/tipos-documento`, {
-          credentials: "include",
-        });
-
-        if (res.status === 401) {
-          router.push("/");
-          return;
-        }
-
-        const data = await res.json();
-
-        setTiposDocumento(
-          data.map(t => ({
-            value: t.id,
-            label: t.displayName
-          }))
-        );
-      } catch {
-        toast.error("Error cargando tipos de documento");
-      }
-    };
-
-    cargarTipos();
-  }, [router]);
-
-  useEffect(() => {
-    const cargar = async () => {
-      try {
-        const [sedesRes, areasRes, asesoresRes] = await Promise.all([
-          fetch(`${API_URL_BASE}/sedes`, { credentials: "include" }),
-          fetch(`${API_URL_BASE}/areas`, { credentials: "include" }),
-          fetch(`${API_URL_BASE}/asesores`, { credentials: "include" })
-        ]);
-
-        if (sedesRes.status === 401 || areasRes.status === 401 || asesoresRes.status === 401) {
-          router.push("/");
-          return;
-        }
-
-        if (sedesRes.status === 403 || areasRes.status === 403 || asesoresRes.status === 403) {
-          router.push("/inicio");
-          return;
-        }
-
-        const sedesData = await sedesRes.json();
-        const areasData = await areasRes.json();
-        const asesoresData = await asesoresRes.json();
-
-        setSedes(sedesData.map(s => ({ value: s.id, label: s.nombre })));
-        setAreas(areasData.map(a => ({ value: a.id, label: a.nombre })));
-        setAsesores(
-          asesoresData.map(a => ({
-            value: a.id,
-            label: `${a.nombre} - ${a.documento}`
-          }))
-        );
-      } catch {
-        toast.error("Error cargando datos");
-      }
-    };
-
-    cargar();
-  }, [router]);
-
-  if (checking || !mounted) return <div className="text-center mt-10">Cargando...</div>;
+    formState: { errors },
+  } = useForm({
+    defaultValues: {
+      rol: "",
+      nombre: "",
+      tipoDocumentoId: "",
+      documento: "",
+      email: "",
+      telefono: "",
+      usuario: "",
+      codigo: "",
+      sedeId: "",
+      areaId: "",
+      asesorId: "",
+      conciliacion: false,
+      directora: false,
+      tipoConciliador: "",
+    },
+  });
 
   const rol = watch("rol") || "";
 
-  const roles = [
-    { value: "administrativos", label: "Administrativo" },
-    { value: "asesores", label: "Asesor" },
-    { value: "conciliadores", label: "Conciliador" },
-    { value: "estudiantes", label: "Estudiante" },
-    { value: "monitores", label: "Monitor" }
-  ];
+  const puedeCrearUsuarios = puedeCrearUsuariosUsuario(user);
+  const puedeGestionarAdministradores =
+    puedeGestionarAdministradoresUsuario(user);
 
-  const normalizePayload = (data) => {
-    const payload = {
-      ...data,
-      activo: true,
-      tipoDocumentoId: Number(data.tipoDocumentoId),
-      sedeId: Number(data.sedeId)
-    };
+  const roles = useMemo(() => {
+    const base = [
+      { value: "asesores", label: "Asesor" },
+      { value: "conciliadores", label: "Conciliador" },
+      { value: "estudiantes", label: "Estudiante" },
+      { value: "monitores", label: "Monitor" },
+    ];
 
-    if (data.areaId) payload.areaId = Number(data.areaId);
-    if (data.asesorId) payload.asesorId = Number(data.asesorId);
+    return puedeGestionarAdministradores
+      ? [{ value: "administrativos", label: "Administrativo" }, ...base]
+      : base;
+  }, [puedeGestionarAdministradores]);
 
-    return payload;
-  };
+  useEffect(() => {
+    verificarYCargar();
+  }, []);
 
-  const onSubmit = async (data) => {
+  async function fetchLista(url, mensaje403) {
+    const res = await fetch(url, { credentials: "include" });
+
+    if (res.status === 401) {
+      router.push("/");
+      return [];
+    }
+
+    if (res.status === 403) {
+      toast.error(mensaje403);
+      return [];
+    }
+
+    if (!res.ok) {
+      return [];
+    }
+
+    const data = await res.json();
+    return extraerLista(data);
+  }
+
+  async function verificarYCargar() {
     try {
-      const endpoint = `${API_URL_BASE}/${rol}`;
+      const res = await fetch(`${API_URL_BASE}/auth/me`, {
+        credentials: "include",
+      });
 
-      const tipoDocumentoSeleccionado = tiposDocumento.find(
-        (tipo) => tipo.value === Number(data.tipoDocumentoId)
-      );
-
-      if (!tipoDocumentoSeleccionado) {
-        toast.error("Seleccione un tipo de documento válido");
+      if (res.status === 401) {
+        router.push("/");
         return;
       }
 
-      const payload = normalizePayload(data);
+      if (!res.ok) {
+        toast.error("No se pudo validar la sesión");
+        router.push("/");
+        return;
+      }
 
-      const res = await fetch(endpoint, {
+      const usuarioActual = await res.json();
+      setUser(usuarioActual);
+
+      const autorizado =
+        puedeCrearUsuariosUsuario(usuarioActual) ||
+        puedeGestionarAdministradoresUsuario(usuarioActual);
+
+      if (!autorizado) {
+        toast.error("No tienes permisos para crear usuarios");
+        router.push("/inicio");
+        return;
+      }
+
+      if (!puedeVerCatalogosUsuario(usuarioActual)) {
+        toast.error("No tienes permiso para cargar catálogos");
+        return;
+      }
+
+      const [tiposData, sedesData, areasData, asesoresData] =
+        await Promise.all([
+          fetchLista(
+            `${API_URL_BASE}/tipos-documento/activos`,
+            "No tienes permiso para consultar tipos de documento"
+          ),
+          fetchLista(
+            `${API_URL_BASE}/sedes`,
+            "No tienes permiso para consultar sedes"
+          ),
+          fetchLista(
+            `${API_URL_BASE}/areas`,
+            "No tienes permiso para consultar áreas"
+          ),
+          fetchLista(
+            `${API_URL_BASE}/asesores/activos`,
+            "No tienes permiso para consultar asesores"
+          ),
+        ]);
+
+      setTiposDocumento(tiposData.map(mapOption));
+      setSedes(sedesData.map(mapOption));
+      setAreas(areasData.map(mapOption));
+      setAsesores(
+        asesoresData.map((asesor) => ({
+          value: asesor.id,
+          label: asesor.documento
+            ? `${asesor.nombre} - ${asesor.documento}`
+            : asesor.nombre || String(asesor.id),
+        }))
+      );
+    } catch (error) {
+      console.error(error);
+      toast.error("Error cargando el formulario");
+      router.push("/");
+    } finally {
+      setChecking(false);
+    }
+  }
+
+  function normalizarPayload(data) {
+    const {
+      rol: _rol,
+      tipoDocumentoId,
+      sedeId,
+      areaId,
+      asesorId,
+      conciliacion,
+      directora,
+      tipoConciliador,
+      ...rest
+    } = data;
+
+    const payload = {
+      ...rest,
+      activo: true,
+      tipoDocumentoId: tipoDocumentoId ? Number(tipoDocumentoId) : null,
+      sedeId: sedeId ? Number(sedeId) : null,
+    };
+
+    if (areaId) payload.areaId = Number(areaId);
+    if (asesorId) payload.asesorId = Number(asesorId);
+    if (rol === "estudiantes") payload.conciliacion = Boolean(conciliacion);
+    if (rol === "administrativos") payload.directora = Boolean(directora);
+    if (rol === "conciliadores") payload.tipoConciliador = tipoConciliador;
+
+    return payload;
+  }
+
+  async function onSubmit(data) {
+    if (!rol) {
+      toast.error("Selecciona un tipo de usuario");
+      return;
+    }
+
+    if (rol === "administrativos" && !puedeGestionarAdministradores) {
+      toast.error("No tienes permiso para gestionar administradores");
+      return;
+    }
+
+    if (rol !== "administrativos" && !puedeCrearUsuarios) {
+      toast.error("No tienes permiso para crear usuarios");
+      return;
+    }
+
+    if (
+      !tiposDocumento.some(
+        (tipo) => Number(tipo.value) === Number(data.tipoDocumentoId)
+      )
+    ) {
+      toast.error("Seleccione un tipo de documento válido");
+      return;
+    }
+
+    try {
+      setGuardando(true);
+
+      const res = await fetch(`${API_URL_BASE}/${rol}`, {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload)
+        body: JSON.stringify(normalizarPayload(data)),
       });
 
       if (res.status === 401) {
@@ -186,78 +280,85 @@ export function UsuarioSistemaForm() {
       }
 
       if (res.status === 403) {
-        router.push("/inicio");
+        toast.error("No tienes permiso para crear este tipo de usuario");
         return;
       }
 
-      if (!res.ok) throw new Error();
+      if (!res.ok) {
+        let mensaje = "Error al crear usuario";
+
+        try {
+          const error = await res.json();
+          mensaje = error.mensaje || error.message || mensaje;
+        } catch {}
+
+        throw new Error(mensaje);
+      }
 
       toast.success("Usuario creado correctamente");
       reset();
-    } catch {
-      toast.error("Error al crear usuario");
+    } catch (error) {
+      console.error(error);
+      toast.error(error.message || "Error al crear usuario");
+    } finally {
+      setGuardando(false);
     }
-  };
+  }
 
-  const camposBase = (
-    <>
-      <FormInput name="nombre" label="Nombre" register={register} errors={errors} rules={{ required: REQUIRED }} />
+  function renderTipoDocumento() {
+    if (tiposDocumento.length === 0) {
+      return <Aviso>No se cargaron tipos de documento.</Aviso>;
+    }
 
-      {tiposDocumento.length > 0 && (
-        <div className="flex flex-col gap-1.5 w-full">
-          <label className="text-sm font-medium">Tipo de Documento</label>
-          <select
-            defaultValue=""
-            {...register("tipoDocumentoId", { required: REQUIRED, valueAsNumber: true })}
-            className={`flex h-8 w-full rounded-lg border px-2.5 py-1 ${errors?.tipoDocumentoId ? "border-red-500" : ""}`}
-          >
-            <option value="">Seleccione una opción</option>
-            {tiposDocumento.map(opt => (
-              <option key={opt.value} value={opt.value}>{opt.label}</option>
-            ))}
-          </select>
-          {errors?.tipoDocumentoId && (
-            <p className="text-xs text-red-500">{errors.tipoDocumentoId.message}</p>
-          )}
-        </div>
-      )}
+    return (
+      <div className="flex flex-col gap-1.5 w-full">
+        <label className="text-sm font-medium">Tipo de Documento</label>
+        <select
+          defaultValue=""
+          {...register("tipoDocumentoId", {
+            required: REQUIRED,
+            valueAsNumber: true,
+          })}
+          className={`flex h-8 w-full rounded-lg border bg-background px-2.5 py-1 text-sm ${
+            errors?.tipoDocumentoId ? "border-red-500" : ""
+          }`}
+        >
+          <option value="">Seleccione una opción</option>
+          {tiposDocumento.map((option) => (
+            <option key={option.value} value={option.value}>
+              {option.label}
+            </option>
+          ))}
+        </select>
+        {errors?.tipoDocumentoId && (
+          <p className="text-xs text-red-500">
+            {errors.tipoDocumentoId.message}
+          </p>
+        )}
+      </div>
+    );
+  }
 
-      <FormInput name="documento" label="Documento" register={register} errors={errors} rules={{ required: REQUIRED }} />
-      <FormInput name="email" label="Email" register={register} errors={errors} rules={{ required: REQUIRED }} />
-      <FormInput name="telefono" label="Teléfono" register={register} errors={errors} rules={{ required: REQUIRED }} />
-      <FormInput name="usuario" label="Usuario" register={register} errors={errors} rules={{ required: REQUIRED }} />
-      <FormInput name="codigo" label="Código" register={register} errors={errors} rules={{ required: REQUIRED }} />
-
-      {sedes.length > 0 && (
+  function renderCamposRol() {
+    if (rol === "asesores") {
+      return areas.length > 0 ? (
         <FormSelect
-          name="sedeId"
-          label="Sede"
-          options={sedes}
+          name="areaId"
+          label="Área"
+          options={areas}
           register={register}
           errors={errors}
           rules={{ required: REQUIRED, valueAsNumber: true }}
         />
-      )}
-    </>
-  );
+      ) : (
+        <Aviso>No se cargaron áreas.</Aviso>
+      );
+    }
 
-  const renderCamposRol = () => {
-    switch (rol) {
-      case "asesores":
-        return (
-          <FormSelect
-            name="areaId"
-            label="Área"
-            options={areas}
-            register={register}
-            errors={errors}
-            rules={{ required: REQUIRED, valueAsNumber: true }}
-          />
-        );
-
-      case "estudiantes":
-        return (
-          <>
+    if (rol === "estudiantes") {
+      return (
+        <>
+          {asesores.length > 0 ? (
             <FormSelect
               name="asesorId"
               label="Asesor"
@@ -266,66 +367,164 @@ export function UsuarioSistemaForm() {
               errors={errors}
               rules={{ required: REQUIRED, valueAsNumber: true }}
             />
-            <FormCheckbox name="conciliacion" label="¿Conciliación?" register={register} />
-          </>
-        );
+          ) : (
+            <Aviso>No se cargaron asesores.</Aviso>
+          )}
 
-      case "administrativos":
-        return <FormCheckbox name="directora" label="¿Directora?" register={register} />;
-
-      case "conciliadores":
-        return (
-          <FormSelect
-            name="tipoConciliador"
-            label="Tipo"
-            options={[
-              { value: "INTERNO", label: "Interno" },
-              { value: "EXTERNO", label: "Externo" }
-            ]}
+          <FormCheckbox
+            name="conciliacion"
+            label="¿Conciliación?"
             register={register}
-            errors={errors}
-            rules={{ required: REQUIRED }}
           />
-        );
-
-      default:
-        return null;
+        </>
+      );
     }
-  };
+
+    if (rol === "administrativos") {
+      return (
+        <FormCheckbox
+          name="directora"
+          label="¿Directora?"
+          register={register}
+        />
+      );
+    }
+
+    if (rol === "conciliadores") {
+      return (
+        <FormSelect
+          name="tipoConciliador"
+          label="Tipo"
+          options={[
+            { value: "INTERNO", label: "Interno" },
+            { value: "EXTERNO", label: "Externo" },
+          ]}
+          register={register}
+          errors={errors}
+          rules={{ required: REQUIRED }}
+        />
+      );
+    }
+
+    return null;
+  }
+
+  if (checking) {
+    return <div className="text-center mt-10">Cargando...</div>;
+  }
 
   return (
-    <div className="p-6 space-y-6 bg-card rounded-xl border shadow">
-      <h2 className="text-xl font-bold">Crear Usuario</h2>
+    <div className="rounded-xl border bg-card p-6 shadow">
+      <h2 className="mb-4 text-xl font-bold">Crear Usuario</h2>
 
-      <FormSelect
-        name="rol"
-        label="Tipo de Usuario"
-        options={roles}
-        register={register}
-        errors={errors}
-        rules={{ required: REQUIRED }}
-      />
+      <div className="space-y-5">
+        <FormSelect
+          name="rol"
+          label="Tipo de Usuario"
+          options={roles}
+          register={register}
+          errors={errors}
+          rules={{ required: REQUIRED }}
+        />
 
-      {rol && (
-        <>
-          <Separator />
+        {rol && (
+          <>
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <FormInput
+                name="nombre"
+                label="Nombre"
+                register={register}
+                errors={errors}
+                rules={{ required: REQUIRED }}
+              />
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {camposBase}
-            {renderCamposRol()}
-          </div>
+              {renderTipoDocumento()}
 
-          <div className="flex justify-end gap-4">
-            <Button variant="outline" onClick={() => reset()}>
-              Limpiar
-            </Button>
+              <FormInput
+                name="documento"
+                label="Documento"
+                register={register}
+                errors={errors}
+                rules={{ required: REQUIRED }}
+              />
 
-            <Button onClick={handleSubmit(onSubmit)}>
-              Crear Usuario
-            </Button>
-          </div>
-        </>
-      )}
+              <FormInput
+                name="email"
+                label="Email"
+                register={register}
+                errors={errors}
+                rules={{ required: REQUIRED }}
+              />
+
+              <FormInput
+                name="telefono"
+                label="Teléfono"
+                register={register}
+                errors={errors}
+                rules={{ required: REQUIRED }}
+              />
+
+              <FormInput
+                name="usuario"
+                label="Usuario"
+                register={register}
+                errors={errors}
+                rules={{ required: REQUIRED }}
+              />
+
+              <FormInput
+                name="codigo"
+                label="Código"
+                register={register}
+                errors={errors}
+                rules={{ required: REQUIRED }}
+              />
+
+              {sedes.length > 0 ? (
+                <FormSelect
+                  name="sedeId"
+                  label="Sede"
+                  options={sedes}
+                  register={register}
+                  errors={errors}
+                  rules={{ required: REQUIRED, valueAsNumber: true }}
+                />
+              ) : (
+                <Aviso>No se cargaron sedes.</Aviso>
+              )}
+
+              {renderCamposRol()}
+            </div>
+
+            <div className="flex justify-end gap-4">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => reset()}
+                disabled={guardando}
+              >
+                Limpiar
+              </Button>
+
+              <Button
+                type="button"
+                onClick={handleSubmit(onSubmit)}
+                disabled={guardando}
+              >
+                {guardando ? "Creando..." : "Crear Usuario"}
+              </Button>
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function Aviso({ children }) {
+  return (
+    <div className="rounded-lg border bg-muted/30 p-3 text-sm text-muted-foreground">
+      {children}
     </div>
   );
 }

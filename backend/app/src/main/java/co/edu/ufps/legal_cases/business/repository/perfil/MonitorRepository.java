@@ -4,8 +4,11 @@ import java.util.List;
 import java.util.Optional;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import co.edu.ufps.legal_cases.business.dto.seguimiento.notificacion.SeguimientoDestinatarioDTO;
 import co.edu.ufps.legal_cases.business.model.perfil.Monitor;
 
 @Repository
@@ -36,4 +39,17 @@ public interface MonitorRepository extends JpaRepository<Monitor, Long> {
     Optional<Monitor> findByUsuarioSistema_IdAndActivoTrue(Long usuarioSistemaId);
 
     Optional<Monitor> findByUsuarioSistema_Id(Long usuarioSistemaId);
+
+    // Para obtener los datos de notificar
+    @Query("""
+            SELECT new co.edu.ufps.legal_cases.business.dto.seguimiento.notificacion.SeguimientoDestinatarioDTO(
+                m.email,
+                m.nombre
+            )
+            FROM Monitor m
+            WHERE m.usuarioSistema.id = :usuarioSistemaId
+            AND m.activo = true
+            """)
+    Optional<SeguimientoDestinatarioDTO> findDestinatarioByUsuarioSistemaId(
+            @Param("usuarioSistemaId") Long usuarioSistemaId);
 }

@@ -27,7 +27,7 @@ public class UsuarioSistemaService {
         this.perfilUsuarioResolverService = perfilUsuarioResolverService;
     }
 
-    @Transactional(readOnly = true)
+    @Transactional(readOnly = true, noRollbackFor = BusinessException.class)
     public List<UsuarioSistemaDTO> listar() {
         return usuarioSistemaRepository.findAll()
                 .stream()
@@ -35,7 +35,7 @@ public class UsuarioSistemaService {
                 .toList();
     }
 
-    @Transactional(readOnly = true)
+    @Transactional(readOnly = true, noRollbackFor = BusinessException.class)
     public List<UsuarioSistemaDTO> listarActivos() {
         return usuarioSistemaRepository.findByActivoTrue()
                 .stream()

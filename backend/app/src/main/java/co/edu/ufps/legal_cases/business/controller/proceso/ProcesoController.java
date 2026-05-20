@@ -1,5 +1,8 @@
 package co.edu.ufps.legal_cases.business.controller.proceso;
 
+import static co.edu.ufps.legal_cases.security.constant.PermisoNombre.GESTIONAR_PROCESOS;
+import static co.edu.ufps.legal_cases.security.constant.PermisoNombre.VER_PROCESOS;
+
 import co.edu.ufps.legal_cases.business.dto.proceso.ProcesoDTO;
 import co.edu.ufps.legal_cases.business.service.proceso.ProcesoService;
 import jakarta.validation.Valid;
@@ -11,7 +14,6 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/procesos")
-@PreAuthorize("hasAuthority('Gestionar procesos')")
 public class ProcesoController {
 
     private final ProcesoService procesoService;
@@ -21,22 +23,26 @@ public class ProcesoController {
     }
 
     @GetMapping
+    @PreAuthorize("hasAuthority('" + VER_PROCESOS + "')")
     public List<ProcesoDTO> listar() {
         return procesoService.listar();
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasAuthority('" + VER_PROCESOS + "')")
     public ProcesoDTO obtenerPorId(@PathVariable Long id) {
         return procesoService.obtenerPorId(id);
     }
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
+    @PreAuthorize("hasAuthority('" + GESTIONAR_PROCESOS + "')")
     public ProcesoDTO crear(@Valid @RequestBody ProcesoDTO dto) {
         return procesoService.crear(dto);
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize("hasAuthority('" + GESTIONAR_PROCESOS + "')")
     public ProcesoDTO actualizar(
             @PathVariable Long id,
             @Valid @RequestBody ProcesoDTO dto
@@ -46,6 +52,7 @@ public class ProcesoController {
 
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
+    @PreAuthorize("hasAuthority('" + GESTIONAR_PROCESOS + "')")
     public void eliminar(@PathVariable Long id) {
         procesoService.eliminar(id);
     }

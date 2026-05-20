@@ -21,31 +21,26 @@ import co.edu.ufps.legal_cases.business.model.perfil.Administrativo;
 import co.edu.ufps.legal_cases.business.repository.catalogo.SedeRepository;
 import co.edu.ufps.legal_cases.business.repository.catalogo.TipoDocumentoRepository;
 import co.edu.ufps.legal_cases.business.repository.perfil.AdministrativoRepository;
+import co.edu.ufps.legal_cases.business.service.acceso.AdministrativoAccessService;
 import co.edu.ufps.legal_cases.common.exception.BusinessException;
 import co.edu.ufps.legal_cases.security.model.account.UsuarioSistema;
 import co.edu.ufps.legal_cases.security.service.account.UsuarioSistemaRegistroService;
 import jakarta.transaction.Transactional;
+import lombok.AllArgsConstructor;
 
 @Service
+@AllArgsConstructor
 public class AdministrativoService {
 
     private final AdministrativoRepository administrativoRepository;
     private final TipoDocumentoRepository tipoDocumentoRepository;
     private final SedeRepository sedeRepository;
     private final UsuarioSistemaRegistroService usuarioSistemaRegistroService;
-
-    public AdministrativoService(
-            AdministrativoRepository administrativoRepository,
-            TipoDocumentoRepository tipoDocumentoRepository,
-            SedeRepository sedeRepository,
-            UsuarioSistemaRegistroService usuarioSistemaRegistroService) {
-        this.administrativoRepository = administrativoRepository;
-        this.tipoDocumentoRepository = tipoDocumentoRepository;
-        this.sedeRepository = sedeRepository;
-        this.usuarioSistemaRegistroService = usuarioSistemaRegistroService;
-    }
+    private final AdministrativoAccessService administrativoAccessService;
 
     public List<AdministrativoDTO> listar() {
+        administrativoAccessService.validarPuedeVerAdministradores();
+
         return administrativoRepository.findAll()
                 .stream()
                 .map(this::convertirADTO)
@@ -53,6 +48,8 @@ public class AdministrativoService {
     }
 
     public List<AdministrativoDTO> listarActivos() {
+        administrativoAccessService.validarPuedeVerAdministradores();
+
         return administrativoRepository.findByActivoTrue()
                 .stream()
                 .map(this::convertirADTO)
@@ -60,6 +57,8 @@ public class AdministrativoService {
     }
 
     public List<AdministrativoDTO> listarDirectoras() {
+        administrativoAccessService.validarPuedeVerAdministradores();
+
         return administrativoRepository.findByDirectoraTrue()
                 .stream()
                 .map(this::convertirADTO)
@@ -67,6 +66,8 @@ public class AdministrativoService {
     }
 
     public AdministrativoDTO obtenerPorId(Long id) {
+        administrativoAccessService.validarPuedeVerAdministradores();
+
         Administrativo administrativo = administrativoRepository.findById(id)
                 .orElseThrow(() -> new BusinessException("Administrativo no encontrado con id: " + id));
 
@@ -75,6 +76,9 @@ public class AdministrativoService {
 
     @Transactional
     public AdministrativoDTO crear(AdministrativoDTO dto) {
+        // Solo la directora puede crear otros administrativos.
+        administrativoAccessService.validarPuedeGestionarAdministradores();
+
         if (dto.getId() != null) {
             throw new BusinessException("El id no debe enviarse en la creación");
         }
@@ -120,7 +124,11 @@ public class AdministrativoService {
         return convertirADTO(administrativoActualizado);
     }
 
+    @Transactional
     public AdministrativoDTO actualizar(Long id, AdministrativoDTO dto) {
+        // Solo la directora puede modificar administrativos.
+        administrativoAccessService.validarPuedeGestionarAdministradores();
+
         Administrativo existente = administrativoRepository.findById(id)
                 .orElseThrow(() -> new BusinessException("Administrativo no encontrado con id: " + id));
 
@@ -173,7 +181,11 @@ public class AdministrativoService {
         return convertirADTO(administrativoRepository.save(existente));
     }
 
+    @Transactional
     public AdministrativoDTO cambiarEstado(Long id, Boolean activo) {
+        // Solo la directora puede activar o desactivar administrativos.
+        administrativoAccessService.validarPuedeGestionarAdministradores();
+
         Administrativo administrativo = administrativoRepository.findById(id)
                 .orElseThrow(() -> new BusinessException("Administrativo no encontrado con id: " + id));
 
@@ -189,7 +201,11 @@ public class AdministrativoService {
         return convertirADTO(administrativoRepository.save(administrativo));
     }
 
+    @Transactional
     public AdministrativoDTO cambiarDirectora(Long id, Boolean directora) {
+        // Solo la directora actual puede cambiar el estado de directora.
+        administrativoAccessService.validarPuedeGestionarAdministradores();
+
         Administrativo administrativo = administrativoRepository.findById(id)
                 .orElseThrow(() -> new BusinessException("Administrativo no encontrado con id: " + id));
 
@@ -205,7 +221,11 @@ public class AdministrativoService {
         return convertirADTO(administrativoRepository.save(administrativo));
     }
 
+    @Transactional
     public void eliminar(Long id) {
+        // Solo la directora puede eliminar administrativos.
+        administrativoAccessService.validarPuedeGestionarAdministradores();
+
         Administrativo administrativo = administrativoRepository.findById(id)
                 .orElseThrow(() -> new BusinessException("Administrativo no encontrado con id: " + id));
 
@@ -334,7 +354,7 @@ public class AdministrativoService {
         return dto;
     }
 
-    // Como ell numero de documento es opcional aparte de normalizar con la utilidad
+    // Como el numero de documento es opcional aparte de normalizar con la utilidad
     // se agrega esta funcion para convertir " " en null
     private String normalizarDocumentoOpcional(String valor) {
         String documento = normalizarNumeroDocumento(valor);

@@ -1,5 +1,11 @@
 package co.edu.ufps.legal_cases.security.controller.access;
 
+import static co.edu.ufps.legal_cases.security.constant.PermisoNombre.ASIGNAR_PERMISOS_A_ROLES;
+import static co.edu.ufps.legal_cases.security.constant.PermisoNombre.CREAR_ROLES;
+import static co.edu.ufps.legal_cases.security.constant.PermisoNombre.EDITAR_ROLES;
+import static co.edu.ufps.legal_cases.security.constant.PermisoNombre.GESTIONAR_ROLES;
+import static co.edu.ufps.legal_cases.security.constant.PermisoNombre.VER_ROLES;
+
 import java.util.List;
 
 import org.springframework.http.HttpStatus;
@@ -12,7 +18,6 @@ import jakarta.validation.Valid;
 
 @RestController
 @RequestMapping("/api/roles")
-@PreAuthorize("hasAuthority('Gestionar roles')")
 public class RolController {
 
     private final RolService rolService;
@@ -22,37 +27,44 @@ public class RolController {
     }
 
     @GetMapping
+    @PreAuthorize("hasAnyAuthority('" + GESTIONAR_ROLES + "', '" + VER_ROLES + "')")
     public List<RolDTO> listar() {
         return rolService.listar();
     }
 
     @GetMapping("/activos")
+    @PreAuthorize("hasAnyAuthority('" + GESTIONAR_ROLES + "', '" + VER_ROLES + "')")
     public List<RolDTO> listarActivos() {
         return rolService.listarActivos();
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasAnyAuthority('" + GESTIONAR_ROLES + "', '" + VER_ROLES + "')")
     public RolDTO obtenerPorId(@PathVariable Long id) {
         return rolService.obtenerPorId(id);
     }
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
+    @PreAuthorize("hasAnyAuthority('" + GESTIONAR_ROLES + "', '" + CREAR_ROLES + "')")
     public RolDTO crear(@Valid @RequestBody RolDTO dto) {
         return rolService.crear(dto);
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize("hasAnyAuthority('" + GESTIONAR_ROLES + "', '" + EDITAR_ROLES + "')")
     public RolDTO actualizar(@PathVariable Long id, @Valid @RequestBody RolDTO dto) {
         return rolService.actualizar(id, dto);
     }
 
     @PatchMapping("/{id}/activo")
+    @PreAuthorize("hasAnyAuthority('" + GESTIONAR_ROLES + "', '" + EDITAR_ROLES + "')")
     public RolDTO cambiarEstado(@PathVariable Long id, @RequestParam Boolean activo) {
         return rolService.cambiarEstado(id, activo);
     }
 
     @PatchMapping("/{rolId}/permisos/{permisoId}")
+    @PreAuthorize("hasAnyAuthority('" + GESTIONAR_ROLES + "', '" + ASIGNAR_PERMISOS_A_ROLES + "')")
     public RolDTO asignarPermiso(
             @PathVariable Long rolId,
             @PathVariable Long permisoId) {
@@ -60,6 +72,7 @@ public class RolController {
     }
 
     @DeleteMapping("/{rolId}/permisos/{permisoId}")
+    @PreAuthorize("hasAnyAuthority('" + GESTIONAR_ROLES + "', '" + ASIGNAR_PERMISOS_A_ROLES + "')")
     public RolDTO quitarPermiso(
             @PathVariable Long rolId,
             @PathVariable Long permisoId) {

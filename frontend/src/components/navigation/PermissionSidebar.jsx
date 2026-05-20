@@ -4,75 +4,123 @@ import * as React from "react";
 import { useRouter } from "next/navigation";
 import { AppSidebar } from "@/components/app-sidebar";
 import { API_URL_BASE } from "@/lib/config";
+import { PERMISOS } from "@/lib/permission";
+import {
+  tieneAlgunPermiso,
+  tieneTodosLosPermisos,
+} from "@/lib/authz";
+
+const PERMISO_VER_PROCESOS = PERMISOS.VER_PROCESOS || "Ver procesos";
+const PERMISO_GESTIONAR_PROCESOS =
+  PERMISOS.GESTIONAR_PROCESOS || "Gestionar procesos";
 
 const SIDEBAR_PAGES = [
   {
     title: "Inicio",
     tooltip: "Inicio",
     path: "/inicio",
-    authOnly: true,
+    requiredPermissions: [PERMISOS.ACCEDER_INICIO],
+  },
+  {
+    title: "Recepción",
+    tooltip: "Recepción de personas",
+    path: "/recepcion",
+    requiredPermissions: [PERMISOS.ACCEDER_RECEPCION],
+  },
+  {
+    title: "Personas",
+    tooltip: "Personas",
+    path: "/personas",
+    requiredPermissions: [PERMISOS.ACCEDER_PERSONAS],
   },
   {
     title: "Nueva consulta",
     tooltip: "Nueva consulta",
     path: "/nuevaconsulta",
-    requiredPermissions: ["Gestionar consultas"],
+    requiredPermissions: [PERMISOS.ACCEDER_NUEVA_CONSULTA],
   },
   {
-    title: "Consultas juridicas",
-    tooltip: "Consultas juridicas",
+    title: "Consultas jurídicas",
+    tooltip: "Consultas jurídicas",
     path: "/consultasjuridicas",
-    requiredPermissions: ["Gestionar consultas"],
+    requiredPermissions: [PERMISOS.ACCEDER_CONSULTAS_JURIDICAS],
   },
   {
-    title: "admin",
-    tooltip: "Administración",
-    path: "/admin",
-    requiredPermissions: ["Gestionar catálogos", "Gestionar permisos"],
-    match: "any",
+    title: "Tareas",
+    tooltip: "Tareas y seguimientos",
+    path: "/tareas",
+    requiredPermissions: [PERMISOS.ACCEDER_TAREAS],
   },
   {
-    title: "Roles",
-    tooltip: "Roles / Usuarios",
-    path: "/roles",
-    requiredPermissions: ["Gestionar usuarios"],
+    title: "Nuevo proceso",
+    tooltip: "Registrar nuevo proceso",
+    path: "/nuevoproceso",
+    requiredPermissions: [
+      PERMISOS.ACCEDER_PROCESOS,
+      PERMISO_GESTIONAR_PROCESOS,
+    ],
+    match: "all",
+  },
+  {
+    title: "Procesos",
+    tooltip: "Procesos",
+    path: "/procesos",
+    requiredPermissions: [
+      PERMISOS.ACCEDER_PROCESOS,
+      PERMISO_VER_PROCESOS,
+    ],
+    match: "all",
+  },
+  {
+    title: "Conciliaciones",
+    tooltip: "Conciliaciones",
+    path: "/conciliaciones",
+    requiredPermissions: [PERMISOS.ACCEDER_CONCILIACIONES],
   },
   {
     title: "Estudiantes",
     tooltip: "Estudiantes",
     path: "/estudiantes",
-    requiredPermissions: ["Gestionar usuarios"],
+    requiredPermissions: [PERMISOS.ACCEDER_ESTUDIANTES],
   },
   {
     title: "Asesores y monitores",
     tooltip: "Asesores y monitores",
     path: "/asesoresymonitores",
-    requiredPermissions: ["Gestionar usuarios"],
+    requiredPermissions: [PERMISOS.ACCEDER_ASESORES_MONITORES],
+  },
+  {
+    title: "Roles",
+    tooltip: "Roles / Usuarios",
+    path: "/roles",
+    requiredPermissions: [PERMISOS.ACCEDER_ROLES],
+  },
+  {
+    title: "Administración",
+    tooltip: "Administración",
+    path: "/admin",
+    requiredPermissions: [PERMISOS.ACCEDER_ADMINISTRACION],
+  },
+  {
+    title: "Eliminación",
+    tooltip: "Registros desactivados",
+    path: "/eliminacion",
+    requiredPermissions: [
+      PERMISOS.CAMBIAR_ESTADO_PERSONAS,
+      PERMISOS.CAMBIAR_ESTADO_USUARIOS,
+      PERMISOS.CAMBIAR_ESTADO_ESTUDIANTES,
+      PERMISOS.CAMBIAR_ESTADO_CONSULTAS,
+      PERMISOS.ARCHIVAR_CONSULTAS,
+    ],
+    match: "all",
   },
 ];
-
-function tieneTodosLosPermisos(userPermissions, requiredPermissions = []) {
-  return requiredPermissions.every((permission) =>
-    userPermissions.includes(permission)
-  );
-}
-
-function tieneAlgunPermiso(userPermissions, requiredPermissions = []) {
-  return requiredPermissions.some((permission) =>
-    userPermissions.includes(permission)
-  );
-}
 
 function puedeVerPagina(page, user) {
   if (!user) return false;
 
-  if (page.authOnly) {
-    return true;
-  }
-
-  const userPermissions = Array.isArray(user.permisos) ? user.permisos : [];
   const requiredPermissions = Array.isArray(page.requiredPermissions)
-    ? page.requiredPermissions
+    ? page.requiredPermissions.filter(Boolean)
     : [];
 
   if (requiredPermissions.length === 0) {
@@ -80,10 +128,10 @@ function puedeVerPagina(page, user) {
   }
 
   if (page.match === "any") {
-    return tieneAlgunPermiso(userPermissions, requiredPermissions);
+    return tieneAlgunPermiso(user, requiredPermissions);
   }
 
-  return tieneTodosLosPermisos(userPermissions, requiredPermissions);
+  return tieneTodosLosPermisos(user, requiredPermissions);
 }
 
 function filtrarPaginasPorPermisos(pages, user) {
@@ -110,6 +158,7 @@ export function PermissionSidebar() {
         }
 
         if (!res.ok) {
+          setUser(null);
           return;
         }
 
@@ -117,6 +166,7 @@ export function PermissionSidebar() {
         setUser(data);
       } catch (error) {
         console.error("Error cargando permisos del usuario", error);
+        setUser(null);
       } finally {
         setLoading(false);
       }

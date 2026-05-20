@@ -15,6 +15,7 @@ import co.edu.ufps.legal_cases.business.model.seguimiento.Seguimiento;
 import co.edu.ufps.legal_cases.business.repository.consulta.ConsultaRepository;
 import co.edu.ufps.legal_cases.business.repository.seguimiento.CategoriaSeguimientoRepository;
 import co.edu.ufps.legal_cases.business.repository.seguimiento.SeguimientoRepository;
+import co.edu.ufps.legal_cases.business.service.acceso.SeguimientoAccessService;
 import co.edu.ufps.legal_cases.common.exception.BusinessException;
 import co.edu.ufps.legal_cases.security.model.account.UsuarioSistema;
 import co.edu.ufps.legal_cases.security.repository.account.UsuarioSistemaRepository;
@@ -22,7 +23,6 @@ import lombok.RequiredArgsConstructor;
 
 import static co.edu.ufps.legal_cases.common.util.ComparacionUtils.equalsIgnoreCase;
 import static co.edu.ufps.legal_cases.common.util.ComparacionUtils.mismoId;
-import static co.edu.ufps.legal_cases.common.util.NormalizacionUtils.normalizarEmail;
 import static co.edu.ufps.legal_cases.common.util.NormalizacionUtils.normalizarTexto;
 
 @Service
@@ -33,32 +33,46 @@ public class SeguimientoService {
     private final CategoriaSeguimientoRepository categoriaSeguimientoRepository;
     private final ConsultaRepository consultaRepository;
     private final UsuarioSistemaRepository usuarioSistemaRepository;
+    private final SeguimientoNotificacionService seguimientoNotificacionService;
+    private final SeguimientoAccessService seguimientoAccessService;
 
     @Transactional(readOnly = true)
     public List<SeguimientoResponseDTO> listarPorConsulta(Long consultaId) {
-        obtenerConsulta(consultaId);
+        seguimientoAccessService.validarPuedeListarSeguimientosDeConsulta(consultaId);
 
-        return seguimientoRepository.findByConsulta_IdOrderByFechaCreacionDesc(consultaId)
+        return seguimientoRepository.findByConsulta_IdAndActivoTrueOrderByFechaCreacionDesc(consultaId)
                 .stream()
+                .map(this::convertirAResponseDTO)
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<SeguimientoResponseDTO> listarVisiblesParaEstudiantePorConsulta(Long consultaId) {
+        seguimientoAccessService.validarPuedeListarSeguimientosVisiblesParaEstudiante(consultaId);
+
+        return seguimientoRepository.findByConsulta_IdAndNotificarEstudianteTrueAndActivoTrueOrderByFechaCreacionDesc(consultaId)
+                .stream()
+                .filter(seguimientoAccessService::puedeVerSeguimiento)
                 .map(this::convertirAResponseDTO)
                 .toList();
     }
 
     @Transactional(readOnly = true)
     public List<SeguimientoResponseDTO> listarPorAutor(Long autorId) {
-        if (autorId == null) {
-            throw new BusinessException("El id del autor es obligatorio");
-        }
+        seguimientoAccessService.validarPuedeListarSeguimientosPorAutor(autorId);
 
-        return seguimientoRepository.findByAutor_IdOrderByFechaCreacionDesc(autorId)
+        return seguimientoRepository.findByAutor_IdAndActivoTrueOrderByFechaCreacionDesc(autorId)
                 .stream()
+                .filter(seguimientoAccessService::puedeVerSeguimiento)
                 .map(this::convertirAResponseDTO)
                 .toList();
     }
 
     @Transactional(readOnly = true)
     public List<SeguimientoResponseDTO> listarAlertasDisciplinarias() {
-        return seguimientoRepository.findByAlertaDisciplinariaTrueOrderByFechaCreacionDesc()
+        seguimientoAccessService.validarPuedeListarAlertasDisciplinarias();
+
+        return seguimientoRepository.findByAlertaDisciplinariaTrueAndActivoTrueOrderByFechaCreacionDesc()
                 .stream()
                 .map(this::convertirAResponseDTO)
                 .toList();
@@ -66,49 +80,58 @@ public class SeguimientoService {
 
     @Transactional(readOnly = true)
     public List<SeguimientoResponseDTO> listarPorFechaEntrega(LocalDate fechaEntrega) {
+        seguimientoAccessService.validarPuedeListarSeguimientosPorFechaEntrega();
+
         if (fechaEntrega == null) {
             throw new BusinessException("La fecha de entrega es obligatoria");
         }
 
-        return seguimientoRepository.findByFechaEntregaOrderByFechaCreacionDesc(fechaEntrega)
+        return seguimientoRepository.findByFechaEntregaAndActivoTrueOrderByFechaCreacionDesc(fechaEntrega)
                 .stream()
+                .filter(seguimientoAccessService::puedeVerSeguimiento)
                 .map(this::convertirAResponseDTO)
                 .toList();
     }
 
     @Transactional(readOnly = true)
     public SeguimientoResponseDTO obtenerPorId(Long id) {
+        seguimientoAccessService.validarPuedeVerSeguimiento(id);
+
         return convertirAResponseDTO(buscarPorId(id));
     }
 
     @Transactional
-    public SeguimientoResponseDTO crear(SeguimientoRequestDTO dto, String autorUsername) {
+    public SeguimientoResponseDTO crear(SeguimientoRequestDTO dto) {
         validarCreacion(dto);
+        seguimientoAccessService.validarPuedeCrearSeguimiento(dto.getConsultaId());
 
         DatosSeguimiento datos = prepararDatos(dto);
-        UsuarioSistema autor = obtenerAutor(autorUsername);
+        UsuarioSistema autor = obtenerAutorActual();
 
         Seguimiento seguimiento = new Seguimiento();
         aplicarDatos(seguimiento, datos);
         seguimiento.setAutor(autor);
 
+        // Todo seguimiento nuevo inicia activo para permitir borrado logico despues.
+        seguimiento.setActivo(true);
+
         Seguimiento seguimientoGuardado = seguimientoRepository.save(seguimiento);
 
-        // Fase posterior:
-        // Si seguimientoGuardado.getNotificarPartes() es true,
-        // se podrá invocar aquí un servicio de notificaciones por correo.
-        //
-        // Si seguimientoGuardado.getAlertaDisciplinaria() es true,
-        // se podrá conectar con un módulo de alertas disciplinarias.
+        // Despues de guardar el seguimiento se crean/envian las notificaciones
+        // inmediatas y se programan los recordatorios que apliquen.
+        seguimientoNotificacionService.sincronizarNotificaciones(seguimientoGuardado.getId());
 
         return convertirAResponseDTO(seguimientoGuardado);
     }
 
     @Transactional
     public SeguimientoResponseDTO actualizar(Long id, SeguimientoRequestDTO dto) {
+        seguimientoAccessService.validarPuedeEditarSeguimiento(id);
+
         Seguimiento seguimiento = buscarPorId(id);
 
         validarActualizacion(id, dto);
+        validarNoCambieConsulta(seguimiento, dto);
 
         DatosSeguimiento datos = prepararDatos(dto);
 
@@ -118,13 +141,31 @@ public class SeguimientoService {
 
         aplicarDatos(seguimiento, datos);
 
-        return convertirAResponseDTO(seguimientoRepository.save(seguimiento));
+        Seguimiento seguimientoGuardado = seguimientoRepository.save(seguimiento);
+
+        // Al actualizar se vuelven a sincronizar las notificaciones:
+        // - inmediatas pendientes
+        // - recordatorios pendientes
+        // - cancelaciones si alguna bandera ya no aplica
+        seguimientoNotificacionService.sincronizarNotificaciones(seguimientoGuardado.getId());
+
+        return convertirAResponseDTO(seguimientoGuardado);
     }
 
     @Transactional
     public void eliminar(Long id) {
+        seguimientoAccessService.validarPuedeEliminarSeguimiento(id);
+
         Seguimiento seguimiento = buscarPorId(id);
-        seguimientoRepository.delete(seguimiento);
+
+        // Primero se cancelan las notificaciones pendientes.
+        // Las enviadas se conservan como historial.
+        seguimientoNotificacionService.cancelarNotificacionesPendientes(seguimiento.getId());
+
+        // Borrado logico para no perder historial ni romper las notificaciones asociadas.
+        seguimiento.setActivo(false);
+
+        seguimientoRepository.save(seguimiento);
     }
 
     private void validarCreacion(SeguimientoRequestDTO dto) {
@@ -149,16 +190,27 @@ public class SeguimientoService {
         }
     }
 
+    private void validarNoCambieConsulta(Seguimiento seguimiento, SeguimientoRequestDTO dto) {
+        if (dto.getConsultaId() == null) {
+            throw new BusinessException("La consulta es obligatoria");
+        }
+
+        Long consultaActualId = seguimiento.getConsulta() != null
+                ? seguimiento.getConsulta().getId()
+                : null;
+
+        if (!Objects.equals(consultaActualId, dto.getConsultaId())) {
+            throw new BusinessException("No se permite cambiar la consulta de un seguimiento existente");
+        }
+    }
+
     private DatosSeguimiento prepararDatos(SeguimientoRequestDTO dto) {
         String descripcion = normalizarTexto(dto.getDescripcion());
 
         validarDatosSeguimiento(
                 descripcion,
                 dto.getFechaEntrega(),
-                dto.getDiasNotificacion(),
-                dto.getNotificarPartes(),
-                dto.getNotificarEstudiante()
-        );
+                dto.getDiasNotificacion());
 
         CategoriaSeguimiento categoria = obtenerCategoriaActiva(dto.getCategoriaSeguimientoId());
         Consulta consulta = obtenerConsulta(dto.getConsultaId());
@@ -171,16 +223,13 @@ public class SeguimientoService {
                 valorBooleano(dto.getNotificarEstudiante()),
                 valorBooleano(dto.getAlertaDisciplinaria()),
                 categoria,
-                consulta
-        );
+                consulta);
     }
 
     private void validarDatosSeguimiento(
             String descripcion,
             LocalDate fechaEntrega,
-            Integer diasNotificacion,
-            Boolean notificarPartes,
-            Boolean notificarEstudiante) {
+            Integer diasNotificacion) {
 
         if (descripcion == null || descripcion.isBlank()) {
             throw new BusinessException("La descripción del seguimiento es obligatoria");
@@ -200,10 +249,6 @@ public class SeguimientoService {
 
         if (diasNotificacion != null && fechaEntrega == null) {
             throw new BusinessException("No se pueden definir días de notificación sin fecha de entrega");
-        }
-
-        if (Boolean.TRUE.equals(notificarEstudiante) && !Boolean.TRUE.equals(notificarPartes)) {
-            throw new BusinessException("No se puede notificar al estudiante si no se notifican las partes");
         }
     }
 
@@ -234,7 +279,7 @@ public class SeguimientoService {
             throw new BusinessException("El id del seguimiento es obligatorio");
         }
 
-        return seguimientoRepository.findById(id)
+        return seguimientoRepository.findByIdAndActivoTrue(id)
                 .orElseThrow(() -> new BusinessException("Seguimiento no encontrado con id: " + id));
     }
 
@@ -257,15 +302,11 @@ public class SeguimientoService {
                 .orElseThrow(() -> new BusinessException("Consulta no encontrada con id: " + consultaId));
     }
 
-    private UsuarioSistema obtenerAutor(String autorUsername) {
-        String username = normalizarEmail(autorUsername);
+    private UsuarioSistema obtenerAutorActual() {
+        Long usuarioActualId = seguimientoAccessService.obtenerUsuarioActualId();
 
-        if (username == null) {
-            throw new BusinessException("No se pudo identificar el autor del seguimiento");
-        }
-
-        return usuarioSistemaRepository.findByUsernameIgnoreCase(username)
-                .orElseThrow(() -> new BusinessException("Autor no encontrado: " + username));
+        return usuarioSistemaRepository.findById(usuarioActualId)
+                .orElseThrow(() -> new BusinessException("Autor no encontrado con id: " + usuarioActualId));
     }
 
     private Boolean valorBooleano(Boolean valor) {
@@ -292,6 +333,7 @@ public class SeguimientoService {
         dto.setAutorUsername(seguimiento.getAutor().getUsername());
 
         dto.setFechaCreacion(seguimiento.getFechaCreacion());
+        dto.setFechaActualizacion(seguimiento.getFechaActualizacion());
 
         return dto;
     }
@@ -304,7 +346,6 @@ public class SeguimientoService {
             Boolean notificarEstudiante,
             Boolean alertaDisciplinaria,
             CategoriaSeguimiento categoria,
-            Consulta consulta
-    ) {
+            Consulta consulta) {
     }
 }

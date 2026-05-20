@@ -28,6 +28,14 @@ public class AreaService {
                 .toList();
     }
 
+    public List<AreaDTO> listarActivos() {
+        return areaRepository.findAll()
+                .stream()
+                .filter(a -> Boolean.TRUE.equals(a.getActivo()))
+                .map(this::convertirADTO)
+                .toList();
+    }
+
     public AreaDTO obtenerPorId(Long id) {
         Area area = areaRepository.findById(id)
                 .orElseThrow(() -> new BusinessException("Área no encontrada con id: " + id));
@@ -80,19 +88,14 @@ public class AreaService {
         return convertirADTO(areaActualizada);
     }
 
-    public void eliminar(Long id) {
+    public void desactivar(Long id) {
         Area area = areaRepository.findById(id)
                 .orElseThrow(() -> new BusinessException("Área no encontrada con id: " + id));
-
-        // Para evitar eliminar temas accidentalmente en cascada
-        if (area.getTemas() != null && !area.getTemas().isEmpty()) {
-            throw new BusinessException("No se puede eliminar el área porque tiene temas asociados");
-        }
-
-        areaRepository.delete(area);
+        area.setActivo(false);
+        areaRepository.save(area);
     }
 
-    private AreaDTO convertirADTO(Area area) {
-        return new AreaDTO(area.getId(), area.getNombre());
-    }
+private AreaDTO convertirADTO(Area area) {
+    return new AreaDTO(area.getId(), area.getNombre(), area.getActivo());
+}
 }

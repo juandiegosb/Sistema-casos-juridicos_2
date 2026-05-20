@@ -4,8 +4,10 @@ import java.util.List;
 import java.util.Optional;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
+import co.edu.ufps.legal_cases.business.dto.seguimiento.notificacion.SeguimientoDestinatarioDTO;
 import co.edu.ufps.legal_cases.business.model.perfil.Administrativo;
 
 @Repository
@@ -38,4 +40,15 @@ public interface AdministrativoRepository extends JpaRepository<Administrativo, 
     Optional<Administrativo> findByUsuarioSistema_IdAndActivoTrue(Long usuarioSistemaId);
 
     Optional<Administrativo> findByUsuarioSistema_Id(Long usuarioSistemaId);
+
+    // Para luego notificar en caso de alertas disiplinarias
+    @Query("""
+            SELECT new co.edu.ufps.legal_cases.business.dto.seguimiento.notificacion.SeguimientoDestinatarioDTO(
+                a.email,
+                a.nombre
+            )
+            FROM Administrativo a
+            WHERE a.activo = true
+            """)
+    List<SeguimientoDestinatarioDTO> findDestinatariosActivos();
 }

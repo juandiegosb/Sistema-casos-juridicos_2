@@ -3,8 +3,11 @@ package co.edu.ufps.legal_cases.business.repository.perfil;
 import java.util.List;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import co.edu.ufps.legal_cases.business.dto.seguimiento.notificacion.SeguimientoDestinatarioDTO;
 import co.edu.ufps.legal_cases.business.model.perfil.Asesor;
 
 import java.util.Optional;
@@ -34,10 +37,23 @@ public interface AsesorRepository extends JpaRepository<Asesor, Long> {
 
     List<Asesor> findByActivoTrue();
 
-    //Para en estudiante poder ver los asesores activos
+    // Para en estudiante poder ver los asesores activos
     Optional<Asesor> findByIdAndActivoTrue(Long id);
 
     Optional<Asesor> findByUsuarioSistema_IdAndActivoTrue(Long usuarioSistemaId);
 
     Optional<Asesor> findByUsuarioSistema_Id(Long usuarioSistemaId);
+
+    // Para obtener datos y notificar
+    @Query("""
+            SELECT new co.edu.ufps.legal_cases.business.dto.seguimiento.notificacion.SeguimientoDestinatarioDTO(
+                a.email,
+                a.nombre
+            )
+            FROM Asesor a
+            WHERE a.usuarioSistema.id = :usuarioSistemaId
+            AND a.activo = true
+            """)
+    Optional<SeguimientoDestinatarioDTO> findDestinatarioByUsuarioSistemaId(
+            @Param("usuarioSistemaId") Long usuarioSistemaId);
 }

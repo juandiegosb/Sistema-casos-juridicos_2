@@ -37,6 +37,9 @@ public class Tema {
     @JoinColumn(name = "area_id", nullable = false)
     private Area area;
 
+    @Column(name = "activo", nullable = false)
+    private Boolean activo = true;
+
     @JsonIgnore
     @OneToMany(mappedBy = "tema")
     private List<Tipo> tipos;
