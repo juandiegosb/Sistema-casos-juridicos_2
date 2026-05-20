@@ -1,4 +1,4 @@
-package co.edu.ufps.legal_cases.business.service.consulta;
+package co.edu.ufps.legal_cases.business.service.consulta.consulta;
 
 import java.util.List;
 

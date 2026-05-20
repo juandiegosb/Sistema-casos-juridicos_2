@@ -1,7 +1,8 @@
 package co.edu.ufps.legal_cases.business.dto.proceso;
 
+import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -15,10 +16,8 @@ public class ProcesoDTO {
 
     private Long id;
 
-    @Pattern(
-            regexp = "^.{23}$|^$",
-            message = "El número de radicado debe tener exactamente 23 caracteres"
-    )
+    @NotBlank(message = "El número de radicado es obligatorio")
+    @Size(min = 23, max = 23, message = "El número de radicado debe tener exactamente 23 caracteres")
     private String numeroRadicado;
 
     @NotNull(message = "El departamento es obligatorio")

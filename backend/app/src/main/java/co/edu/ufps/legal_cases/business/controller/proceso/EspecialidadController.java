@@ -1,5 +1,8 @@
 package co.edu.ufps.legal_cases.business.controller.proceso;
 
+import static co.edu.ufps.legal_cases.security.constant.PermisoNombre.GESTIONAR_CATALOGOS;
+import static co.edu.ufps.legal_cases.security.constant.PermisoNombre.VER_CATALOGOS;
+
 import co.edu.ufps.legal_cases.business.dto.proceso.EspecialidadDTO;
 import co.edu.ufps.legal_cases.business.service.proceso.EspecialidadService;
 import jakarta.validation.Valid;
@@ -11,7 +14,6 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/especialidades")
-@PreAuthorize("hasAuthority('Gestionar catálogos')")
 public class EspecialidadController {
 
     private final EspecialidadService especialidadService;
@@ -20,23 +22,42 @@ public class EspecialidadController {
         this.especialidadService = especialidadService;
     }
 
+    // Activas para formularios y combos.
     @GetMapping
+    @PreAuthorize("hasAuthority('" + VER_CATALOGOS + "')")
     public List<EspecialidadDTO> listar() {
         return especialidadService.listar();
     }
 
+    // Todas para administración del catálogo.
+    @GetMapping("/todos")
+    @PreAuthorize("hasAuthority('" + GESTIONAR_CATALOGOS + "')")
+    public List<EspecialidadDTO> listarTodos() {
+        return especialidadService.listarTodos();
+    }
+
+    // Activas filtradas por órgano de control.
+    @GetMapping("/organo-control/{organoControlId}")
+    @PreAuthorize("hasAuthority('" + VER_CATALOGOS + "')")
+    public List<EspecialidadDTO> listarPorOrganoControl(@PathVariable Long organoControlId) {
+        return especialidadService.listarPorOrganoControl(organoControlId);
+    }
+
     @GetMapping("/{id}")
+    @PreAuthorize("hasAuthority('" + VER_CATALOGOS + "')")
     public EspecialidadDTO obtenerPorId(@PathVariable Long id) {
         return especialidadService.obtenerPorId(id);
     }
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
+    @PreAuthorize("hasAuthority('" + GESTIONAR_CATALOGOS + "')")
     public EspecialidadDTO crear(@Valid @RequestBody EspecialidadDTO dto) {
         return especialidadService.crear(dto);
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize("hasAuthority('" + GESTIONAR_CATALOGOS + "')")
     public EspecialidadDTO actualizar(
             @PathVariable Long id,
             @Valid @RequestBody EspecialidadDTO dto
@@ -46,6 +67,7 @@ public class EspecialidadController {
 
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
+    @PreAuthorize("hasAuthority('" + GESTIONAR_CATALOGOS + "')")
     public void eliminar(@PathVariable Long id) {
         especialidadService.eliminar(id);
     }

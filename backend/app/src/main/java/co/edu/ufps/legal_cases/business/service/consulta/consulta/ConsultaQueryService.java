@@ -1,4 +1,4 @@
-package co.edu.ufps.legal_cases.business.service.consulta;
+package co.edu.ufps.legal_cases.business.service.consulta.consulta;
 
 import static co.edu.ufps.legal_cases.common.util.NormalizacionUtils.normalizarTexto;
 

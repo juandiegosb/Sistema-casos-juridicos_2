@@ -6,6 +6,9 @@ import org.springframework.stereotype.Service;
 
 import co.edu.ufps.legal_cases.business.dto.consulta.ConsultaBusquedaDTO;
 import co.edu.ufps.legal_cases.business.dto.consulta.ConsultaDTO;
+import co.edu.ufps.legal_cases.business.service.consulta.consulta.ConsultaCommandService;
+import co.edu.ufps.legal_cases.business.service.consulta.consulta.ConsultaQueryService;
+
 
 // Funciona como fachada para manejar todas las operaciones de una consulta
 // porque está dividido en más servicios por responsabilidad
