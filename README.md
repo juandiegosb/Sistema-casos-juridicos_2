@@ -1,5 +1,6 @@
 # Sistema de gestión de casos jurídicos 
 > (nombre por decidir)
+> Servidores en Vercel y Railway
 
 ## Ejecutar localmente
 
