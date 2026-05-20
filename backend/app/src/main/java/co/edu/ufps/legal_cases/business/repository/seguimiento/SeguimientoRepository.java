@@ -42,6 +42,10 @@ public interface SeguimientoRepository extends JpaRepository<Seguimiento, Long> 
     // Lista seguimientos activos por fecha de entrega.
     List<Seguimiento> findByFechaEntregaAndActivoTrueOrderByFechaCreacionDesc(LocalDate fechaEntrega);
 
+    // Lista todos los seguimientos activos ordenados por fecha de entrega ascendente.
+    // Se usa para el calendario — el filtro de alcance por rol se aplica en el service.
+    List<Seguimiento> findByActivoTrueOrderByFechaEntregaAsc();
+
     @Query("""
             SELECT new co.edu.ufps.legal_cases.business.dto.seguimiento.notificacion.DatosNotificacionSeguimientoDTO(
                 s.id,

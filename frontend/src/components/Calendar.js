@@ -5,15 +5,19 @@ import FullCalendar from '@fullcalendar/react'
 import dayGridPlugin from '@fullcalendar/daygrid'
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { toast } from "sonner"
+import { API_URL_BASE } from '@/lib/config'
 
 /**
  * Componente Calendar
- * 
- * Un calendario interactivo basado en FullCalendar para visualizar eventos.
- * Los eventos son de solo lectura y se cargan mediante un efecto simulado.
+ *
+ * Muestra los seguimientos del usuario autenticado según su rol:
+ * - Administrador: ve todos los seguimientos.
+ * - Asesor/Monitor: ve los seguimientos de consultas dentro de su alcance.
+ * - Estudiante: ve solo los seguimientos marcados como notificarEstudiante = true.
+ * - Conciliador: por ahora no ve ninguno hasta que el módulo esté implementado.
+ *
+ * Cada seguimiento aparece en el día de su fechaEntrega.
  */
-import { API_URL_BASE } from '@/lib/config'
-
 export default function Calendar() {
   const [events, setEvents] = useState([])
   const [loading, setLoading] = useState(true)
@@ -22,49 +26,32 @@ export default function Calendar() {
     const fetchEvents = async () => {
       try {
         setLoading(true)
-        // 1. Obtener la información del usuario actual
-        const userResponse = await fetch(`${API_URL_BASE}/auth/me`, {
-          headers: { 'Content-Type': 'application/json' },
+
+        const response = await fetch(`${API_URL_BASE}/seguimientos/calendario`, {
           credentials: 'include'
         })
 
-        if (!userResponse.ok) throw new Error('No se pudo obtener la información del usuario')
-        
-        const userData = await userResponse.json()
-        
-        // El user tiene un perfilId que usaremos como autorId para los seguimientos
-        const autorId = userData.perfilId
+        if (!response.ok) throw new Error('No se pudo obtener los seguimientos')
 
-        if (!autorId) {
-          setEvents([])
-          return
-        }
+        const seguimientos = await response.json()
 
-        // 2. Obtener los seguimientos del autor
-        const seguimientosResponse = await fetch(`${API_URL_BASE}/seguimientos/autor/${autorId}`, {
-          credentials: 'include'
-        })
-        
-        if (!seguimientosResponse.ok) throw new Error('No se pudo obtener los seguimientos')
-        
-        const seguimientos = await seguimientosResponse.json()
-
-        // 3. Mapear seguimientos a eventos de FullCalendar
-        const mappedEvents = seguimientos.map(seg => ({
-          id: seg.id.toString(),
-          title: seg.descripcion || seg.categoriaSeguimientoNombre || 'Seguimiento',
-          start: seg.fechaEntrega, // Formato esperado: YYYY-MM-DD
-          allDay: true,
-          // Color basado en la categoría o por defecto
-          classNames: [
-            seg.categoriaSeguimientoNombre?.toLowerCase().includes('audiencia') 
-              ? 'bg-primary text-primary-foreground border-primary' 
-              : 'bg-secondary text-secondary-foreground border-secondary'
-          ],
-          extendedProps: {
-            ...seg
-          }
-        }))
+        // Solo se muestran seguimientos que tienen fechaEntrega definida
+        const mappedEvents = seguimientos
+          .filter(seg => seg.fechaEntrega)
+          .map(seg => ({
+            id: seg.id.toString(),
+            title: seg.descripcion || seg.categoriaSeguimientoNombre || 'Seguimiento',
+            start: seg.fechaEntrega,
+            allDay: true,
+            classNames: [
+              seg.alertaDisciplinaria
+                ? 'bg-destructive text-destructive-foreground border-destructive'
+                : seg.categoriaSeguimientoNombre?.toLowerCase().includes('audiencia')
+                  ? 'bg-primary text-primary-foreground border-primary'
+                  : 'bg-secondary text-secondary-foreground border-secondary'
+            ],
+            extendedProps: { ...seg }
+          }))
 
         setEvents(mappedEvents)
       } catch (error) {
@@ -121,7 +108,6 @@ export default function Calendar() {
       </CardContent>
 
       <style jsx global>{`
-        /* Reset de bordes y fondos para integración con shadcn */
         .full-calendar-wrapper .fc {
           --fc-border-color: var(--border);
           --fc-daygrid-event-dot-width: 8px;
@@ -130,7 +116,6 @@ export default function Calendar() {
           color: var(--foreground);
         }
 
-        /* Toolbar y Títulos */
         .full-calendar-wrapper .fc-toolbar {
           display: grid !important;
           grid-template-columns: 1fr auto 1fr !important;
@@ -167,7 +152,6 @@ export default function Calendar() {
           @apply bg-primary text-primary-foreground !important;
         }
 
-        /* Cabecera de días (Solución al blanco sobre blanco) */
         .full-calendar-wrapper .fc-col-header-cell {
           @apply py-3 bg-muted/50 font-semibold text-muted-foreground border-border;
         }
@@ -176,7 +160,6 @@ export default function Calendar() {
           @apply text-sm;
         }
 
-        /* Celdas del calendario */
         .full-calendar-wrapper .fc-daygrid-day {
           @apply border-border transition-colors;
         }
@@ -193,7 +176,6 @@ export default function Calendar() {
           @apply p-2 text-sm text-muted-foreground font-medium;
         }
 
-        /* Eventos */
         .full-calendar-wrapper .fc-event {
           @apply rounded-md border px-2 py-0.5 text-xs font-medium shadow-sm transition-all cursor-default !important;
         }
@@ -202,7 +184,6 @@ export default function Calendar() {
           @apply my-0.5 mx-1 !important;
         }
 
-        /* Ajustes específicos para modo oscuro */
         .dark .full-calendar-wrapper .fc-theme-standard td,
         .dark .full-calendar-wrapper .fc-theme-standard th {
           border-color: var(--border);

@@ -52,6 +52,20 @@ public class SeguimientoController {
         return seguimientoService.listarPorAutor(autorId);
     }
 
+    /**
+     * Devuelve los seguimientos visibles para el usuario autenticado según su rol.
+     * Se usa para el calendario de actividades en el frontend.
+     * - Administrador: ve todos.
+     * - Asesor/Monitor: ve los de consultas dentro de su alcance.
+     * - Estudiante: ve solo los marcados como notificarEstudiante = true.
+     * - Conciliador: por ahora no ve ninguno.
+     */
+    @GetMapping("/calendario")
+    @PreAuthorize("hasAuthority('" + VER_SEGUIMIENTOS + "')")
+    public List<SeguimientoResponseDTO> listarParaCalendario() {
+        return seguimientoService.listarParaCalendario();
+    }
+
     @GetMapping("/alertas-disciplinarias")
     @PreAuthorize("hasAuthority('" + VER_ALERTAS_DISCIPLINARIAS + "')")
     public List<SeguimientoResponseDTO> listarAlertasDisciplinarias() {

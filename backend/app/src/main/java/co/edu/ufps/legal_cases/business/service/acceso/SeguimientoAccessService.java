@@ -129,6 +129,13 @@ public class SeguimientoAccessService {
         validarTienePermiso(VER_ALERTAS_DISCIPLINARIAS);
     }
 
+    // Valida solo que tenga el permiso de ver seguimientos, sin restricción de alcance.
+    // El filtro de alcance se aplica después con puedeVerSeguimiento en el stream.
+    @Transactional(readOnly = true)
+    public void validarTienePermisoVerSeguimientos() {
+        validarTienePermiso(VER_SEGUIMIENTOS);
+    }
+
     @Transactional(readOnly = true)
     public boolean puedeVerSeguimiento(Seguimiento seguimiento) {
         if (seguimiento == null || !Boolean.TRUE.equals(seguimiento.getActivo())) {

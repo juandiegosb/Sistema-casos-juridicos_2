@@ -93,6 +93,25 @@ public class SeguimientoService {
                 .toList();
     }
 
+    /**
+     * Lista todos los seguimientos activos que el usuario autenticado puede ver,
+     * filtrados por su alcance según rol. Se usa para el calendario de actividades.
+     * - Administrador: ve todos.
+     * - Asesor/Monitor: ve los de consultas dentro de su alcance.
+     * - Estudiante: ve solo los marcados como notificarEstudiante = true dentro de su alcance.
+     * - Conciliador: por ahora no ve ninguno hasta que el módulo esté implementado.
+     */
+    @Transactional(readOnly = true)
+    public List<SeguimientoResponseDTO> listarParaCalendario() {
+        seguimientoAccessService.validarTienePermisoVerSeguimientos();
+
+        return seguimientoRepository.findByActivoTrueOrderByFechaEntregaAsc()
+                .stream()
+                .filter(seguimientoAccessService::puedeVerSeguimiento)
+                .map(this::convertirAResponseDTO)
+                .toList();
+    }
+
     @Transactional(readOnly = true)
     public SeguimientoResponseDTO obtenerPorId(Long id) {
         seguimientoAccessService.validarPuedeVerSeguimiento(id);
