@@ -42,19 +42,15 @@ public class TipoDocumentoService {
     }
 
     public TipoDocumentoDTO crear(TipoDocumentoDTO dto) {
-        String displayName = normalizarTexto(dto.getDisplayName());
+        String nombre = normalizarNombre(dto);
 
-        if (displayName == null || displayName.isBlank()) {
-            throw new BusinessException("El nombre visible es obligatorio");
-        }
-
-        if (tipoDocumentoRepository.existsByDisplayNameIgnoreCase(displayName)) {
+        if (tipoDocumentoRepository.existsByNombreIgnoreCase(nombre)) {
             throw new BusinessException("Ya existe un tipo de documento con ese nombre");
         }
 
         TipoDocumento tipoDocumento = new TipoDocumento();
-        tipoDocumento.setDisplayName(displayName);
-        //Guarda por defecto como activo
+        tipoDocumento.setNombre(nombre);
+        // Guarda por defecto como activo.
         tipoDocumento.setActivo(dto.getActivo() != null ? dto.getActivo() : true);
 
         return convertirADTO(tipoDocumentoRepository.save(tipoDocumento));
@@ -64,29 +60,25 @@ public class TipoDocumentoService {
         TipoDocumento documentoExistente = tipoDocumentoRepository.findById(id)
                 .orElseThrow(() -> new BusinessException("Tipo de documento no encontrado con id: " + id));
 
-        String displayNameNuevo = normalizarTexto(dto.getDisplayName());
+        String nombreNuevo = normalizarNombre(dto);
 
-        if (displayNameNuevo == null || displayNameNuevo.isBlank()) {
-            throw new BusinessException("El nombre visible es obligatorio");
-        }
-
-        // El id no debe cambiarse desde el DTO
+        // El id no debe cambiarse desde el DTO.
         if (dto.getId() != null && !dto.getId().equals(documentoExistente.getId())) {
             throw new BusinessException("No se permite cambiar el id del tipo de documento");
         }
 
-        boolean mismoNombre = documentoExistente.getDisplayName().equalsIgnoreCase(displayNameNuevo);
+        boolean mismoNombre = documentoExistente.getNombre().equalsIgnoreCase(nombreNuevo);
         boolean mismoEstado = dto.getActivo() == null || documentoExistente.getActivo().equals(dto.getActivo());
 
         if (mismoNombre && mismoEstado) {
             throw new BusinessException("No hay cambios para actualizar");
         }
 
-        if (tipoDocumentoRepository.existsByDisplayNameIgnoreCaseAndIdNot(displayNameNuevo, documentoExistente.getId())) {
+        if (tipoDocumentoRepository.existsByNombreIgnoreCaseAndIdNot(nombreNuevo, documentoExistente.getId())) {
             throw new BusinessException("Ya existe un tipo de documento con ese nombre");
         }
 
-        documentoExistente.setDisplayName(displayNameNuevo);
+        documentoExistente.setNombre(nombreNuevo);
 
         if (dto.getActivo() != null) {
             documentoExistente.setActivo(dto.getActivo());
@@ -108,13 +100,28 @@ public class TipoDocumentoService {
         }
 
         documentoExistente.setActivo(activo);
+
         return convertirADTO(tipoDocumentoRepository.save(documentoExistente));
+    }
+
+    private String normalizarNombre(TipoDocumentoDTO dto) {
+        if (dto == null) {
+            throw new BusinessException("Los datos del tipo de documento son obligatorios");
+        }
+
+        String nombre = normalizarTexto(dto.getNombre());
+
+        if (nombre == null || nombre.isBlank()) {
+            throw new BusinessException("El nombre es obligatorio");
+        }
+
+        return nombre;
     }
 
     private TipoDocumentoDTO convertirADTO(TipoDocumento tipoDocumento) {
         TipoDocumentoDTO dto = new TipoDocumentoDTO();
         dto.setId(tipoDocumento.getId());
-        dto.setDisplayName(tipoDocumento.getDisplayName());
+        dto.setNombre(tipoDocumento.getNombre());
         dto.setActivo(tipoDocumento.getActivo());
         return dto;
     }

@@ -10,9 +10,9 @@ import co.edu.ufps.legal_cases.business.model.catalogo.TipoDocumento;
 @Repository
 public interface TipoDocumentoRepository extends JpaRepository<TipoDocumento, Long> {
 
-    boolean existsByDisplayNameIgnoreCase(String displayName);
+    boolean existsByNombreIgnoreCase(String nombre);
 
-    boolean existsByDisplayNameIgnoreCaseAndIdNot(String displayName, Long id);
+    boolean existsByNombreIgnoreCaseAndIdNot(String nombre, Long id);
 
     List<TipoDocumento> findByActivoTrue();
 }

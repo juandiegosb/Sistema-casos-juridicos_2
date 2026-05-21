@@ -20,7 +20,7 @@ public class TipoDocumento {
     private Long id;
 
     @Column(name = "displayname", nullable = false, length = 100)
-    private String displayName;
+    private String nombre;
 
     @Column(name = "activo", nullable = false)
     private Boolean activo = true;
