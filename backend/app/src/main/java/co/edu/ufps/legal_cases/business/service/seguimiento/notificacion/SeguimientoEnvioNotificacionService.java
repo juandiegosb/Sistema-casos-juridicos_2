@@ -29,7 +29,7 @@ public class SeguimientoEnvioNotificacionService {
     @Transactional
     public void enviarNotificacionPendiente(SeguimientoNotificacion notificacion) {
         // Si no existe o esta inactiva, no se intenta enviar.
-        if (notificacion == null || !Boolean.TRUE.equals(notificacion.getActiva())) {
+        if (notificacion == null || !Boolean.TRUE.equals(notificacion.getActivo())) {
             return;
         }
 
@@ -83,7 +83,7 @@ public class SeguimientoEnvioNotificacionService {
         notificacion.setEnviada(true);
 
         // Queda activa porque es un registro valido dentro del historial.
-        notificacion.setActiva(true);
+        notificacion.setActivo(true);
 
         // Guarda la fecha real del envio.
         notificacion.setFechaEnvio(LocalDateTime.now());

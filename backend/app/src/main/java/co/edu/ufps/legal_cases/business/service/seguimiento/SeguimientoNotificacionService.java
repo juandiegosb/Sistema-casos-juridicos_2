@@ -81,12 +81,12 @@ public class SeguimientoNotificacionService {
             return;
         }
 
-        if (!Boolean.TRUE.equals(notificacion.getActiva())) {
+        if (!Boolean.TRUE.equals(notificacion.getActivo())) {
             return;
         }
 
         // Se desactiva en vez de eliminar para conservar trazabilidad.
-        notificacion.setActiva(false);
+        notificacion.setActivo(false);
         notificacion.setFechaCancelacion(LocalDateTime.now());
 
         seguimientoNotificacionRepository.save(notificacion);

@@ -75,7 +75,7 @@ public class SeguimientoNotificacionInmediataService {
         // Si sigue pendiente y activa, se envia.
         // Si ya fue enviada antes, no se reenvia para evitar correos duplicados.
         if (!Boolean.TRUE.equals(notificacion.getEnviada())
-                && Boolean.TRUE.equals(notificacion.getActiva())) {
+                && Boolean.TRUE.equals(notificacion.getActivo())) {
             seguimientoEnvioNotificacionService.enviarNotificacionPendiente(notificacion);
         }
     }
@@ -96,7 +96,7 @@ public class SeguimientoNotificacionInmediataService {
 
         // Estado inicial de una notificacion nueva.
         notificacion.setEnviada(false);
-        notificacion.setActiva(true);
+        notificacion.setActivo(true);
         notificacion.setIntentos(0);
         notificacion.setError(null);
         notificacion.setFechaCancelacion(null);
@@ -109,7 +109,7 @@ public class SeguimientoNotificacionInmediataService {
             LocalDate fechaProgramada) {
 
         // Se activa de nuevo porque la bandera del seguimiento volvio a aplicar.
-        notificacion.setActiva(true);
+        notificacion.setActivo(true);
 
         // Para inmediatas la fecha programada es hoy.
         notificacion.setFechaProgramada(fechaProgramada);
@@ -131,12 +131,12 @@ public class SeguimientoNotificacionInmediataService {
             return;
         }
 
-        if (!Boolean.TRUE.equals(notificacion.getActiva())) {
+        if (!Boolean.TRUE.equals(notificacion.getActivo())) {
             return;
         }
 
         // Se desactiva en vez de eliminar para conservar trazabilidad.
-        notificacion.setActiva(false);
+        notificacion.setActivo(false);
         notificacion.setFechaCancelacion(LocalDateTime.now());
 
         seguimientoNotificacionRepository.save(notificacion);

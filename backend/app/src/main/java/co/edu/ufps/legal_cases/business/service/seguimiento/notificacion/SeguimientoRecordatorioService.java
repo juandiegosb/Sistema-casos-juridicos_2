@@ -123,7 +123,7 @@ public class SeguimientoRecordatorioService {
 
         // Estado inicial de un recordatorio nuevo.
         notificacion.setEnviada(false);
-        notificacion.setActiva(true);
+        notificacion.setActivo(true);
         notificacion.setIntentos(0);
         notificacion.setError(null);
         notificacion.setFechaCancelacion(null);
@@ -136,7 +136,7 @@ public class SeguimientoRecordatorioService {
             LocalDate fechaProgramada) {
 
         // Se activa de nuevo porque el recordatorio vuelve a aplicar.
-        notificacion.setActiva(true);
+        notificacion.setActivo(true);
 
         // Se actualiza por si cambio fechaEntrega o diasNotificacion.
         notificacion.setFechaProgramada(fechaProgramada);
@@ -158,12 +158,12 @@ public class SeguimientoRecordatorioService {
             return;
         }
 
-        if (!Boolean.TRUE.equals(notificacion.getActiva())) {
+        if (!Boolean.TRUE.equals(notificacion.getActivo())) {
             return;
         }
 
         // Se desactiva en vez de eliminar para conservar trazabilidad.
-        notificacion.setActiva(false);
+        notificacion.setActivo(false);
         notificacion.setFechaCancelacion(LocalDateTime.now());
 
         seguimientoNotificacionRepository.save(notificacion);
