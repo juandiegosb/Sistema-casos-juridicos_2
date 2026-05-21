@@ -24,7 +24,7 @@ public class Especialidad {
     @Column(name = "activo", nullable = false)
     private Boolean activo = true;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "organo_control_id", nullable = false)
     private OrganoControl organoControl;
 }

@@ -23,22 +23,21 @@ public class Proceso {
     @Column(name = "numero_radicado", nullable = false, unique = true, length = 23)
     private String numeroRadicado;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "departamento_id", nullable = false)
     private Departamento departamento;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "consulta_id", nullable = false)
     private Consulta consulta;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "organo_control_id")
     private OrganoControl organoControl;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "especialidad_id")
     private Especialidad especialidad;
-
     @Column(name = "activo", nullable = false)
     private Boolean activo = true;
 }

@@ -65,7 +65,7 @@ public class SeguimientoNotificacionService {
 
         // Busca notificaciones activas, no enviadas y con fecha programada vencida.
         List<SeguimientoNotificacion> notificaciones = seguimientoNotificacionRepository
-                .findByFechaProgramadaLessThanEqualAndEnviadaFalseAndActivaTrue(fechaProceso);
+                .findByFechaProgramadaLessThanEqualAndEnviadaFalseAndActivoTrue(fechaProceso);
 
         // Intenta enviar cada notificacion pendiente.
         notificaciones.forEach(seguimientoEnvioNotificacionService::enviarNotificacionPendiente);
