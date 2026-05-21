@@ -14,4 +14,6 @@ public class SedeDTO {
     @NotBlank(message = "El nombre de la sede es obligatorio")
     @Size(max = 100, message = "El nombre de la sede no puede superar los 100 caracteres")
     private String nombre;
+
+    private Boolean activo;
 }

@@ -22,6 +22,6 @@ public class Sede {
     @Column(name = "nombre", nullable = false, length = 100)
     private String nombre;
 
-    // A futuro aquí se debe modelar relaciones inversas para conocer qué personas están asociadas a cada sede, por ejemplo:
-    // asesor, estudiante, monitor, administrativo, consulta, conciliador, etc.
+    @Column(name = "activo", nullable = false)
+    private Boolean activo = true;
 }
