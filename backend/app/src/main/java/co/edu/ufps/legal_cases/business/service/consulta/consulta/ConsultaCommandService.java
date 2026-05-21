@@ -13,6 +13,7 @@ import co.edu.ufps.legal_cases.business.model.catalogo.Sede;
 import co.edu.ufps.legal_cases.business.model.catalogo.Tema;
 import co.edu.ufps.legal_cases.business.model.catalogo.Tipo;
 import co.edu.ufps.legal_cases.business.model.consulta.Consulta;
+import co.edu.ufps.legal_cases.business.model.consulta.EstadoConsulta;
 import co.edu.ufps.legal_cases.business.model.perfil.Asesor;
 import co.edu.ufps.legal_cases.business.model.perfil.Estudiante;
 import co.edu.ufps.legal_cases.business.model.perfil.Monitor;
@@ -38,7 +39,7 @@ import lombok.AllArgsConstructor;
 @AllArgsConstructor
 public class ConsultaCommandService {
 
-    private static final String ESTADO_ARCHIVADO = "Archivado";
+    private static final EstadoConsulta ESTADO_ARCHIVADO = EstadoConsulta.ARCHIVADO;
 
     private final ConsultaRepository consultaRepository;
     private final PersonaRepository personaRepository;
@@ -188,7 +189,7 @@ public class ConsultaCommandService {
         consulta.setTramite(normalizarTexto(dto.getTramite()));
         consulta.setObservaciones(normalizarTexto(dto.getObservaciones()));
         consulta.setTipoViolencia(normalizarTexto(dto.getTipoViolencia()));
-        consulta.setEstado(normalizarTexto(dto.getEstado()));
+        consulta.setEstado(dto.getEstado());
         consulta.setResultado(normalizarTexto(dto.getResultado()));
 
         consulta.setPersona(obtenerPersona(dto.getPersonaId()));
