@@ -128,40 +128,45 @@ public class ConsultaCommandService {
     }
 
     private Sede obtenerSede(Long id) {
-        return sedeRepository.findById(id)
-                .orElseThrow(() -> new BusinessException("Sede no encontrada con id: " + id));
+        return sedeRepository.findByIdAndActivoTrue(id)
+                .orElseThrow(() -> new BusinessException("Sede no encontrada o inactiva con id: " + id));
     }
 
     private Area obtenerArea(Long id) {
-        return areaRepository.findById(id)
-                .orElseThrow(() -> new BusinessException("Área no encontrada con id: " + id));
+        return areaRepository.findByIdAndActivoTrue(id)
+                .orElseThrow(() -> new BusinessException("Área no encontrada o inactiva con id: " + id));
     }
 
     private Tema obtenerTema(Long id) {
-        return temaRepository.findById(id)
-                .orElseThrow(() -> new BusinessException("Tema no encontrado con id: " + id));
+        return temaRepository.findByIdAndActivoTrue(id)
+                .orElseThrow(() -> new BusinessException("Tema no encontrado o inactivo con id: " + id));
     }
 
     private Tipo obtenerTipo(Long id) {
-        if (id == null) return null;
-        return tipoRepository.findById(id)
-                .orElseThrow(() -> new BusinessException("Tipo no encontrado con id: " + id));
+        if (id == null)
+            return null;
+
+        return tipoRepository.findByIdAndActivoTrue(id)
+                .orElseThrow(() -> new BusinessException("Tipo no encontrado o inactivo con id: " + id));
     }
 
     private Asesor obtenerAsesor(Long id) {
-        if (id == null) return null;
+        if (id == null)
+            return null;
         return asesorRepository.findById(id)
                 .orElseThrow(() -> new BusinessException("Asesor no encontrado con id: " + id));
     }
 
     private Monitor obtenerMonitor(Long id) {
-        if (id == null) return null;
+        if (id == null)
+            return null;
         return monitorRepository.findById(id)
                 .orElseThrow(() -> new BusinessException("Monitor no encontrado con id: " + id));
     }
 
     private Estudiante obtenerEstudiante(Long id) {
-        if (id == null) return null;
+        if (id == null)
+            return null;
         return estudianteRepository.findById(id)
                 .orElseThrow(() -> new BusinessException("Estudiante no encontrado con id: " + id));
     }
