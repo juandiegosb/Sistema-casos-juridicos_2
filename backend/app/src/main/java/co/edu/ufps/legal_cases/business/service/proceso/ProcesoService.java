@@ -252,8 +252,9 @@ public class ProcesoService {
             throw new BusinessException("El departamento es obligatorio");
         }
 
-        return departamentoRepository.findById(departamentoId)
-                .orElseThrow(() -> new BusinessException("Departamento no encontrado con id: " + departamentoId));
+        return departamentoRepository.findByIdAndActivoTrue(departamentoId)
+                .orElseThrow(
+                        () -> new BusinessException("Departamento no encontrado o inactivo con id: " + departamentoId));
     }
 
     private Consulta obtenerConsulta(Long consultaId) {
@@ -327,8 +328,7 @@ public class ProcesoService {
                 proceso.getOrganoControl() != null
                         ? proceso.getOrganoControl().getId()
                         : null,
-                proceso.getActivo()
-        );
+                proceso.getActivo());
     }
 
     private record DatosProceso(
