@@ -22,9 +22,9 @@ export function CalendarModal() {
       {/* 
         Ajuste de tamaño 85% del viewport dejando aprox 15% libre.
       */}
-      <DialogContent className="max-w-[85vw] sm:max-w-[85vw] w-[85vw] h-[85vh] flex flex-col p-6">
+      <DialogContent className="max-w-[95vw] sm:max-w-[95vw] w-[95vw] h-[95vh] flex flex-col p-6">
         <DialogTitle className="sr-only">Calendario de Eventos</DialogTitle>
-        <div className="flex-1 overflow-hidden rounded-md border mt-2">
+        <div className="flex-1 overflow-y-auto rounded-md border mt-2">
           <Calendar />
         </div>
       </DialogContent>
