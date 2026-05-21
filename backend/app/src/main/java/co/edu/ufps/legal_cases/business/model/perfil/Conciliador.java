@@ -30,7 +30,8 @@ public class Conciliador {
 
     // Usuario del sistema asociado a este conciliador.
     // Esta relación hace parte de la normalización nueva.
-    // Por ahora es nullable para permitir migrar datos existentes sin romper el arranque.
+    // Por ahora es nullable para permitir migrar datos existentes sin romper el
+    // arranque.
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "usuario_sistema_id", unique = true)
     private UsuarioSistema usuarioSistema;
@@ -39,7 +40,7 @@ public class Conciliador {
     private String nombre;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "tipo_documento")
+    @JoinColumn(name = "tipo_documento", nullable = false)
     private TipoDocumento tipoDocumento;
 
     @Column(name = "documento", nullable = false, unique = true, length = 30)
@@ -55,9 +56,8 @@ public class Conciliador {
     private String usuario;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "sede")
+    @JoinColumn(name = "sede", nullable = false)
     private Sede sede;
-
     @Column(name = "codigo", nullable = false, unique = true, length = 30)
     private String codigo;
 
