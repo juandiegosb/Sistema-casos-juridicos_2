@@ -59,7 +59,7 @@ public class AdministrativoService {
     public List<AdministrativoDTO> listarDirectoras() {
         administrativoAccessService.validarPuedeVerAdministradores();
 
-        return administrativoRepository.findByDirectoraTrue()
+        return administrativoRepository.findByDirectoraTrueAndActivoTrue()
                 .stream()
                 .map(this::convertirADTO)
                 .toList();

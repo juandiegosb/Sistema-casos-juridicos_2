@@ -23,5 +23,5 @@ public interface SeguimientoNotificacionRepository extends JpaRepository<Seguimi
 
     List<SeguimientoNotificacion> findByFechaProgramadaLessThanEqualAndEnviadaFalseAndActivoTrue(LocalDate fecha);
 
-    List<SeguimientoNotificacion> findBySeguimiento_IdAndEnviadaFalse(Long seguimientoId);
+    List<SeguimientoNotificacion> findBySeguimiento_IdAndEnviadaFalseAndActivoTrue(Long seguimientoId);
 }

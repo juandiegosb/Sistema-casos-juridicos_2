@@ -36,7 +36,7 @@ public interface ConsultaRepository extends JpaRepository<Consulta, Long> {
         @Query("""
                         SELECT c FROM Consulta c
                         JOIN c.persona p
-                        WHERE LOWER(c.estado) <> 'archivado'
+                        WHERE c.estado <> co.edu.ufps.legal_cases.business.model.consulta.EstadoConsulta.ARCHIVADO
                           AND (:search IS NULL OR :search = ''
                            OR LOWER(c.descripcion)       LIKE LOWER(CONCAT('%', :search, '%'))
                            OR LOWER(p.nombres)           LIKE LOWER(CONCAT('%', :search, '%'))
@@ -51,7 +51,7 @@ public interface ConsultaRepository extends JpaRepository<Consulta, Long> {
         @Query("""
                         SELECT c FROM Consulta c
                         JOIN c.persona p
-                        WHERE LOWER(c.estado) <> 'archivado'
+                        WHERE c.estado <> co.edu.ufps.legal_cases.business.model.consulta.EstadoConsulta.ARCHIVADO
                           AND (:search IS NULL OR :search = ''
                            OR LOWER(c.descripcion)       LIKE LOWER(CONCAT('%', :search, '%'))
                            OR LOWER(p.nombres)           LIKE LOWER(CONCAT('%', :search, '%'))
@@ -66,7 +66,7 @@ public interface ConsultaRepository extends JpaRepository<Consulta, Long> {
         @Query("""
                         SELECT c FROM Consulta c
                         JOIN c.persona p
-                        WHERE LOWER(c.estado) <> 'archivado'
+                        WHERE c.estado <> co.edu.ufps.legal_cases.business.model.consulta.EstadoConsulta.ARCHIVADO
                           AND (:search IS NULL OR :search = ''
                            OR LOWER(c.descripcion)       LIKE LOWER(CONCAT('%', :search, '%'))
                            OR LOWER(p.nombres)           LIKE LOWER(CONCAT('%', :search, '%'))
@@ -85,7 +85,7 @@ public interface ConsultaRepository extends JpaRepository<Consulta, Long> {
         @Query("""
                         SELECT c FROM Consulta c
                         JOIN c.persona p
-                        WHERE LOWER(c.estado) <> 'archivado'
+                        WHERE c.estado <> co.edu.ufps.legal_cases.business.model.consulta.EstadoConsulta.ARCHIVADO
                           AND (:search IS NULL OR :search = ''
                            OR LOWER(c.descripcion)       LIKE LOWER(CONCAT('%', :search, '%'))
                            OR LOWER(p.nombres)           LIKE LOWER(CONCAT('%', :search, '%'))
@@ -106,7 +106,7 @@ public interface ConsultaRepository extends JpaRepository<Consulta, Long> {
         @Query("""
                         SELECT c FROM Consulta c
                         JOIN c.persona p
-                        WHERE LOWER(c.estado) <> 'archivado'
+                        WHERE c.estado <> co.edu.ufps.legal_cases.business.model.consulta.EstadoConsulta.ARCHIVADO
                           AND (:search IS NULL OR :search = ''
                            OR LOWER(c.descripcion)       LIKE LOWER(CONCAT('%', :search, '%'))
                            OR LOWER(p.nombres)           LIKE LOWER(CONCAT('%', :search, '%'))
@@ -124,7 +124,7 @@ public interface ConsultaRepository extends JpaRepository<Consulta, Long> {
         @Query("""
                         SELECT c FROM Consulta c
                         JOIN c.persona p
-                        WHERE LOWER(c.estado) <> 'archivado'
+                        WHERE c.estado <> co.edu.ufps.legal_cases.business.model.consulta.EstadoConsulta.ARCHIVADO
                           AND (:search IS NULL OR :search = ''
                            OR LOWER(c.descripcion)       LIKE LOWER(CONCAT('%', :search, '%'))
                            OR LOWER(p.nombres)           LIKE LOWER(CONCAT('%', :search, '%'))
@@ -200,5 +200,5 @@ public interface ConsultaRepository extends JpaRepository<Consulta, Long> {
         Optional<SeguimientoDestinatarioDTO> findDestinatarioEstudianteByConsultaId(
                         @Param("consultaId") Long consultaId);
 
-        List<Consulta> findByEstadoIgnoreCase(String estado);
+        List<Consulta> findByEstado(String estado);
 }

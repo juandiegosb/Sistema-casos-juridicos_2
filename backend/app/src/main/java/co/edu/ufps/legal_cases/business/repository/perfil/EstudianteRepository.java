@@ -31,11 +31,9 @@ public interface EstudianteRepository extends JpaRepository<Estudiante, Long> {
 
     boolean existsByCodigoIgnoreCaseAndIdNot(String codigo, Long id);
 
-    List<Estudiante> findByActivoTrue();
+    List<Estudiante> findByActivoTrueOrderByNombreAsc();
 
-    List<Estudiante> findByConciliacionTrue();
-
-    List<Estudiante> findByAsesorId(Long asesorId);
+    List<Estudiante> findByConciliacionTrueAndActivoTrue();
 
     // Estudiantes activos de un asesor específico
     List<Estudiante> findByAsesorIdAndActivoTrue(Long asesorId);

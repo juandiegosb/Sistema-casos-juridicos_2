@@ -40,7 +40,7 @@ public class EstudianteQueryService {
         }
 
         if (estudianteAccessService.usuarioEsAsesor()) {
-            return estudianteRepository.findByAsesorId(estudianteAccessService.obtenerAsesorActualId())
+            return estudianteRepository.findByAsesorIdAndActivoTrue(estudianteAccessService.obtenerAsesorActualId())
                     .stream()
                     .map(estudianteMapper::convertirADTO)
                     .toList();
@@ -54,7 +54,7 @@ public class EstudianteQueryService {
         estudianteAccessService.validarPuedeListarEstudiantes();
 
         if (estudianteAccessService.puedeVerTodosLosEstudiantes()) {
-            return estudianteRepository.findByActivoTrue()
+            return estudianteRepository.findByActivoTrueOrderByNombreAsc()
                     .stream()
                     .map(estudianteMapper::convertirADTO)
                     .toList();
@@ -74,7 +74,7 @@ public class EstudianteQueryService {
     public List<EstudianteDTO> listarConConciliacion() {
         estudianteAccessService.validarPuedeListarEstudiantes();
 
-        return estudianteRepository.findByConciliacionTrue()
+        return estudianteRepository.findByConciliacionTrueAndActivoTrue()
                 .stream()
                 .filter(estudianteAccessService::puedeVerEstudiante)
                 .map(estudianteMapper::convertirADTO)
@@ -85,7 +85,7 @@ public class EstudianteQueryService {
     public List<EstudianteDTO> listarPorAsesor(Long asesorId) {
         estudianteAccessService.validarPuedeListarEstudiantesPorAsesor(asesorId);
 
-        return estudianteRepository.findByAsesorId(asesorId)
+        return estudianteRepository.findByAsesorIdAndActivoTrue(asesorId)
                 .stream()
                 .map(estudianteMapper::convertirADTO)
                 .toList();

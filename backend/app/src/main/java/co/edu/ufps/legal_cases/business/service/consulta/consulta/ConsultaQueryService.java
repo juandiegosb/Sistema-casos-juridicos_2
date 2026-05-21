@@ -106,7 +106,7 @@ public class ConsultaQueryService {
 
     @Transactional(readOnly = true)
     public List<ConsultaBusquedaDTO> listarArchivadas() {
-        return consultaRepository.findByEstadoIgnoreCase("Archivado")
+        return consultaRepository.findByEstado("Archivado")
                 .stream()
                 .map(consultaMapper::convertirABusquedaDTO)
                 .toList();

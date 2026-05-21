@@ -21,14 +21,14 @@ public class TipoDocumentoService {
     }
 
     public List<TipoDocumentoDTO> listar() {
-        return tipoDocumentoRepository.findAll()
+        return tipoDocumentoRepository.findAllByOrderByNombreAsc()
                 .stream()
                 .map(this::convertirADTO)
                 .toList();
     }
 
     public List<TipoDocumentoDTO> listarActivos() {
-        return tipoDocumentoRepository.findByActivoTrue()
+        return tipoDocumentoRepository.findByActivoTrueOrderByNombreAsc()
                 .stream()
                 .map(this::convertirADTO)
                 .toList();

@@ -51,7 +51,7 @@ public class SeguimientoNotificacionService {
 
         // Busca solamente las que no han sido enviadas.
         List<SeguimientoNotificacion> pendientes = seguimientoNotificacionRepository
-                .findBySeguimiento_IdAndEnviadaFalse(seguimientoId);
+                .findBySeguimiento_IdAndEnviadaFalseAndActivoTrue(seguimientoId);
 
         // Las deja inactivas en vez de borrarlas.
         pendientes.forEach(this::desactivarSiEstaPendiente);

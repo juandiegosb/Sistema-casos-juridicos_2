@@ -32,7 +32,7 @@ public class CategoriaSeguimientoService {
 
     @Transactional(readOnly = true)
     public List<CategoriaSeguimientoDTO> listarActivas() {
-        return categoriaSeguimientoRepository.findByActivoTrue()
+        return categoriaSeguimientoRepository.findByActivoTrueOrderByNombreAsc()
                 .stream()
                 .map(this::convertirADTO)
                 .toList();
