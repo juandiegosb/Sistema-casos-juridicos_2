@@ -58,6 +58,7 @@ public class Conciliador {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "sede", nullable = false)
     private Sede sede;
+    
     @Column(name = "codigo", nullable = false, unique = true, length = 30)
     private String codigo;
 

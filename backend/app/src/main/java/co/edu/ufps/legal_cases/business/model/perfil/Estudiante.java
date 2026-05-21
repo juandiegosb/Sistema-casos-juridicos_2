@@ -26,6 +26,14 @@ public class Estudiante {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    // Usuario del sistema asociado a este estudiante.
+    // Esta relación hace parte de la normalización nueva.
+    // Por ahora es nullable para permitir migrar datos existentes sin romper el
+    // arranque.
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "usuario_sistema_id", unique = true)
+    private UsuarioSistema usuarioSistema;
+
     @Column(name = "nombre", nullable = false, length = 150)
     private String nombre;
 
@@ -62,11 +70,4 @@ public class Estudiante {
     @Column(name = "conciliacion", nullable = false)
     private Boolean conciliacion = false;
 
-    // Usuario del sistema asociado a este estudiante.
-    // Esta relación hace parte de la normalización nueva.
-    // Por ahora es nullable para permitir migrar datos existentes sin romper el
-    // arranque.
-    @OneToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "usuario_sistema_id", unique = true)
-    private UsuarioSistema usuarioSistema;
 }
