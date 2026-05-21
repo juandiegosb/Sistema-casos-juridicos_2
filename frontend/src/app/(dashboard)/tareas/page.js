@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+import { Suspense } from "react"
 import { ClipboardList } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
 import { SeguimientosForm } from "@/components/forms/SeguimientosForm"
@@ -21,7 +22,9 @@ export default function SeguimientosPage() {
         </div>
         <Card>
           <CardContent className="p-6 lg:p-8">
-            <SeguimientosForm />
+            <Suspense fallback={<div>Cargando tareas...</div>}>
+              <SeguimientosForm />
+            </Suspense>
           </CardContent>
         </Card>
       </div>

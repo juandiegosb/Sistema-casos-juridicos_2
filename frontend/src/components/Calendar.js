@@ -1,8 +1,10 @@
 "use client"
 
 import React, { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import FullCalendar from '@fullcalendar/react'
 import dayGridPlugin from '@fullcalendar/daygrid'
+import listPlugin from '@fullcalendar/list'
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { toast } from "sonner"
 import { API_URL_BASE } from '@/lib/config'
@@ -18,7 +20,8 @@ import { API_URL_BASE } from '@/lib/config'
  *
  * Cada seguimiento aparece en el día de su fechaEntrega.
  */
-export default function Calendar() {
+export default function Calendar({ onEventClick }) {
+  const router = useRouter()
   const [events, setEvents] = useState([])
   const [loading, setLoading] = useState(true)
 
@@ -85,17 +88,19 @@ export default function Calendar() {
             </div>
           )}
           <FullCalendar
-            plugins={[dayGridPlugin]}
+            plugins={[dayGridPlugin, listPlugin]}
             initialView="dayGridMonth"
             events={events}
             locale="es"
             headerToolbar={{
               left: 'prev,next today',
               center: 'title',
-              right: ''
+              right: 'dayGridMonth,listMonth'
             }}
             buttonText={{
-              today: 'Hoy'
+              today: 'Hoy',
+              month: 'Mes',
+              list: 'Lista'
             }}
             height="auto"
             aspectRatio={1.6}
@@ -103,6 +108,22 @@ export default function Calendar() {
             selectable={false}
             dayMaxEvents={true}
             eventDisplay="block"
+            eventClick={(info) => {
+              // Extraer el ID de la consulta o proceso para redirigir
+              const consultaId = info.event.extendedProps.consultaId;
+              
+              if (onEventClick) {
+                onEventClick();
+              }
+
+              if (consultaId) {
+                // Redirigimos a la página de tareas/seguimientos
+                // Enviamos el parámetro de búsqueda para que se autocompleta el campo
+                router.push(`/tareas?search=${consultaId}`); 
+              } else {
+                router.push('/tareas');
+              }
+            }}
           />
         </div>
       </CardContent>
@@ -177,7 +198,7 @@ export default function Calendar() {
         }
 
         .full-calendar-wrapper .fc-event {
-          @apply rounded-md border px-2 py-0.5 text-xs font-medium shadow-sm transition-all cursor-default !important;
+          @apply rounded-md border px-2 py-0.5 text-xs font-medium shadow-sm transition-all cursor-pointer hover:opacity-80 !important;
         }
 
         .full-calendar-wrapper .fc-daygrid-event {

@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useEffect, useMemo, useState } from "react"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { useForm } from "react-hook-form"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
@@ -297,6 +297,8 @@ function mensajeError(data, defecto) {
 
 export function SeguimientosForm() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const searchQuery = searchParams.get('search') || ""
   const FILES_API = FILE_STORAGE_API_URL_BASE || API_URL_BASE
 
   const [user, setUser] = useState(null)
@@ -306,7 +308,13 @@ export function SeguimientosForm() {
   const [respuestasPorTarea, setRespuestasPorTarea] = useState({})
   const [pendientesRevision, setPendientesRevision] = useState([])
   const [consultaSeleccionada, setConsultaSeleccionada] = useState(null)
-  const [busquedaLocal, setBusquedaLocal] = useState("")
+  const [busquedaLocal, setBusquedaLocal] = useState(searchQuery)
+
+  useEffect(() => {
+    if (searchQuery) {
+      setBusquedaLocal(searchQuery)
+    }
+  }, [searchQuery])
   const [paso, setPaso] = useState(1)
   const [formTarea, setFormTarea] = useState(FORM_TAREA_INICIAL)
   const [tareaEditando, setTareaEditando] = useState(null)
