@@ -1,158 +1,103 @@
 package co.edu.ufps.legal_cases.business.service.proceso;
 
-import static co.edu.ufps.legal_cases.common.util.NormalizacionUtils.normalizarTexto;
-
 import java.util.Comparator;
 import java.util.List;
-import java.util.Objects;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import co.edu.ufps.legal_cases.business.dto.proceso.OrganoControlDTO;
 import co.edu.ufps.legal_cases.business.model.proceso.OrganoControl;
-import co.edu.ufps.legal_cases.business.repository.proceso.EspecialidadRepository;
 import co.edu.ufps.legal_cases.business.repository.proceso.OrganoControlRepository;
+import co.edu.ufps.legal_cases.business.service.proceso.catalogo.OrganoControlMapper;
+import co.edu.ufps.legal_cases.business.service.proceso.catalogo.OrganoControlValidator;
 import co.edu.ufps.legal_cases.common.exception.BusinessException;
 
 @Service
 public class OrganoControlService {
 
     private final OrganoControlRepository organoControlRepository;
-    private final EspecialidadRepository especialidadRepository;
+    private final OrganoControlMapper organoControlMapper;
+    private final OrganoControlValidator organoControlValidator;
 
     public OrganoControlService(
             OrganoControlRepository organoControlRepository,
-            EspecialidadRepository especialidadRepository) {
+            OrganoControlMapper organoControlMapper,
+            OrganoControlValidator organoControlValidator) {
         this.organoControlRepository = organoControlRepository;
-        this.especialidadRepository = especialidadRepository;
+        this.organoControlMapper = organoControlMapper;
+        this.organoControlValidator = organoControlValidator;
     }
 
-    // Lista órganos activos para formularios y combos del frontend.
+    // Lista órganos activos para formularios y combos de procesos.
     @Transactional(readOnly = true)
     public List<OrganoControlDTO> listar() {
         return organoControlRepository.findByActivoTrueOrderByNombreAsc()
                 .stream()
-                .map(this::convertirADTO)
+                .map(organoControlMapper::convertirADTO)
                 .toList();
     }
 
-    // Lista todos para administración de catálogos.
+    // Lista activos e inactivos para administración del catálogo.
     @Transactional(readOnly = true)
     public List<OrganoControlDTO> listarTodos() {
         return organoControlRepository.findAll()
                 .stream()
                 .sorted(Comparator.comparing(OrganoControl::getNombre, String.CASE_INSENSITIVE_ORDER))
-                .map(this::convertirADTO)
+                .map(organoControlMapper::convertirADTO)
                 .toList();
     }
 
     @Transactional(readOnly = true)
     public OrganoControlDTO obtenerPorId(Long id) {
         OrganoControl organoControl = buscarPorIdActivo(id);
-        return convertirADTO(organoControl);
+        return organoControlMapper.convertirADTO(organoControl);
     }
 
     @Transactional
     public OrganoControlDTO crear(OrganoControlDTO dto) {
-        validarCreacion(dto);
+        organoControlValidator.validarCreacion(dto);
 
-        String nombre = normalizarNombre(dto.getNombre());
+        String nombre = organoControlValidator.normalizarNombre(dto.getNombre());
+        organoControlValidator.validarNombreDisponible(nombre);
 
-        if (organoControlRepository.existsByNombreIgnoreCase(nombre)) {
-            throw new BusinessException("Ya existe un órgano de control con ese nombre");
-        }
+        OrganoControl organoControl = organoControlMapper.crearEntidad(nombre, dto.getActivo());
 
-        OrganoControl organoControl = new OrganoControl();
-        organoControl.setNombre(nombre);
-        organoControl.setActivo(dto.getActivo() != null ? dto.getActivo() : true);
-
-        return convertirADTO(organoControlRepository.save(organoControl));
+        return organoControlMapper.convertirADTO(organoControlRepository.save(organoControl));
     }
 
     @Transactional
     public OrganoControlDTO actualizar(Long id, OrganoControlDTO dto) {
         OrganoControl organoControl = buscarPorId(id);
 
-        validarActualizacion(id, dto);
+        organoControlValidator.validarActualizacion(id, dto);
 
-        String nombreNuevo = normalizarNombre(dto.getNombre());
+        String nombreNuevo = organoControlValidator.normalizarNombre(dto.getNombre());
         Boolean activoNuevo = dto.getActivo() != null ? dto.getActivo() : organoControl.getActivo();
 
-        if (organoControlRepository.existsByNombreIgnoreCaseAndIdNot(nombreNuevo, id)) {
-            throw new BusinessException("Ya existe un órgano de control con ese nombre");
-        }
+        organoControlValidator.validarNombreDisponibleParaActualizacion(nombreNuevo, id);
 
         if (Boolean.FALSE.equals(activoNuevo)) {
-            validarPuedeDesactivarse(id);
+            organoControlValidator.validarPuedeDesactivarse(id);
         }
 
-        boolean sinCambios = Objects.equals(organoControl.getNombre(), nombreNuevo)
-                && Objects.equals(organoControl.getActivo(), activoNuevo);
+        organoControlValidator.validarExistenCambios(organoControl, nombreNuevo, activoNuevo);
 
-        if (sinCambios) {
-            throw new BusinessException("No hay cambios para actualizar");
-        }
+        organoControlMapper.aplicarDatos(organoControl, nombreNuevo, activoNuevo);
 
-        organoControl.setNombre(nombreNuevo);
-        organoControl.setActivo(activoNuevo);
-
-        return convertirADTO(organoControlRepository.save(organoControl));
+        return organoControlMapper.convertirADTO(organoControlRepository.save(organoControl));
     }
 
     @Transactional
     public void eliminar(Long id) {
         OrganoControl organoControl = buscarPorIdActivo(id);
 
-        validarPuedeDesactivarse(id);
+        organoControlValidator.validarPuedeDesactivarse(id);
 
-        // Desactivación lógica: se conserva el registro para historial.
+        // Se desactiva para conservar el catálogo usado por procesos históricos.
         organoControl.setActivo(false);
 
         organoControlRepository.save(organoControl);
-    }
-
-    private void validarCreacion(OrganoControlDTO dto) {
-        validarDtoObligatorio(dto);
-
-        if (dto.getId() != null) {
-            throw new BusinessException("El id no debe enviarse en la creación");
-        }
-    }
-
-    private void validarActualizacion(Long id, OrganoControlDTO dto) {
-        validarDtoObligatorio(dto);
-
-        if (dto.getId() != null && !Objects.equals(dto.getId(), id)) {
-            throw new BusinessException("No se permite cambiar el id del órgano de control");
-        }
-    }
-
-    private void validarDtoObligatorio(OrganoControlDTO dto) {
-        if (dto == null) {
-            throw new BusinessException("Los datos del órgano de control son obligatorios");
-        }
-    }
-
-    private String normalizarNombre(String nombre) {
-        String nombreNormalizado = normalizarTexto(nombre);
-
-        if (nombreNormalizado == null || nombreNormalizado.isBlank()) {
-            throw new BusinessException("El nombre del órgano de control es obligatorio");
-        }
-
-        if (nombreNormalizado.length() > 80) {
-            throw new BusinessException("El nombre no puede superar los 80 caracteres");
-        }
-
-        return nombreNormalizado;
-    }
-
-    private void validarPuedeDesactivarse(Long id) {
-        if (especialidadRepository.existsByOrganoControlIdAndActivoTrue(id)) {
-            throw new BusinessException(
-                    "No se puede desactivar el órgano de control porque tiene especialidades activas");
-        }
     }
 
     private OrganoControl buscarPorId(Long id) {
@@ -171,12 +116,5 @@ public class OrganoControlService {
 
         return organoControlRepository.findByIdAndActivoTrue(id)
                 .orElseThrow(() -> new BusinessException("Órgano de control no encontrado o inactivo con id: " + id));
-    }
-
-    private OrganoControlDTO convertirADTO(OrganoControl organoControl) {
-        return new OrganoControlDTO(
-                organoControl.getId(),
-                organoControl.getNombre(),
-                organoControl.getActivo());
     }
 }
