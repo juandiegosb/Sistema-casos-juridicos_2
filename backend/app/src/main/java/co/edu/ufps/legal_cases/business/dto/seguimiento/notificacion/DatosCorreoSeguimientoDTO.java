@@ -5,7 +5,7 @@ import java.time.LocalDate;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 
-// dto interno para enviar solo lo necesario de seguimientoal servicio de correo
+// DTO interno para enviar solo lo necesario del seguimiento al servicio de correo
 @Getter
 @AllArgsConstructor
 public class DatosCorreoSeguimientoDTO {

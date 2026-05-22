@@ -13,5 +13,6 @@ public class DatosNotificacionSeguimientoDTO {
 
     private Long autorUsuarioSistemaId;
 
+    // En UsuarioSistema, username corresponde al correo usado para notificaciones
     private String autorEmail;
 }
