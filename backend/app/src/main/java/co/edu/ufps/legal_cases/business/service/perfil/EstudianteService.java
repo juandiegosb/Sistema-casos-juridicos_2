@@ -8,8 +8,8 @@ import co.edu.ufps.legal_cases.business.dto.perfil.EstudianteDTO;
 import co.edu.ufps.legal_cases.business.service.perfil.estudiante.EstudianteCommandService;
 import co.edu.ufps.legal_cases.business.service.perfil.estudiante.EstudianteQueryService;
 
-// Funciona como fachada para manejar todas las operaciones que tiene un estudiante
-// porque esta dividido en mas servicios por responsabilidad
+// Fachada del módulo de estudiantes.
+// El controller entra por aquí, pero lectura y escritura quedan separadas por responsabilidad.
 @Service
 public class EstudianteService {
 

@@ -1,15 +1,11 @@
 package co.edu.ufps.legal_cases.business.service.perfil.estudiante;
 
-import static co.edu.ufps.legal_cases.common.util.ComparacionUtils.equalsIgnoreCase;
-import static co.edu.ufps.legal_cases.common.util.ComparacionUtils.mismoId;
 import static co.edu.ufps.legal_cases.common.util.NormalizacionUtils.normalizarCodigo;
 import static co.edu.ufps.legal_cases.common.util.NormalizacionUtils.normalizarEmail;
 import static co.edu.ufps.legal_cases.common.util.NormalizacionUtils.normalizarNumeroDocumento;
 import static co.edu.ufps.legal_cases.common.util.NormalizacionUtils.normalizarTelefono;
 import static co.edu.ufps.legal_cases.common.util.NormalizacionUtils.normalizarTexto;
 import static co.edu.ufps.legal_cases.common.util.NormalizacionUtils.normalizarUsuario;
-
-import java.util.Objects;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -29,8 +25,6 @@ import co.edu.ufps.legal_cases.security.model.account.UsuarioSistema;
 import co.edu.ufps.legal_cases.security.service.account.UsuarioSistemaRegistroService;
 import lombok.AllArgsConstructor;
 
-// Este servicio maneja cambios del Estudiante en la bd
-// a diferencia del query service que solo lee
 @Service
 @AllArgsConstructor
 public class EstudianteCommandService {
@@ -59,17 +53,16 @@ public class EstudianteCommandService {
                 datos.codigo());
 
         Estudiante estudiante = new Estudiante();
-        aplicarDatos(estudiante, datos);
+        estudianteMapper.aplicarDatos(estudiante, datos);
 
         Estudiante estudianteGuardado = estudianteRepository.save(estudiante);
 
+        // El perfil se guarda primero porque el usuario del sistema se crea con datos del estudiante persistido.
         UsuarioSistema usuarioSistema = usuarioSistemaRegistroService.crearParaEstudiante(estudianteGuardado);
 
         estudianteGuardado.setUsuarioSistema(usuarioSistema);
 
-        Estudiante estudianteActualizado = estudianteRepository.save(estudianteGuardado);
-
-        return estudianteMapper.convertirADTO(estudianteActualizado);
+        return estudianteMapper.convertirADTO(estudianteRepository.save(estudianteGuardado));
     }
 
     @Transactional
@@ -88,11 +81,9 @@ public class EstudianteCommandService {
                 datos.usuario(),
                 datos.codigo());
 
-        if (sinCambios(existente, datos)) {
-            throw new BusinessException("No hay cambios para actualizar");
-        }
+        estudianteValidator.validarExistenCambios(existente, datos);
 
-        aplicarDatos(existente, datos);
+        estudianteMapper.aplicarDatos(existente, datos);
 
         return estudianteMapper.convertirADTO(estudianteRepository.save(existente));
     }
@@ -103,13 +94,7 @@ public class EstudianteCommandService {
 
         Estudiante estudiante = buscarPorId(id);
 
-        if (activo == null) {
-            throw new BusinessException("El estado activo es obligatorio");
-        }
-
-        if (Objects.equals(estudiante.getActivo(), activo)) {
-            throw new BusinessException("El estudiante ya tiene ese estado");
-        }
+        estudianteValidator.validarCambioEstado(estudiante, activo);
 
         estudiante.setActivo(activo);
 
@@ -122,13 +107,7 @@ public class EstudianteCommandService {
 
         Estudiante estudiante = buscarPorId(id);
 
-        if (conciliacion == null) {
-            throw new BusinessException("El estado de conciliación es obligatorio");
-        }
-
-        if (Objects.equals(estudiante.getConciliacion(), conciliacion)) {
-            throw new BusinessException("El estudiante ya tiene ese estado de conciliación");
-        }
+        estudianteValidator.validarCambioConciliacion(estudiante, conciliacion);
 
         estudiante.setConciliacion(conciliacion);
 
@@ -181,35 +160,11 @@ public class EstudianteCommandService {
                 conciliacion);
     }
 
-    private void aplicarDatos(Estudiante estudiante, DatosEstudiante datos) {
-        estudiante.setNombre(datos.nombre());
-        estudiante.setTipoDocumento(datos.tipoDocumento());
-        estudiante.setDocumento(datos.documento());
-        estudiante.setEmail(datos.email());
-        estudiante.setTelefono(datos.telefono());
-        estudiante.setUsuario(datos.usuario());
-        estudiante.setSede(datos.sede());
-        estudiante.setCodigo(datos.codigo());
-        estudiante.setAsesor(datos.asesor());
-        estudiante.setActivo(datos.activo());
-        estudiante.setConciliacion(datos.conciliacion());
-    }
-
-    private boolean sinCambios(Estudiante estudiante, DatosEstudiante datos) {
-        return equalsIgnoreCase(estudiante.getNombre(), datos.nombre())
-                && mismoId(estudiante.getTipoDocumento(), datos.tipoDocumento(), TipoDocumento::getId)
-                && Objects.equals(estudiante.getDocumento(), datos.documento())
-                && equalsIgnoreCase(estudiante.getEmail(), datos.email())
-                && Objects.equals(estudiante.getTelefono(), datos.telefono())
-                && equalsIgnoreCase(estudiante.getUsuario(), datos.usuario())
-                && mismoId(estudiante.getSede(), datos.sede(), Sede::getId)
-                && equalsIgnoreCase(estudiante.getCodigo(), datos.codigo())
-                && mismoId(estudiante.getAsesor(), datos.asesor(), Asesor::getId)
-                && Objects.equals(estudiante.getActivo(), datos.activo())
-                && Objects.equals(estudiante.getConciliacion(), datos.conciliacion());
-    }
-
     private Estudiante buscarPorId(Long id) {
+        if (id == null) {
+            throw new BusinessException("El id del estudiante es obligatorio");
+        }
+
         return estudianteRepository.findById(id)
                 .orElseThrow(() -> new BusinessException("Estudiante no encontrado con id: " + id));
     }
@@ -240,19 +195,5 @@ public class EstudianteCommandService {
 
         return asesorRepository.findByIdAndActivoTrue(asesorId)
                 .orElseThrow(() -> new BusinessException("Asesor no encontrado o inactivo con id: " + asesorId));
-    }
-
-    private record DatosEstudiante(
-            String nombre,
-            String documento,
-            String email,
-            String telefono,
-            String usuario,
-            String codigo,
-            TipoDocumento tipoDocumento,
-            Sede sede,
-            Asesor asesor,
-            Boolean activo,
-            Boolean conciliacion) {
     }
 }
