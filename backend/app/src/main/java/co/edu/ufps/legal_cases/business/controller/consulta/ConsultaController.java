@@ -29,7 +29,8 @@ public class ConsultaController {
 
     /**
      * Búsqueda de consultas jurídicas filtrada según el usuario autenticado.
-     * El frontend no debe filtrar consultas ajenas; el backend devuelve solo las permitidas.
+     * El frontend no debe filtrar consultas ajenas; el backend devuelve solo las
+     * permitidas.
      */
     @GetMapping
     @PreAuthorize("hasAnyAuthority('" + VER_CONSULTAS + "', '" + GESTIONAR_CONSULTAS + "')")
@@ -75,6 +76,7 @@ public class ConsultaController {
     }
 
     @GetMapping("/archivadas")
+    @PreAuthorize("hasAuthority('" + ARCHIVAR_CONSULTAS + "')")
     public List<ConsultaBusquedaDTO> listarArchivadas() {
         return consultaService.listarArchivadas();
     }
