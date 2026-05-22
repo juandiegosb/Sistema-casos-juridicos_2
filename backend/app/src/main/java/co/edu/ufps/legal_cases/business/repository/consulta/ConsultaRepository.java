@@ -11,6 +11,7 @@ import org.springframework.stereotype.Repository;
 
 import co.edu.ufps.legal_cases.business.dto.seguimiento.notificacion.SeguimientoDestinatarioDTO;
 import co.edu.ufps.legal_cases.business.model.consulta.Consulta;
+import co.edu.ufps.legal_cases.business.model.consulta.EstadoConsulta;
 
 @Repository
 public interface ConsultaRepository extends JpaRepository<Consulta, Long> {
@@ -200,5 +201,5 @@ public interface ConsultaRepository extends JpaRepository<Consulta, Long> {
         Optional<SeguimientoDestinatarioDTO> findDestinatarioEstudianteByConsultaId(
                         @Param("consultaId") Long consultaId);
 
-        List<Consulta> findByEstado(String estado);
+        List<Consulta> findByEstado(EstadoConsulta estado);
 }

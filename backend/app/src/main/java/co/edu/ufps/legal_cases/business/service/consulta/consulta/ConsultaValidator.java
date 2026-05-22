@@ -2,14 +2,27 @@ package co.edu.ufps.legal_cases.business.service.consulta.consulta;
 
 import static co.edu.ufps.legal_cases.common.util.NormalizacionUtils.normalizarTexto;
 
+import java.util.HashSet;
+import java.util.List;
+import java.util.Objects;
+import java.util.Set;
+
 import org.springframework.stereotype.Component;
 
 import co.edu.ufps.legal_cases.business.dto.consulta.ConsultaDTO;
+import co.edu.ufps.legal_cases.business.model.catalogo.Area;
+import co.edu.ufps.legal_cases.business.model.catalogo.Tema;
+import co.edu.ufps.legal_cases.business.model.catalogo.Tipo;
 import co.edu.ufps.legal_cases.business.model.consulta.Consulta;
+import co.edu.ufps.legal_cases.business.model.consulta.EstadoConsulta;
+import co.edu.ufps.legal_cases.business.model.perfil.Asesor;
+import co.edu.ufps.legal_cases.business.model.perfil.Estudiante;
+import co.edu.ufps.legal_cases.business.model.persona.Persona;
 import co.edu.ufps.legal_cases.business.service.acceso.ConsultaAccessService;
 import co.edu.ufps.legal_cases.common.exception.BusinessException;
 
-// Valida reglas de negocio para la entidad Consulta
+// Valida reglas de negocio propias de Consulta.
+// Aquí no se consultan repositories; se validan objetos ya cargados por el service.
 @Component
 public class ConsultaValidator {
 
@@ -32,6 +45,10 @@ public class ConsultaValidator {
     }
 
     public void validarCamposObligatorios(ConsultaDTO dto) {
+        if (dto == null) {
+            throw new BusinessException("Los datos de la consulta son obligatorios");
+        }
+
         if (dto.getFecha() == null)
             throw new BusinessException("La fecha es obligatoria");
         if (normalizarTexto(dto.getDescripcion()) == null)
@@ -57,9 +74,144 @@ public class ConsultaValidator {
     }
 
     public void validarCambioEstadoPermitido(Consulta existente, ConsultaDTO dto) {
-
         if (existente.getEstado() != dto.getEstado()) {
             consultaAccessService.validarPuedeCambiarEstadoConsulta(existente.getId());
+        }
+    }
+
+    public void validarNoArchivada(Consulta consulta) {
+        if (consulta.getEstado() == EstadoConsulta.ARCHIVADO) {
+            throw new BusinessException("No se puede modificar una consulta archivada");
+        }
+    }
+
+    public void validarNoArchivadaParaArchivar(Consulta consulta) {
+        if (consulta.getEstado() == EstadoConsulta.ARCHIVADO) {
+            throw new BusinessException("La consulta ya se encuentra archivada");
+        }
+    }
+
+    public void validarCoherenciaDominio(Consulta consulta) {
+        validarJerarquiaCatalogos(
+                consulta.getArea(),
+                consulta.getTema(),
+                consulta.getTipo());
+
+        validarResponsables(
+                consulta.getArea(),
+                consulta.getAsesor(),
+                consulta.getEstudiante());
+
+        validarPersonasSinDuplicados(
+                consulta.getPersona(),
+                consulta.getPartes(),
+                consulta.getContrapartes());
+    }
+
+    private void validarJerarquiaCatalogos(Area area, Tema tema, Tipo tipo) {
+        if (area == null) {
+            throw new BusinessException("El área es obligatoria");
+        }
+
+        if (tema == null) {
+            throw new BusinessException("El tema es obligatorio");
+        }
+
+        if (tema.getArea() == null || !Objects.equals(tema.getArea().getId(), area.getId())) {
+            throw new BusinessException("El tema seleccionado no pertenece al área de la consulta");
+        }
+
+        if (tipo != null) {
+            if (tipo.getTema() == null || !Objects.equals(tipo.getTema().getId(), tema.getId())) {
+                throw new BusinessException("El tipo seleccionado no pertenece al tema de la consulta");
+            }
+        }
+    }
+
+    private void validarResponsables(Area area, Asesor asesor, Estudiante estudiante) {
+        if (asesor != null) {
+            if (asesor.getArea() == null || !Objects.equals(asesor.getArea().getId(), area.getId())) {
+                throw new BusinessException("El asesor asignado no pertenece al área de la consulta");
+            }
+        }
+
+        if (estudiante != null && estudiante.getAsesor() != null && asesor != null) {
+            if (!Objects.equals(estudiante.getAsesor().getId(), asesor.getId())) {
+                throw new BusinessException("El estudiante asignado no pertenece al asesor seleccionado");
+            }
+        }
+
+        if (estudiante != null && estudiante.getAsesor() != null) {
+            Asesor asesorDelEstudiante = estudiante.getAsesor();
+
+            if (asesorDelEstudiante.getArea() == null
+                    || !Objects.equals(asesorDelEstudiante.getArea().getId(), area.getId())) {
+                throw new BusinessException("El asesor del estudiante no pertenece al área de la consulta");
+            }
+        }
+    }
+
+    private void validarPersonasSinDuplicados(
+            Persona personaPrincipal,
+            List<Persona> partes,
+            List<Persona> contrapartes) {
+
+        if (personaPrincipal == null) {
+            throw new BusinessException("La persona principal es obligatoria");
+        }
+
+        Set<Long> idsPartes = obtenerIds(partes);
+        Set<Long> idsContrapartes = obtenerIds(contrapartes);
+
+        if (idsPartes.contains(personaPrincipal.getId())) {
+            throw new BusinessException("La persona principal no puede repetirse como parte adicional");
+        }
+
+        if (idsContrapartes.contains(personaPrincipal.getId())) {
+            throw new BusinessException("La persona principal no puede repetirse como contraparte");
+        }
+
+        for (Long parteId : idsPartes) {
+            if (idsContrapartes.contains(parteId)) {
+                throw new BusinessException("Una misma persona no puede estar como parte y contraparte");
+            }
+        }
+
+        validarSinDuplicados(partes, "partes");
+        validarSinDuplicados(contrapartes, "contrapartes");
+    }
+
+    private Set<Long> obtenerIds(List<Persona> personas) {
+        Set<Long> ids = new HashSet<>();
+
+        if (personas == null) {
+            return ids;
+        }
+
+        personas.stream()
+                .filter(Objects::nonNull)
+                .map(Persona::getId)
+                .filter(Objects::nonNull)
+                .forEach(ids::add);
+
+        return ids;
+    }
+
+    private void validarSinDuplicados(List<Persona> personas, String grupo) {
+        if (personas == null) {
+            return;
+        }
+
+        Set<Long> ids = new HashSet<>();
+
+        for (Persona persona : personas) {
+            if (persona == null || persona.getId() == null) {
+                continue;
+            }
+
+            if (!ids.add(persona.getId())) {
+                throw new BusinessException("Existen personas repetidas en " + grupo);
+            }
         }
     }
 }

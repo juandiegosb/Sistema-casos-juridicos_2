@@ -36,6 +36,8 @@ public interface MonitorRepository extends JpaRepository<Monitor, Long> {
 
     List<Monitor> findByActivoTrue();
 
+    Optional<Monitor> findByIdAndActivoTrue(Long id);
+
     Optional<Monitor> findByUsuarioSistema_IdAndActivoTrue(Long usuarioSistemaId);
 
     Optional<Monitor> findByUsuarioSistema_Id(Long usuarioSistemaId);

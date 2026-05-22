@@ -69,6 +69,10 @@ public class ConsultaCommandService {
             asignarResponsablesSegunUsuarioActual(consulta);
         }
 
+        // Valida relaciones cruzadas del dominio antes de guardar.
+        // Ejemplo: tema-área, tipo-tema, asesor-área y personas repetidas.
+        consultaValidator.validarCoherenciaDominio(consulta);
+
         return consultaMapper.convertirADTO(consultaRepository.save(consulta));
     }
 
@@ -80,6 +84,7 @@ public class ConsultaCommandService {
                 .orElseThrow(() -> new BusinessException("Consulta no encontrada con id: " + id));
         consultaRepository.findByIdConContrapartes(id);
 
+        consultaValidator.validarNoArchivada(existente);
         consultaValidator.validarCamposObligatorios(dto);
         consultaValidator.validarIdNoCambiado(existente.getId(), dto.getId());
         consultaValidator.validarCambioEstadoPermitido(existente, dto);
@@ -88,6 +93,9 @@ public class ConsultaCommandService {
                 existente,
                 dto,
                 consultaAccessService.usuarioPuedeAsignarResponsables());
+
+        // Valida relaciones cruzadas después de aplicar los cambios del DTO.
+        consultaValidator.validarCoherenciaDominio(existente);
 
         return consultaMapper.convertirADTO(consultaRepository.save(existente));
     }
@@ -103,6 +111,8 @@ public class ConsultaCommandService {
         Consulta consulta = consultaRepository.findById(id)
                 .orElseThrow(() -> new BusinessException("Consulta no encontrada con id: " + id));
 
+        consultaValidator.validarNoArchivadaParaArchivar(consulta);
+
         consulta.setEstado(ESTADO_ARCHIVADO);
         consultaRepository.save(consulta);
     }
@@ -114,18 +124,18 @@ public class ConsultaCommandService {
         Consulta consulta = consultaRepository.findById(id)
                 .orElseThrow(() -> new BusinessException("Consulta no encontrada con id: " + id));
 
+        consultaValidator.validarNoArchivadaParaArchivar(consulta);
+
         consulta.setEstado(ESTADO_ARCHIVADO);
 
         return consultaMapper.convertirADTO(consultaRepository.save(consulta));
     }
 
-    // -------------------------------------------------------------------------
     // Helpers de lookup
-    // -------------------------------------------------------------------------
 
     private Persona obtenerPersona(Long id) {
-        return personaRepository.findById(id)
-                .orElseThrow(() -> new BusinessException("Persona no encontrada con id: " + id));
+        return personaRepository.findByIdAndActivoTrue(id)
+                .orElseThrow(() -> new BusinessException("Persona no encontrada o inactiva con id: " + id));
     }
 
     private Sede obtenerSede(Long id) {
@@ -154,27 +164,38 @@ public class ConsultaCommandService {
     private Asesor obtenerAsesor(Long id) {
         if (id == null)
             return null;
-        return asesorRepository.findById(id)
-                .orElseThrow(() -> new BusinessException("Asesor no encontrado con id: " + id));
+
+        return asesorRepository.findByIdAndActivoTrue(id)
+                .orElseThrow(() -> new BusinessException("Asesor no encontrado o inactivo con id: " + id));
     }
 
     private Monitor obtenerMonitor(Long id) {
         if (id == null)
             return null;
-        return monitorRepository.findById(id)
-                .orElseThrow(() -> new BusinessException("Monitor no encontrado con id: " + id));
+
+        return monitorRepository.findByIdAndActivoTrue(id)
+                .orElseThrow(() -> new BusinessException("Monitor no encontrado o inactivo con id: " + id));
     }
 
     private Estudiante obtenerEstudiante(Long id) {
         if (id == null)
             return null;
-        return estudianteRepository.findById(id)
-                .orElseThrow(() -> new BusinessException("Estudiante no encontrado con id: " + id));
+
+        return estudianteRepository.findByIdAndActivoTrue(id)
+                .orElseThrow(() -> new BusinessException("Estudiante no encontrado o inactivo con id: " + id));
     }
 
-    // -------------------------------------------------------------------------
+    private Asesor obtenerAsesorDelEstudianteActivo(Estudiante estudiante) {
+        if (estudiante == null || estudiante.getAsesor() == null) {
+            throw new BusinessException("El estudiante seleccionado no tiene asesor asignado");
+        }
+
+        return asesorRepository.findByIdAndActivoTrue(estudiante.getAsesor().getId())
+                .orElseThrow(() -> new BusinessException(
+                        "El asesor asignado al estudiante no existe o está inactivo"));
+    }
+
     // Construcción y asignación
-    // -------------------------------------------------------------------------
 
     private Consulta construirDesdeDTO(
             Consulta consulta,
@@ -199,9 +220,21 @@ public class ConsultaCommandService {
         consulta.setTipo(obtenerTipo(dto.getTipoId()));
 
         if (puedeAsignarResponsables) {
-            consulta.setAsesor(obtenerAsesor(dto.getAsesorId()));
+            Asesor asesor = obtenerAsesor(dto.getAsesorId());
+            Estudiante estudiante = obtenerEstudiante(dto.getEstudianteId());
+
+            /*
+             * Si se asigna un estudiante pero no se envía asesor,
+             * se toma automáticamente el asesor activo asociado al estudiante.
+             * Esto evita consultas con estudiante asignado pero sin responsable académico.
+             */
+            if (asesor == null && estudiante != null) {
+                asesor = obtenerAsesorDelEstudianteActivo(estudiante);
+            }
+
+            consulta.setAsesor(asesor);
             consulta.setMonitor(obtenerMonitor(dto.getMonitorId()));
-            consulta.setEstudiante(obtenerEstudiante(dto.getEstudianteId()));
+            consulta.setEstudiante(estudiante);
         }
 
         if (dto.getPartesIds() != null) {

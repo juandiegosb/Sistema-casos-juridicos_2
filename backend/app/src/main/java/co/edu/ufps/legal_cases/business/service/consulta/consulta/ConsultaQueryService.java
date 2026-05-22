@@ -10,6 +10,7 @@ import org.springframework.transaction.annotation.Transactional;
 import co.edu.ufps.legal_cases.business.dto.consulta.ConsultaBusquedaDTO;
 import co.edu.ufps.legal_cases.business.dto.consulta.ConsultaDTO;
 import co.edu.ufps.legal_cases.business.model.consulta.Consulta;
+import co.edu.ufps.legal_cases.business.model.consulta.EstadoConsulta;
 import co.edu.ufps.legal_cases.business.repository.consulta.ConsultaRepository;
 import co.edu.ufps.legal_cases.business.service.acceso.ConsultaAccessService;
 import co.edu.ufps.legal_cases.common.exception.BusinessException;
@@ -106,7 +107,7 @@ public class ConsultaQueryService {
 
     @Transactional(readOnly = true)
     public List<ConsultaBusquedaDTO> listarArchivadas() {
-        return consultaRepository.findByEstado("Archivado")
+        return consultaRepository.findByEstado(EstadoConsulta.ARCHIVADO)
                 .stream()
                 .map(consultaMapper::convertirABusquedaDTO)
                 .toList();
