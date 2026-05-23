@@ -1,5 +1,6 @@
 package co.edu.ufps.legal_cases.business.dto.proceso;
 
+import co.edu.ufps.legal_cases.business.model.proceso.EstadoProceso;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
@@ -29,6 +30,8 @@ public class ProcesoDTO {
     private Long especialidadId;
 
     private Long organoControlId;
+
+    private EstadoProceso estado;
 
     private Boolean activo;
 }

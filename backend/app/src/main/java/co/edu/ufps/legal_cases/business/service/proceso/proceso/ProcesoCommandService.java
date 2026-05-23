@@ -7,6 +7,7 @@ import co.edu.ufps.legal_cases.business.dto.proceso.ProcesoDTO;
 import co.edu.ufps.legal_cases.business.model.catalogo.Departamento;
 import co.edu.ufps.legal_cases.business.model.consulta.Consulta;
 import co.edu.ufps.legal_cases.business.model.proceso.Especialidad;
+import co.edu.ufps.legal_cases.business.model.proceso.EstadoProceso;
 import co.edu.ufps.legal_cases.business.model.proceso.OrganoControl;
 import co.edu.ufps.legal_cases.business.model.proceso.Proceso;
 import co.edu.ufps.legal_cases.business.repository.catalogo.DepartamentoRepository;
@@ -67,6 +68,7 @@ public class ProcesoCommandService {
 
         Proceso proceso = new Proceso();
         procesoMapper.aplicarDatos(proceso, datos);
+        proceso.setEstado(EstadoProceso.PENDIENTE);
         proceso.setActivo(true);
 
         return procesoMapper.convertirADTO(procesoRepository.save(proceso));
@@ -96,6 +98,19 @@ public class ProcesoCommandService {
         procesoValidator.validarExistenCambios(proceso, datos);
 
         procesoMapper.aplicarDatos(proceso, datos);
+
+        return procesoMapper.convertirADTO(procesoRepository.save(proceso));
+    }
+
+    @Transactional
+    public ProcesoDTO cambiarEstadoProceso(Long id, EstadoProceso estado) {
+        procesoAccessService.validarPuedeCambiarEstadoProceso(id);
+
+        Proceso proceso = buscarProcesoActivo(id);
+
+        procesoValidator.validarCambioEstadoProceso(proceso, estado);
+
+        proceso.setEstado(estado);
 
         return procesoMapper.convertirADTO(procesoRepository.save(proceso));
     }

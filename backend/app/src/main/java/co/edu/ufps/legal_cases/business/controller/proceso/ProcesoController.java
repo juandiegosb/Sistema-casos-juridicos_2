@@ -20,6 +20,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 import co.edu.ufps.legal_cases.business.dto.proceso.ProcesoDTO;
+import co.edu.ufps.legal_cases.business.model.proceso.EstadoProceso;
 import co.edu.ufps.legal_cases.business.service.proceso.ProcesoService;
 import jakarta.validation.Valid;
 
@@ -58,6 +59,14 @@ public class ProcesoController {
             @PathVariable Long id,
             @Valid @RequestBody ProcesoDTO dto) {
         return procesoService.actualizar(id, dto);
+    }
+
+    @PatchMapping("/{id}/estado")
+    @PreAuthorize("hasAuthority('" + GESTIONAR_PROCESOS + "')")
+    public ProcesoDTO cambiarEstadoProceso(
+            @PathVariable Long id,
+            @RequestParam EstadoProceso estado) {
+        return procesoService.cambiarEstadoProceso(id, estado);
     }
 
     @PatchMapping("/{id}/activo")

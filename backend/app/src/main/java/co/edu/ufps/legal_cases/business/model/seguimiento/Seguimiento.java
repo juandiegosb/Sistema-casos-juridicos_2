@@ -7,6 +7,8 @@ import co.edu.ufps.legal_cases.business.model.consulta.Consulta;
 import co.edu.ufps.legal_cases.security.model.account.UsuarioSistema;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -54,6 +56,12 @@ public class Seguimiento {
     @Column(name = "alerta_disciplinaria", nullable = false)
     private Boolean alertaDisciplinaria = false;
 
+    // Estado real del seguimiento dentro del flujo de la consulta.
+    // No reemplaza activo; activo sigue siendo borrado lógico.
+    @Enumerated(EnumType.STRING)
+    @Column(name = "estado", nullable = false, length = 30)
+    private EstadoSeguimiento estado = EstadoSeguimiento.PENDIENTE;
+
     // Permite hacer borrado logico sin perder historial.
     @Column(name = "activo", nullable = false)
     private Boolean activo = true;
@@ -86,16 +94,16 @@ public class Seguimiento {
             fechaCreacion = ahora;
         }
 
-        normalizarBooleanos();
+        normalizarValores();
     }
 
     @PreUpdate
     public void preUpdate() {
         fechaActualizacion = LocalDateTime.now();
-        normalizarBooleanos();
+        normalizarValores();
     }
 
-    private void normalizarBooleanos() {
+    private void normalizarValores() {
         if (notificarPartes == null) {
             notificarPartes = false;
         }
@@ -106,6 +114,10 @@ public class Seguimiento {
 
         if (alertaDisciplinaria == null) {
             alertaDisciplinaria = false;
+        }
+
+        if (estado == null) {
+            estado = EstadoSeguimiento.PENDIENTE;
         }
 
         if (activo == null) {

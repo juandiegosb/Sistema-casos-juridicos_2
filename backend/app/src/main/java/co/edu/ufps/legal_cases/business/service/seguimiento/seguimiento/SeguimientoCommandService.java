@@ -7,6 +7,7 @@ import co.edu.ufps.legal_cases.business.dto.seguimiento.SeguimientoRequestDTO;
 import co.edu.ufps.legal_cases.business.dto.seguimiento.SeguimientoResponseDTO;
 import co.edu.ufps.legal_cases.business.model.consulta.Consulta;
 import co.edu.ufps.legal_cases.business.model.seguimiento.CategoriaSeguimiento;
+import co.edu.ufps.legal_cases.business.model.seguimiento.EstadoSeguimiento;
 import co.edu.ufps.legal_cases.business.model.seguimiento.Seguimiento;
 import co.edu.ufps.legal_cases.business.repository.consulta.ConsultaRepository;
 import co.edu.ufps.legal_cases.business.repository.seguimiento.CategoriaSeguimientoRepository;
@@ -26,6 +27,7 @@ public class SeguimientoCommandService {
     private final UsuarioSistemaRepository usuarioSistemaRepository;
     private final SeguimientoNotificacionService seguimientoNotificacionService;
     private final SeguimientoAccessService seguimientoAccessService;
+    private final SeguimientoEstadoService seguimientoEstadoService;
     private final SeguimientoMapper seguimientoMapper;
     private final SeguimientoValidator seguimientoValidator;
 
@@ -36,6 +38,7 @@ public class SeguimientoCommandService {
             UsuarioSistemaRepository usuarioSistemaRepository,
             SeguimientoNotificacionService seguimientoNotificacionService,
             SeguimientoAccessService seguimientoAccessService,
+            SeguimientoEstadoService seguimientoEstadoService,
             SeguimientoMapper seguimientoMapper,
             SeguimientoValidator seguimientoValidator) {
         this.seguimientoRepository = seguimientoRepository;
@@ -44,6 +47,7 @@ public class SeguimientoCommandService {
         this.usuarioSistemaRepository = usuarioSistemaRepository;
         this.seguimientoNotificacionService = seguimientoNotificacionService;
         this.seguimientoAccessService = seguimientoAccessService;
+        this.seguimientoEstadoService = seguimientoEstadoService;
         this.seguimientoMapper = seguimientoMapper;
         this.seguimientoValidator = seguimientoValidator;
     }
@@ -60,7 +64,9 @@ public class SeguimientoCommandService {
         seguimientoMapper.aplicarDatos(seguimiento, datos);
         seguimiento.setAutor(autor);
 
-        // Todo seguimiento nuevo inicia activo para permitir borrado lógico después.
+        // Todo seguimiento nuevo inicia pendiente y activo.
+        // El estado representa el flujo real; activo representa borrado lógico.
+        seguimiento.setEstado(EstadoSeguimiento.PENDIENTE);
         seguimiento.setActivo(true);
 
         Seguimiento seguimientoGuardado = seguimientoRepository.save(seguimiento);
@@ -77,6 +83,7 @@ public class SeguimientoCommandService {
 
         Seguimiento seguimiento = buscarPorId(id);
 
+        seguimientoValidator.validarSeguimientoEditable(seguimiento);
         seguimientoValidator.validarActualizacion(id, dto);
         seguimientoValidator.validarNoCambieConsulta(seguimiento, dto);
 
@@ -88,10 +95,19 @@ public class SeguimientoCommandService {
 
         Seguimiento seguimientoGuardado = seguimientoRepository.save(seguimiento);
 
-        // Si cambian fechas o banderas, se recalculan pendientes y se cancelan las que ya no aplican.
-        seguimientoNotificacionService.sincronizarNotificaciones(seguimientoGuardado.getId());
+        // Solo los seguimientos pendientes conservan notificaciones activas.
+        seguimientoEstadoService.aplicarEfectosPorEstado(seguimientoGuardado);
 
         return seguimientoMapper.convertirAResponseDTO(seguimientoGuardado);
+    }
+
+    @Transactional
+    public SeguimientoResponseDTO cambiarEstadoSeguimiento(Long id, EstadoSeguimiento estado) {
+        seguimientoAccessService.validarPuedeEditarSeguimiento(id);
+
+        Seguimiento seguimiento = seguimientoEstadoService.cambiarEstado(id, estado);
+
+        return seguimientoMapper.convertirAResponseDTO(seguimiento);
     }
 
     @Transactional

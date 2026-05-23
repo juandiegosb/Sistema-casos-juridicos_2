@@ -18,6 +18,7 @@ import co.edu.ufps.legal_cases.business.repository.perfil.EstudianteRepository;
 import co.edu.ufps.legal_cases.business.repository.seguimiento.SeguimientoRepository;
 import co.edu.ufps.legal_cases.business.repository.seguimiento.respuesta.SeguimientoRespuestaRepository;
 import co.edu.ufps.legal_cases.business.service.acceso.seguimiento.SeguimientoRespuestaAccessService;
+import co.edu.ufps.legal_cases.business.service.seguimiento.seguimiento.SeguimientoEstadoService;
 import co.edu.ufps.legal_cases.common.exception.BusinessException;
 import co.edu.ufps.legal_cases.security.model.account.UsuarioSistema;
 import co.edu.ufps.legal_cases.security.repository.account.UsuarioSistemaRepository;
@@ -32,6 +33,7 @@ public class SeguimientoRespuestaCommandService {
     private final SeguimientoRespuestaAccessService seguimientoRespuestaAccessService;
     private final SeguimientoRespuestaValidator seguimientoRespuestaValidator;
     private final SeguimientoRespuestaMapper seguimientoRespuestaMapper;
+    private final SeguimientoEstadoService seguimientoEstadoService;
 
     public SeguimientoRespuestaCommandService(
             SeguimientoRespuestaRepository seguimientoRespuestaRepository,
@@ -40,7 +42,8 @@ public class SeguimientoRespuestaCommandService {
             UsuarioSistemaRepository usuarioSistemaRepository,
             SeguimientoRespuestaAccessService seguimientoRespuestaAccessService,
             SeguimientoRespuestaValidator seguimientoRespuestaValidator,
-            SeguimientoRespuestaMapper seguimientoRespuestaMapper) {
+            SeguimientoRespuestaMapper seguimientoRespuestaMapper,
+            SeguimientoEstadoService seguimientoEstadoService) {
         this.seguimientoRespuestaRepository = seguimientoRespuestaRepository;
         this.seguimientoRepository = seguimientoRepository;
         this.estudianteRepository = estudianteRepository;
@@ -48,6 +51,7 @@ public class SeguimientoRespuestaCommandService {
         this.seguimientoRespuestaAccessService = seguimientoRespuestaAccessService;
         this.seguimientoRespuestaValidator = seguimientoRespuestaValidator;
         this.seguimientoRespuestaMapper = seguimientoRespuestaMapper;
+        this.seguimientoEstadoService = seguimientoEstadoService;
     }
 
     @Transactional
@@ -58,6 +62,7 @@ public class SeguimientoRespuestaCommandService {
         Long estudianteActualId = seguimientoRespuestaAccessService.obtenerEstudianteActualId();
 
         Seguimiento seguimiento = obtenerSeguimientoActivo(seguimientoId);
+        seguimientoEstadoService.validarPermiteRespuesta(seguimiento);
         validarPuedeCrearNuevoIntento(seguimientoId, estudianteActualId);
 
         Estudiante estudiante = obtenerEstudianteActivo(estudianteActualId);
@@ -83,6 +88,7 @@ public class SeguimientoRespuestaCommandService {
         seguimientoRespuestaValidator.validarActualizacion(id, dto);
 
         SeguimientoRespuesta respuesta = obtenerRespuestaActiva(id);
+        seguimientoEstadoService.validarPermiteRespuesta(respuesta.getSeguimiento());
         String contenido = seguimientoRespuestaValidator.normalizarContenido(dto.getContenido());
 
         if (equalsIgnoreCase(respuesta.getContenido(), contenido)) {
@@ -115,8 +121,13 @@ public class SeguimientoRespuestaCommandService {
         respuesta.setRevisadoPor(revisor);
         respuesta.setFechaDecision(LocalDateTime.now());
 
-        return seguimientoRespuestaMapper.convertirAResponseDTO(
-                seguimientoRespuestaRepository.save(respuesta));
+        SeguimientoRespuesta respuestaGuardada = seguimientoRespuestaRepository.save(respuesta);
+
+        if (EstadoRespuestaSeguimiento.APROBADA.equals(respuestaGuardada.getEstado())) {
+            seguimientoEstadoService.completarPorRespuestaAprobada(respuestaGuardada);
+        }
+
+        return seguimientoRespuestaMapper.convertirAResponseDTO(respuestaGuardada);
     }
 
     private void validarPuedeCrearNuevoIntento(Long seguimientoId, Long estudianteId) {

@@ -5,6 +5,7 @@ import java.util.List;
 import org.springframework.stereotype.Service;
 
 import co.edu.ufps.legal_cases.business.dto.proceso.ProcesoDTO;
+import co.edu.ufps.legal_cases.business.model.proceso.EstadoProceso;
 import co.edu.ufps.legal_cases.business.service.proceso.proceso.ProcesoCommandService;
 import co.edu.ufps.legal_cases.business.service.proceso.proceso.ProcesoQueryService;
 
@@ -41,6 +42,10 @@ public class ProcesoService {
 
     public ProcesoDTO cambiarEstado(Long id, Boolean activo) {
         return procesoCommandService.cambiarEstado(id, activo);
+    }
+
+    public ProcesoDTO cambiarEstadoProceso(Long id, EstadoProceso estado) {
+        return procesoCommandService.cambiarEstadoProceso(id, estado);
     }
 
     public void eliminar(Long id) {

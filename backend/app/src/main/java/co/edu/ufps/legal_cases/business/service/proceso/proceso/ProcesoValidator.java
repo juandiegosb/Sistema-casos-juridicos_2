@@ -10,6 +10,7 @@ import co.edu.ufps.legal_cases.business.dto.proceso.ProcesoDTO;
 import co.edu.ufps.legal_cases.business.model.catalogo.Departamento;
 import co.edu.ufps.legal_cases.business.model.consulta.Consulta;
 import co.edu.ufps.legal_cases.business.model.proceso.Especialidad;
+import co.edu.ufps.legal_cases.business.model.proceso.EstadoProceso;
 import co.edu.ufps.legal_cases.business.model.proceso.OrganoControl;
 import co.edu.ufps.legal_cases.business.model.proceso.Proceso;
 import co.edu.ufps.legal_cases.common.exception.BusinessException;
@@ -98,6 +99,16 @@ public class ProcesoValidator {
         }
 
         if (Objects.equals(proceso.getActivo(), activo)) {
+            throw new BusinessException("El proceso ya tiene ese estado");
+        }
+    }
+
+    public void validarCambioEstadoProceso(Proceso proceso, EstadoProceso estado) {
+        if (estado == null) {
+            throw new BusinessException("El estado del proceso es obligatorio");
+        }
+
+        if (Objects.equals(proceso.getEstado(), estado)) {
             throw new BusinessException("El proceso ya tiene ese estado");
         }
     }

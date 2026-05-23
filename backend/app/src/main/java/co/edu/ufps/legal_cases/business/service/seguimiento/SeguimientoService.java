@@ -7,6 +7,7 @@ import org.springframework.stereotype.Service;
 
 import co.edu.ufps.legal_cases.business.dto.seguimiento.SeguimientoRequestDTO;
 import co.edu.ufps.legal_cases.business.dto.seguimiento.SeguimientoResponseDTO;
+import co.edu.ufps.legal_cases.business.model.seguimiento.EstadoSeguimiento;
 import co.edu.ufps.legal_cases.business.service.seguimiento.seguimiento.SeguimientoCommandService;
 import co.edu.ufps.legal_cases.business.service.seguimiento.seguimiento.SeguimientoQueryService;
 
@@ -55,6 +56,10 @@ public class SeguimientoService {
 
     public SeguimientoResponseDTO actualizar(Long id, SeguimientoRequestDTO dto) {
         return seguimientoCommandService.actualizar(id, dto);
+    }
+
+    public SeguimientoResponseDTO cambiarEstadoSeguimiento(Long id, EstadoSeguimiento estado) {
+        return seguimientoCommandService.cambiarEstadoSeguimiento(id, estado);
     }
 
     public void eliminar(Long id) {

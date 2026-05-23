@@ -19,6 +19,7 @@ public class SeguimientoMapper {
         dto.setNotificarPartes(seguimiento.getNotificarPartes());
         dto.setNotificarEstudiante(seguimiento.getNotificarEstudiante());
         dto.setAlertaDisciplinaria(seguimiento.getAlertaDisciplinaria());
+        dto.setEstado(seguimiento.getEstado());
 
         dto.setCategoriaSeguimientoId(seguimiento.getCategoriaSeguimiento().getId());
         dto.setCategoriaSeguimientoNombre(seguimiento.getCategoriaSeguimiento().getNombre());

@@ -7,7 +7,6 @@ import co.edu.ufps.legal_cases.business.model.proceso.Proceso;
 
 // Convierte procesos entre entidad y DTO.
 // El service coordina el flujo, pero este mapper mantiene en un solo lugar cómo se expone el proceso hacia la API.
-
 @Component
 public class ProcesoMapper {
 
@@ -23,6 +22,7 @@ public class ProcesoMapper {
                 proceso.getOrganoControl() != null
                         ? proceso.getOrganoControl().getId()
                         : null,
+                proceso.getEstado(),
                 proceso.getActivo());
     }
 

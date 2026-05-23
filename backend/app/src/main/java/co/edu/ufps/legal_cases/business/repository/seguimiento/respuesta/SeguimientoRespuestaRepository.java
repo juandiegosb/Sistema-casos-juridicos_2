@@ -28,4 +28,8 @@ public interface SeguimientoRespuestaRepository extends JpaRepository<Seguimient
 
     List<SeguimientoRespuesta> findByEstadoAndActivoTrueOrderByFechaCreacionDesc(
             EstadoRespuestaSeguimiento estado);
+
+    boolean existsBySeguimiento_IdAndActivoTrueAndEstado(
+        Long seguimientoId,
+        EstadoRespuestaSeguimiento estado);
 }

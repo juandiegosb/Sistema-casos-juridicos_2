@@ -12,6 +12,7 @@ import org.springframework.stereotype.Component;
 import co.edu.ufps.legal_cases.business.dto.seguimiento.SeguimientoRequestDTO;
 import co.edu.ufps.legal_cases.business.model.consulta.Consulta;
 import co.edu.ufps.legal_cases.business.model.seguimiento.CategoriaSeguimiento;
+import co.edu.ufps.legal_cases.business.model.seguimiento.EstadoSeguimiento;
 import co.edu.ufps.legal_cases.business.model.seguimiento.Seguimiento;
 import co.edu.ufps.legal_cases.common.exception.BusinessException;
 
@@ -89,6 +90,22 @@ public class SeguimientoValidator {
     public void validarFechaEntregaObligatoria(LocalDate fechaEntrega) {
         if (fechaEntrega == null) {
             throw new BusinessException("La fecha de entrega es obligatoria");
+        }
+    }
+
+    public void validarSeguimientoEditable(Seguimiento seguimiento) {
+        if (!EstadoSeguimiento.PENDIENTE.equals(seguimiento.getEstado())) {
+            throw new BusinessException("Solo se pueden editar seguimientos pendientes");
+        }
+    }
+
+    public void validarCambioEstadoSeguimiento(Seguimiento seguimiento, EstadoSeguimiento estado) {
+        if (estado == null) {
+            throw new BusinessException("El estado del seguimiento es obligatorio");
+        }
+
+        if (Objects.equals(seguimiento.getEstado(), estado)) {
+            throw new BusinessException("El seguimiento ya tiene ese estado");
         }
     }
 
