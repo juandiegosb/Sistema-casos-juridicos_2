@@ -9,7 +9,7 @@ import org.springframework.transaction.annotation.Transactional;
 import co.edu.ufps.legal_cases.business.dto.seguimiento.SeguimientoResponseDTO;
 import co.edu.ufps.legal_cases.business.model.seguimiento.Seguimiento;
 import co.edu.ufps.legal_cases.business.repository.seguimiento.SeguimientoRepository;
-import co.edu.ufps.legal_cases.business.service.acceso.SeguimientoAccessService;
+import co.edu.ufps.legal_cases.business.service.acceso.seguimiento.SeguimientoAccessService;
 import co.edu.ufps.legal_cases.common.exception.BusinessException;
 
 @Service

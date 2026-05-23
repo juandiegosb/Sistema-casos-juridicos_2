@@ -1,4 +1,4 @@
-package co.edu.ufps.legal_cases.business.service.acceso;
+package co.edu.ufps.legal_cases.business.service.acceso.consulta;
 
 import static co.edu.ufps.legal_cases.security.constant.PermisoNombre.ARCHIVAR_CONSULTAS;
 import static co.edu.ufps.legal_cases.security.constant.PermisoNombre.ASIGNAR_RESPONSABLES_CONSULTA;

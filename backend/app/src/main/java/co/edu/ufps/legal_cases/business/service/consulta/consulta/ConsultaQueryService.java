@@ -12,7 +12,7 @@ import co.edu.ufps.legal_cases.business.dto.consulta.ConsultaDTO;
 import co.edu.ufps.legal_cases.business.model.consulta.Consulta;
 import co.edu.ufps.legal_cases.business.model.consulta.EstadoConsulta;
 import co.edu.ufps.legal_cases.business.repository.consulta.ConsultaRepository;
-import co.edu.ufps.legal_cases.business.service.acceso.ConsultaAccessService;
+import co.edu.ufps.legal_cases.business.service.acceso.consulta.ConsultaAccessService;
 import co.edu.ufps.legal_cases.common.exception.BusinessException;
 import co.edu.ufps.legal_cases.security.dto.account.PerfilUsuarioActual;
 import co.edu.ufps.legal_cases.security.model.account.TipoPerfilUsuario;

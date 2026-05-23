@@ -18,7 +18,7 @@ import co.edu.ufps.legal_cases.business.model.consulta.EstadoConsulta;
 import co.edu.ufps.legal_cases.business.model.perfil.Asesor;
 import co.edu.ufps.legal_cases.business.model.perfil.Estudiante;
 import co.edu.ufps.legal_cases.business.model.persona.Persona;
-import co.edu.ufps.legal_cases.business.service.acceso.ConsultaAccessService;
+import co.edu.ufps.legal_cases.business.service.acceso.consulta.ConsultaAccessService;
 import co.edu.ufps.legal_cases.common.exception.BusinessException;
 
 // Valida reglas de negocio propias de Consulta.

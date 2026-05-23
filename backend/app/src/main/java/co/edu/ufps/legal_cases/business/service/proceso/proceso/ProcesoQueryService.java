@@ -8,7 +8,7 @@ import org.springframework.transaction.annotation.Transactional;
 import co.edu.ufps.legal_cases.business.dto.proceso.ProcesoDTO;
 import co.edu.ufps.legal_cases.business.model.proceso.Proceso;
 import co.edu.ufps.legal_cases.business.repository.proceso.ProcesoRepository;
-import co.edu.ufps.legal_cases.business.service.acceso.ProcesoAccessService;
+import co.edu.ufps.legal_cases.business.service.acceso.proceso.ProcesoAccessService;
 import co.edu.ufps.legal_cases.common.exception.BusinessException;
 
 @Service

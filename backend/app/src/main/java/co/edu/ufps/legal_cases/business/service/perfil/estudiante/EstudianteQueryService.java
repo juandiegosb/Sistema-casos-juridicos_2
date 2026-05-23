@@ -8,7 +8,7 @@ import org.springframework.transaction.annotation.Transactional;
 import co.edu.ufps.legal_cases.business.dto.perfil.EstudianteDTO;
 import co.edu.ufps.legal_cases.business.model.perfil.Estudiante;
 import co.edu.ufps.legal_cases.business.repository.perfil.EstudianteRepository;
-import co.edu.ufps.legal_cases.business.service.acceso.EstudianteAccessService;
+import co.edu.ufps.legal_cases.business.service.acceso.perfil.EstudianteAccessService;
 import co.edu.ufps.legal_cases.common.exception.BusinessException;
 
 // Servicio que maneja las consultas y usa el servicio de acceso para validar permisos

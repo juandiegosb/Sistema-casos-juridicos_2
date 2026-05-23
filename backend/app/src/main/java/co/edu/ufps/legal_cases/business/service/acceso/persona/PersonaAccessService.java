@@ -1,4 +1,4 @@
-package co.edu.ufps.legal_cases.business.service.acceso;
+package co.edu.ufps.legal_cases.business.service.acceso.persona;
 
 import static co.edu.ufps.legal_cases.security.constant.PermisoNombre.CAMBIAR_ESTADO_PERSONAS;
 import static co.edu.ufps.legal_cases.security.constant.PermisoNombre.CREAR_PERSONAS;

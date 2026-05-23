@@ -8,7 +8,7 @@ import org.springframework.transaction.annotation.Transactional;
 import co.edu.ufps.legal_cases.business.dto.perfil.MonitorDTO;
 import co.edu.ufps.legal_cases.business.model.perfil.Monitor;
 import co.edu.ufps.legal_cases.business.repository.perfil.MonitorRepository;
-import co.edu.ufps.legal_cases.business.service.acceso.AsesorMonitorAccessService;
+import co.edu.ufps.legal_cases.business.service.acceso.perfil.AsesorMonitorAccessService;
 import co.edu.ufps.legal_cases.common.exception.BusinessException;
 
 @Service

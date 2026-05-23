@@ -11,7 +11,7 @@ import co.edu.ufps.legal_cases.business.model.seguimiento.Seguimiento;
 import co.edu.ufps.legal_cases.business.repository.consulta.ConsultaRepository;
 import co.edu.ufps.legal_cases.business.repository.seguimiento.CategoriaSeguimientoRepository;
 import co.edu.ufps.legal_cases.business.repository.seguimiento.SeguimientoRepository;
-import co.edu.ufps.legal_cases.business.service.acceso.SeguimientoAccessService;
+import co.edu.ufps.legal_cases.business.service.acceso.seguimiento.SeguimientoAccessService;
 import co.edu.ufps.legal_cases.business.service.seguimiento.SeguimientoNotificacionService;
 import co.edu.ufps.legal_cases.common.exception.BusinessException;
 import co.edu.ufps.legal_cases.security.model.account.UsuarioSistema;

@@ -1,4 +1,4 @@
-package co.edu.ufps.legal_cases.business.service.acceso;
+package co.edu.ufps.legal_cases.business.service.acceso.seguimiento;
 
 import static co.edu.ufps.legal_cases.security.constant.PermisoNombre.APROBAR_RESPUESTAS_SEGUIMIENTO;
 import static co.edu.ufps.legal_cases.security.constant.PermisoNombre.RESPONDER_SEGUIMIENTOS;
@@ -15,6 +15,7 @@ import co.edu.ufps.legal_cases.business.model.seguimiento.respuesta.EstadoRespue
 import co.edu.ufps.legal_cases.business.model.seguimiento.respuesta.SeguimientoRespuesta;
 import co.edu.ufps.legal_cases.business.repository.seguimiento.SeguimientoRepository;
 import co.edu.ufps.legal_cases.business.repository.seguimiento.respuesta.SeguimientoRespuestaRepository;
+import co.edu.ufps.legal_cases.business.service.acceso.consulta.ConsultaAccessService;
 import co.edu.ufps.legal_cases.common.exception.BusinessException;
 import co.edu.ufps.legal_cases.security.dto.account.PerfilUsuarioActual;
 import co.edu.ufps.legal_cases.security.model.account.TipoPerfilUsuario;

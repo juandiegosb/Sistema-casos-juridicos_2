@@ -14,7 +14,7 @@ import co.edu.ufps.legal_cases.business.repository.consulta.ConsultaRepository;
 import co.edu.ufps.legal_cases.business.repository.proceso.EspecialidadRepository;
 import co.edu.ufps.legal_cases.business.repository.proceso.OrganoControlRepository;
 import co.edu.ufps.legal_cases.business.repository.proceso.ProcesoRepository;
-import co.edu.ufps.legal_cases.business.service.acceso.ProcesoAccessService;
+import co.edu.ufps.legal_cases.business.service.acceso.proceso.ProcesoAccessService;
 import co.edu.ufps.legal_cases.common.exception.BusinessException;
 
 @Service

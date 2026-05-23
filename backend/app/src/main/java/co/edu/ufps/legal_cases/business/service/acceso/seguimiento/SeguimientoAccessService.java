@@ -1,4 +1,4 @@
-package co.edu.ufps.legal_cases.business.service.acceso;
+package co.edu.ufps.legal_cases.business.service.acceso.seguimiento;
 
 import static co.edu.ufps.legal_cases.security.constant.PermisoNombre.CREAR_SEGUIMIENTOS;
 import static co.edu.ufps.legal_cases.security.constant.PermisoNombre.EDITAR_SEGUIMIENTOS;
@@ -14,6 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import co.edu.ufps.legal_cases.business.model.seguimiento.Seguimiento;
 import co.edu.ufps.legal_cases.business.repository.seguimiento.SeguimientoRepository;
+import co.edu.ufps.legal_cases.business.service.acceso.consulta.ConsultaAccessService;
 import co.edu.ufps.legal_cases.common.exception.BusinessException;
 import co.edu.ufps.legal_cases.security.service.context.UsuarioActualService;
 import lombok.AllArgsConstructor;

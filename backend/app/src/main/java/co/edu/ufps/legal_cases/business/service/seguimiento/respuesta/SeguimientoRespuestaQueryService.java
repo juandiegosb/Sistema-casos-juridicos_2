@@ -10,7 +10,7 @@ import co.edu.ufps.legal_cases.business.dto.seguimiento.respuesta.SeguimientoRes
 import co.edu.ufps.legal_cases.business.model.seguimiento.respuesta.EstadoRespuestaSeguimiento;
 import co.edu.ufps.legal_cases.business.model.seguimiento.respuesta.SeguimientoRespuesta;
 import co.edu.ufps.legal_cases.business.repository.seguimiento.respuesta.SeguimientoRespuestaRepository;
-import co.edu.ufps.legal_cases.business.service.acceso.SeguimientoRespuestaAccessService;
+import co.edu.ufps.legal_cases.business.service.acceso.seguimiento.SeguimientoRespuestaAccessService;
 import co.edu.ufps.legal_cases.common.exception.BusinessException;
 
 @Service

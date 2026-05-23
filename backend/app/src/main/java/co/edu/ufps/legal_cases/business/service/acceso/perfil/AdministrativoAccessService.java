@@ -1,4 +1,4 @@
-package co.edu.ufps.legal_cases.business.service.acceso;
+package co.edu.ufps.legal_cases.business.service.acceso.perfil;
 
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
