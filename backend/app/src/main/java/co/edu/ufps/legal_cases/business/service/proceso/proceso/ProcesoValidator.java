@@ -92,6 +92,16 @@ public class ProcesoValidator {
         }
     }
 
+    public void validarCambioEstado(Proceso proceso, Boolean activo) {
+        if (activo == null) {
+            throw new BusinessException("El estado activo es obligatorio");
+        }
+
+        if (Objects.equals(proceso.getActivo(), activo)) {
+            throw new BusinessException("El proceso ya tiene ese estado");
+        }
+    }
+
     private void validarDtoObligatorio(ProcesoDTO dto) {
         if (dto == null) {
             throw new BusinessException("Los datos del proceso son obligatorios");

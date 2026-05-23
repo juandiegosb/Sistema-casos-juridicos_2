@@ -112,6 +112,19 @@ public class ProcesoCommandService {
         procesoRepository.save(proceso);
     }
 
+    @Transactional
+    public ProcesoDTO cambiarEstado(Long id, Boolean activo) {
+        procesoAccessService.validarPuedeCambiarEstadoProceso(id);
+
+        Proceso proceso = buscarProcesoPorId(id);
+
+        procesoValidator.validarCambioEstado(proceso, activo);
+
+        proceso.setActivo(activo);
+
+        return procesoMapper.convertirADTO(procesoRepository.save(proceso));
+    }
+
     private DatosProceso prepararDatos(ProcesoDTO dto, String numeroRadicado) {
         Departamento departamento = obtenerDepartamento(dto.getDepartamentoId());
         Consulta consulta = obtenerConsulta(dto.getConsultaId());
@@ -134,6 +147,15 @@ public class ProcesoCommandService {
         }
 
         return procesoRepository.findByIdAndActivoTrue(id)
+                .orElseThrow(() -> new BusinessException("Proceso no encontrado con id: " + id));
+    }
+
+    private Proceso buscarProcesoPorId(Long id) {
+        if (id == null) {
+            throw new BusinessException("El id del proceso es obligatorio");
+        }
+
+        return procesoRepository.findById(id)
                 .orElseThrow(() -> new BusinessException("Proceso no encontrado con id: " + id));
     }
 

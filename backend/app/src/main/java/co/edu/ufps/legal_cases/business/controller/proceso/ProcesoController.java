@@ -45,9 +45,16 @@ public class ProcesoController {
     @PreAuthorize("hasAuthority('" + GESTIONAR_PROCESOS + "')")
     public ProcesoDTO actualizar(
             @PathVariable Long id,
-            @Valid @RequestBody ProcesoDTO dto
-    ) {
+            @Valid @RequestBody ProcesoDTO dto) {
         return procesoService.actualizar(id, dto);
+    }
+
+    @PatchMapping("/{id}/activo")
+    @PreAuthorize("hasAuthority('" + GESTIONAR_PROCESOS + "')")
+    public ProcesoDTO cambiarEstado(
+            @PathVariable Long id,
+            @RequestParam Boolean activo) {
+        return procesoService.cambiarEstado(id, activo);
     }
 
     @DeleteMapping("/{id}")

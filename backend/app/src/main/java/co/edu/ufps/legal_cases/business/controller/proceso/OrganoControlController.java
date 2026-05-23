@@ -53,9 +53,16 @@ public class OrganoControlController {
     @PreAuthorize("hasAuthority('" + GESTIONAR_CATALOGOS + "')")
     public OrganoControlDTO actualizar(
             @PathVariable Long id,
-            @Valid @RequestBody OrganoControlDTO dto
-    ) {
+            @Valid @RequestBody OrganoControlDTO dto) {
         return organoControlService.actualizar(id, dto);
+    }
+
+    @PatchMapping("/{id}/activo")
+    @PreAuthorize("hasAuthority('" + GESTIONAR_CATALOGOS + "')")
+    public OrganoControlDTO cambiarEstado(
+            @PathVariable Long id,
+            @RequestParam Boolean activo) {
+        return organoControlService.cambiarEstado(id, activo);
     }
 
     @DeleteMapping("/{id}")

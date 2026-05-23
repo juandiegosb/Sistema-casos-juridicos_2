@@ -74,8 +74,7 @@ public class SeguimientoRespuestaCommandService {
         respuesta.setActivo(true);
 
         return seguimientoRespuestaMapper.convertirAResponseDTO(
-                seguimientoRespuestaRepository.save(respuesta)
-        );
+                seguimientoRespuestaRepository.save(respuesta));
     }
 
     @Transactional
@@ -96,12 +95,10 @@ public class SeguimientoRespuestaCommandService {
         // Si ya estaba marcada, se conserva.
         respuesta.setFueraPlazo(
                 Boolean.TRUE.equals(respuesta.getFueraPlazo())
-                        || estaFueraDePlazo(respuesta.getSeguimiento())
-        );
+                        || estaFueraDePlazo(respuesta.getSeguimiento()));
 
         return seguimientoRespuestaMapper.convertirAResponseDTO(
-                seguimientoRespuestaRepository.save(respuesta)
-        );
+                seguimientoRespuestaRepository.save(respuesta));
     }
 
     @Transactional
@@ -114,14 +111,12 @@ public class SeguimientoRespuestaCommandService {
 
         respuesta.setEstado(dto.getEstado());
         respuesta.setObservacionRevision(
-                seguimientoRespuestaValidator.normalizarObservacionRevision(dto.getObservacionRevision())
-        );
+                seguimientoRespuestaValidator.normalizarObservacionRevision(dto.getObservacionRevision()));
         respuesta.setRevisadoPor(revisor);
         respuesta.setFechaDecision(LocalDateTime.now());
 
         return seguimientoRespuestaMapper.convertirAResponseDTO(
-                seguimientoRespuestaRepository.save(respuesta)
-        );
+                seguimientoRespuestaRepository.save(respuesta));
     }
 
     private void validarPuedeCrearNuevoIntento(Long seguimientoId, Long estudianteId) {
@@ -178,14 +173,9 @@ public class SeguimientoRespuestaCommandService {
             throw new BusinessException("El id del estudiante es obligatorio");
         }
 
-        Estudiante estudiante = estudianteRepository.findById(estudianteId)
-                .orElseThrow(() -> new BusinessException("Estudiante no encontrado con id: " + estudianteId));
-
-        if (!Boolean.TRUE.equals(estudiante.getActivo())) {
-            throw new BusinessException("El estudiante se encuentra inactivo");
-        }
-
-        return estudiante;
+        return estudianteRepository.findByIdAndActivoTrue(estudianteId)
+                .orElseThrow(() -> new BusinessException(
+                        "Estudiante no encontrado o inactivo con id: " + estudianteId));
     }
 
     private UsuarioSistema obtenerUsuarioActual() {

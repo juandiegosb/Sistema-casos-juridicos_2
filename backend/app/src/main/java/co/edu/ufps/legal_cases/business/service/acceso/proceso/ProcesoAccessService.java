@@ -80,6 +80,18 @@ public class ProcesoAccessService {
     }
 
     @Transactional(readOnly = true)
+    public void validarPuedeCambiarEstadoProceso(Long procesoId) {
+        validarTienePermiso(GESTIONAR_PROCESOS);
+        validarUsuarioPuedeGestionarProcesos();
+
+        Proceso proceso = obtenerProceso(procesoId);
+
+        if (!puedeGestionarProcesoPorConsulta(proceso)) {
+            throw new AccessDeniedException("No tiene permisos para cambiar el estado de este proceso");
+        }
+    }
+
+    @Transactional(readOnly = true)
     public boolean puedeAccederAProceso(Proceso proceso) {
         if (proceso == null || !Boolean.TRUE.equals(proceso.getActivo())) {
             return false;
@@ -130,6 +142,31 @@ public class ProcesoAccessService {
 
         return procesoRepository.findByIdAndActivoTrue(procesoId)
                 .orElseThrow(() -> new BusinessException("Proceso no encontrado con id: " + procesoId));
+    }
+
+    private Proceso obtenerProceso(Long procesoId) {
+        if (procesoId == null) {
+            throw new BusinessException("El id del proceso es obligatorio");
+        }
+
+        return procesoRepository.findById(procesoId)
+                .orElseThrow(() -> new BusinessException("Proceso no encontrado con id: " + procesoId));
+    }
+
+    private boolean puedeGestionarProcesoPorConsulta(Proceso proceso) {
+        if (proceso == null || proceso.getConsulta() == null) {
+            return false;
+        }
+
+        if (usuarioActualService.esEstudiante()) {
+            return false;
+        }
+
+        if (usuarioActualService.esConciliador()) {
+            return false;
+        }
+
+        return consultaAccessService.puedeAccederAConsulta(proceso.getConsulta());
     }
 
     private void validarTienePermiso(String permiso) {

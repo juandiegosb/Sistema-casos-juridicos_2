@@ -60,9 +60,16 @@ public class EspecialidadController {
     @PreAuthorize("hasAuthority('" + GESTIONAR_CATALOGOS + "')")
     public EspecialidadDTO actualizar(
             @PathVariable Long id,
-            @Valid @RequestBody EspecialidadDTO dto
-    ) {
+            @Valid @RequestBody EspecialidadDTO dto) {
         return especialidadService.actualizar(id, dto);
+    }
+
+    @PatchMapping("/{id}/activo")
+    @PreAuthorize("hasAuthority('" + GESTIONAR_CATALOGOS + "')")
+    public EspecialidadDTO cambiarEstado(
+            @PathVariable Long id,
+            @RequestParam Boolean activo) {
+        return especialidadService.cambiarEstado(id, activo);
     }
 
     @DeleteMapping("/{id}")
