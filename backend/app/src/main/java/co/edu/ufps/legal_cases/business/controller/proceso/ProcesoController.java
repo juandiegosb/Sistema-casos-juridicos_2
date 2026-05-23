@@ -3,14 +3,25 @@ package co.edu.ufps.legal_cases.business.controller.proceso;
 import static co.edu.ufps.legal_cases.security.constant.PermisoNombre.GESTIONAR_PROCESOS;
 import static co.edu.ufps.legal_cases.security.constant.PermisoNombre.VER_PROCESOS;
 
+import java.util.List;
+
+import org.springframework.http.HttpStatus;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseStatus;
+import org.springframework.web.bind.annotation.RestController;
+
 import co.edu.ufps.legal_cases.business.dto.proceso.ProcesoDTO;
 import co.edu.ufps.legal_cases.business.service.proceso.ProcesoService;
 import jakarta.validation.Valid;
-import org.springframework.http.HttpStatus;
-import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 
 @RestController
 @RequestMapping("/api/procesos")
@@ -23,13 +34,13 @@ public class ProcesoController {
     }
 
     @GetMapping
-    @PreAuthorize("hasAuthority('" + VER_PROCESOS + "')")
+    @PreAuthorize("hasAnyAuthority('" + VER_PROCESOS + "', '" + GESTIONAR_PROCESOS + "')")
     public List<ProcesoDTO> listar() {
         return procesoService.listar();
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasAuthority('" + VER_PROCESOS + "')")
+    @PreAuthorize("hasAnyAuthority('" + VER_PROCESOS + "', '" + GESTIONAR_PROCESOS + "')")
     public ProcesoDTO obtenerPorId(@PathVariable Long id) {
         return procesoService.obtenerPorId(id);
     }
