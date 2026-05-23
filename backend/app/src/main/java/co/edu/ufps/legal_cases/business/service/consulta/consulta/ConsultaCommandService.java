@@ -87,17 +87,35 @@ public class ConsultaCommandService {
         consultaValidator.validarNoArchivada(existente);
         consultaValidator.validarCamposObligatorios(dto);
         consultaValidator.validarIdNoCambiado(existente.getId(), dto.getId());
-        consultaValidator.validarCambioEstadoPermitido(existente, dto);
+
+        EstadoConsulta estadoActual = existente.getEstado();
 
         construirDesdeDTO(
                 existente,
                 dto,
                 consultaAccessService.usuarioPuedeAsignarResponsables());
 
+        // Actualizar datos de la consulta no debe cambiar el estado.
+        // Para eso existe cambiarEstado().
+        existente.setEstado(estadoActual);
+
         // Valida relaciones cruzadas después de aplicar los cambios del DTO.
         consultaValidator.validarCoherenciaDominio(existente);
 
         return consultaMapper.convertirADTO(consultaRepository.save(existente));
+    }
+
+    @Transactional
+    public ConsultaDTO cambiarEstado(Long id, EstadoConsulta estado) {
+        Consulta consulta = consultaRepository.findById(id)
+                .orElseThrow(() -> new BusinessException("Consulta no encontrada con id: " + id));
+
+        consultaValidator.validarNoArchivada(consulta);
+        consultaValidator.validarCambioEstadoPermitido(consulta, estado);
+
+        consulta.setEstado(estado);
+
+        return consultaMapper.convertirADTO(consultaRepository.save(consulta));
     }
 
     // Se conserva el nombre eliminar por compatibilidad con el endpoint antiguo.

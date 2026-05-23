@@ -15,6 +15,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import co.edu.ufps.legal_cases.business.model.consulta.Consulta;
+import co.edu.ufps.legal_cases.business.model.consulta.EstadoConsulta;
 import co.edu.ufps.legal_cases.business.repository.consulta.ConsultaRepository;
 import co.edu.ufps.legal_cases.common.exception.BusinessException;
 import co.edu.ufps.legal_cases.security.dto.account.PerfilUsuarioActual;
@@ -34,7 +35,8 @@ public class ConsultaAccessService {
         this.consultaRepository = consultaRepository;
     }
 
-    // Replica el acceso del buscador de consultas y luego QueryService filtra por alcance.
+    // Replica el acceso del buscador de consultas y luego QueryService filtra por
+    // alcance.
     @Transactional(readOnly = true)
     public void validarPuedeBuscarConsultas() {
         validarTieneAlgunPermiso(VER_CONSULTAS, GESTIONAR_CONSULTAS);
@@ -83,6 +85,20 @@ public class ConsultaAccessService {
     }
 
     @Transactional(readOnly = true)
+    public void validarPuedeCambiarEstadoConsulta(Long consultaId, EstadoConsulta estadoNuevo) {
+        if (estadoNuevo == null) {
+            throw new BusinessException("El estado es obligatorio");
+        }
+
+        if (EstadoConsulta.ARCHIVADO.equals(estadoNuevo)) {
+            validarPuedeArchivarConsulta(consultaId);
+            return;
+        }
+
+        validarPuedeCambiarEstadoConsulta(consultaId);
+    }
+
+    @Transactional(readOnly = true)
     public void validarPuedeArchivarConsulta(Long consultaId) {
         validarTienePermiso(ARCHIVAR_CONSULTAS);
 
@@ -128,7 +144,8 @@ public class ConsultaAccessService {
             return false;
         }
 
-        // Administrador ve todas las consultas; los demás dependen de relación con el caso.
+        // Administrador ve todas las consultas; los demás dependen de relación con el
+        // caso.
         if (usuarioActualService.esRolAdministrador()) {
             return true;
         }
@@ -158,7 +175,8 @@ public class ConsultaAccessService {
         }
 
         if (perfil.getTipoPerfil() == TipoPerfilUsuario.CONCILIADOR) {
-            // Cuando conciliaciones tenga alcance real, aquí se habilitarán consultas asociadas.
+            // Cuando conciliaciones tenga alcance real, aquí se habilitarán consultas
+            // asociadas.
             return false;
         }
 

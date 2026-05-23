@@ -73,10 +73,16 @@ public class ConsultaValidator {
             throw new BusinessException("El tema es obligatorio");
     }
 
-    public void validarCambioEstadoPermitido(Consulta existente, ConsultaDTO dto) {
-        if (existente.getEstado() != dto.getEstado()) {
-            consultaAccessService.validarPuedeCambiarEstadoConsulta(existente.getId());
+    public void validarCambioEstadoPermitido(Consulta consulta, EstadoConsulta estadoNuevo) {
+        if (estadoNuevo == null) {
+            throw new BusinessException("El estado es obligatorio");
         }
+
+        if (Objects.equals(consulta.getEstado(), estadoNuevo)) {
+            throw new BusinessException("La consulta ya tiene ese estado");
+        }
+
+        consultaAccessService.validarPuedeCambiarEstadoConsulta(consulta.getId(), estadoNuevo);
     }
 
     public void validarNoArchivada(Consulta consulta) {
