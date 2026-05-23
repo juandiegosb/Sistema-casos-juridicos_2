@@ -54,11 +54,13 @@ public class TipoDocumentoService {
 
     @Transactional
     public TipoDocumentoDTO crear(TipoDocumentoDTO dto) {
+        tipoDocumentoValidator.validarCreacion(dto);
+
         String nombre = tipoDocumentoValidator.normalizarNombre(dto);
 
         tipoDocumentoValidator.validarNombreDisponible(nombre);
 
-        TipoDocumento tipoDocumento = tipoDocumentoMapper.crearEntidad(nombre, dto.getActivo());
+        TipoDocumento tipoDocumento = tipoDocumentoMapper.crearEntidad(nombre);
 
         return tipoDocumentoMapper.convertirADTO(tipoDocumentoRepository.save(tipoDocumento));
     }
@@ -71,10 +73,12 @@ public class TipoDocumentoService {
 
         String nombreNuevo = tipoDocumentoValidator.normalizarNombre(dto);
 
-        tipoDocumentoValidator.validarExistenCambios(tipoDocumento, nombreNuevo, dto.getActivo());
+        tipoDocumentoValidator.validarExistenCambios(tipoDocumento, nombreNuevo);
         tipoDocumentoValidator.validarNombreDisponibleParaActualizacion(nombreNuevo, tipoDocumento.getId());
 
-        tipoDocumentoMapper.aplicarDatos(tipoDocumento, nombreNuevo, dto.getActivo());
+        // Actualizar datos del catálogo no debe cambiar activo.
+        // Para eso existe cambiarEstado().
+        tipoDocumentoMapper.aplicarDatos(tipoDocumento, nombreNuevo);
 
         return tipoDocumentoMapper.convertirADTO(tipoDocumentoRepository.save(tipoDocumento));
     }

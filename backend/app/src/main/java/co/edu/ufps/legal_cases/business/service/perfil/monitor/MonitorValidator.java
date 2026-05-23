@@ -36,6 +36,7 @@ public class MonitorValidator {
 
     public void validarCamposObligatorios(
             String nombre,
+            String documento,
             String email,
             String telefono,
             String usuario,
@@ -43,6 +44,10 @@ public class MonitorValidator {
 
         if (nombre == null) {
             throw new BusinessException("El nombre es obligatorio");
+        }
+
+        if (documento == null || documento.isBlank()) {
+            throw new BusinessException("El documento es obligatorio");
         }
 
         if (email == null || email.isBlank()) {
@@ -69,7 +74,7 @@ public class MonitorValidator {
             String usuario,
             String codigo) {
 
-        if (documento != null && monitorRepository.existsByDocumento(documento)) {
+        if (monitorRepository.existsByDocumento(documento)) {
             throw new BusinessException("Ya existe un monitor con ese documento");
         }
 
@@ -98,7 +103,7 @@ public class MonitorValidator {
             String usuario,
             String codigo) {
 
-        if (documento != null && monitorRepository.existsByDocumentoAndIdNot(documento, id)) {
+        if (monitorRepository.existsByDocumentoAndIdNot(documento, id)) {
             throw new BusinessException("Ya existe un monitor con ese documento");
         }
 

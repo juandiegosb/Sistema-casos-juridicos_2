@@ -20,6 +20,14 @@ public class TipoDocumentoValidator {
         this.tipoDocumentoRepository = tipoDocumentoRepository;
     }
 
+    public void validarCreacion(TipoDocumentoDTO dto) {
+        validarDtoObligatorio(dto);
+
+        if (dto.getId() != null) {
+            throw new BusinessException("El id no debe enviarse en la creación");
+        }
+    }
+
     public void validarActualizacion(Long id, TipoDocumentoDTO dto, TipoDocumento tipoDocumento) {
         validarDtoObligatorio(dto);
 
@@ -54,13 +62,9 @@ public class TipoDocumentoValidator {
 
     public void validarExistenCambios(
             TipoDocumento tipoDocumento,
-            String nombreNuevo,
-            Boolean activoNuevo) {
+            String nombreNuevo) {
 
-        boolean mismoNombre = tipoDocumento.getNombre().equalsIgnoreCase(nombreNuevo);
-        boolean mismoEstado = activoNuevo == null || Objects.equals(tipoDocumento.getActivo(), activoNuevo);
-
-        if (mismoNombre && mismoEstado) {
+        if (tipoDocumento.getNombre().equalsIgnoreCase(nombreNuevo)) {
             throw new BusinessException("No hay cambios para actualizar");
         }
     }

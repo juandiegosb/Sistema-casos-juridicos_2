@@ -49,7 +49,8 @@ public class ProcesoCommandService {
     }
 
     // Crea un proceso asociado a una consulta existente.
-    // El alcance se valida con la consulta porque Proceso no tiene un alcance independiente.
+    // El alcance se valida con la consulta porque Proceso no tiene un alcance
+    // independiente.
     @Transactional
     public ProcesoDTO crear(ProcesoDTO dto) {
         procesoValidator.validarCreacion(dto);
@@ -72,7 +73,8 @@ public class ProcesoCommandService {
     }
 
     // Actualiza datos del proceso sin permitir cambiar la consulta.
-    // La consulta define el alcance, por eso mover un proceso a otra consulta sería otro flujo de negocio.
+    // La consulta define el alcance, por eso mover un proceso a otra consulta sería
+    // otro flujo de negocio.
     @Transactional
     public ProcesoDTO actualizar(Long id, ProcesoDTO dto) {
         procesoAccessService.validarPuedeActualizarProceso(id);
@@ -88,12 +90,12 @@ public class ProcesoCommandService {
         }
 
         DatosProceso datos = prepararDatos(dto, numeroRadicado);
-        Boolean activoNuevo = dto.getActivo() != null ? dto.getActivo() : proceso.getActivo();
 
-        procesoValidator.validarExistenCambios(proceso, datos, activoNuevo);
+        // Actualizar datos del proceso no debe cambiar el estado activo.
+        // La desactivación se maneja por eliminar().
+        procesoValidator.validarExistenCambios(proceso, datos);
 
         procesoMapper.aplicarDatos(proceso, datos);
-        proceso.setActivo(activoNuevo);
 
         return procesoMapper.convertirADTO(procesoRepository.save(proceso));
     }
@@ -159,15 +161,9 @@ public class ProcesoCommandService {
             return null;
         }
 
-        OrganoControl organoControl = organoControlRepository.findById(organoControlId)
+        return organoControlRepository.findByIdAndActivoTrue(organoControlId)
                 .orElseThrow(() -> new BusinessException(
-                        "Órgano de control no encontrado con id: " + organoControlId));
-
-        if (!Boolean.TRUE.equals(organoControl.getActivo())) {
-            throw new BusinessException("El órgano de control se encuentra inactivo");
-        }
-
-        return organoControl;
+                        "Órgano de control no encontrado o inactivo con id: " + organoControlId));
     }
 
     private Especialidad obtenerEspecialidadOpcional(Long especialidadId) {
@@ -175,14 +171,8 @@ public class ProcesoCommandService {
             return null;
         }
 
-        Especialidad especialidad = especialidadRepository.findById(especialidadId)
+        return especialidadRepository.findByIdAndActivoTrue(especialidadId)
                 .orElseThrow(() -> new BusinessException(
-                        "Especialidad no encontrada con id: " + especialidadId));
-
-        if (!Boolean.TRUE.equals(especialidad.getActivo())) {
-            throw new BusinessException("La especialidad se encuentra inactiva");
-        }
-
-        return especialidad;
+                        "Especialidad no encontrada o inactiva con id: " + especialidadId));
     }
 }

@@ -23,10 +23,8 @@ import co.edu.ufps.legal_cases.business.service.acceso.perfil.EstudianteAccessSe
 import co.edu.ufps.legal_cases.common.exception.BusinessException;
 import co.edu.ufps.legal_cases.security.model.account.UsuarioSistema;
 import co.edu.ufps.legal_cases.security.service.account.UsuarioSistemaRegistroService;
-import lombok.AllArgsConstructor;
 
 @Service
-@AllArgsConstructor
 public class EstudianteCommandService {
 
     private final EstudianteRepository estudianteRepository;
@@ -38,12 +36,31 @@ public class EstudianteCommandService {
     private final EstudianteValidator estudianteValidator;
     private final EstudianteMapper estudianteMapper;
 
+    public EstudianteCommandService(
+            EstudianteRepository estudianteRepository,
+            TipoDocumentoRepository tipoDocumentoRepository,
+            SedeRepository sedeRepository,
+            AsesorRepository asesorRepository,
+            UsuarioSistemaRegistroService usuarioSistemaRegistroService,
+            EstudianteAccessService estudianteAccessService,
+            EstudianteValidator estudianteValidator,
+            EstudianteMapper estudianteMapper) {
+        this.estudianteRepository = estudianteRepository;
+        this.tipoDocumentoRepository = tipoDocumentoRepository;
+        this.sedeRepository = sedeRepository;
+        this.asesorRepository = asesorRepository;
+        this.usuarioSistemaRegistroService = usuarioSistemaRegistroService;
+        this.estudianteAccessService = estudianteAccessService;
+        this.estudianteValidator = estudianteValidator;
+        this.estudianteMapper = estudianteMapper;
+    }
+
     @Transactional
     public EstudianteDTO crear(EstudianteDTO dto) {
         estudianteAccessService.validarPuedeGestionarEstudiantes();
         estudianteValidator.validarIdNoEnviadoEnCreacion(dto.getId());
 
-        DatosEstudiante datos = prepararDatos(dto);
+        DatosEstudiante datos = prepararDatos(dto, true, false);
 
         estudianteValidator.validarDuplicadosCreacion(
                 datos.documento(),
@@ -57,7 +74,8 @@ public class EstudianteCommandService {
 
         Estudiante estudianteGuardado = estudianteRepository.save(estudiante);
 
-        // El perfil se guarda primero porque el usuario del sistema se crea con datos del estudiante persistido.
+        // El perfil se guarda primero porque el usuario del sistema se crea con datos
+        // del estudiante persistido.
         UsuarioSistema usuarioSistema = usuarioSistemaRegistroService.crearParaEstudiante(estudianteGuardado);
 
         estudianteGuardado.setUsuarioSistema(usuarioSistema);
@@ -68,10 +86,17 @@ public class EstudianteCommandService {
     @Transactional
     public EstudianteDTO actualizar(Long id, EstudianteDTO dto) {
         estudianteAccessService.validarPuedeGestionarEstudiantes();
-        estudianteValidator.validarIdNoCambiado(id, dto.getId());
 
         Estudiante existente = buscarPorId(id);
-        DatosEstudiante datos = prepararDatos(dto);
+
+        estudianteValidator.validarIdNoCambiado(id, dto.getId());
+
+        // Actualizar datos del perfil no debe cambiar activo ni conciliación.
+        // Para esos campos existen cambiarEstado() y cambiarConciliacion().
+        DatosEstudiante datos = prepararDatos(
+                dto,
+                existente.getActivo(),
+                existente.getConciliacion());
 
         estudianteValidator.validarDuplicadosActualizacion(
                 id,
@@ -120,10 +145,19 @@ public class EstudianteCommandService {
 
         Estudiante estudiante = buscarPorId(id);
 
-        estudianteRepository.delete(estudiante);
+        // Se conserva el perfil y se desactiva porque puede estar asociado a consultas
+        // y seguimientos.
+        estudianteValidator.validarCambioEstado(estudiante, false);
+
+        estudiante.setActivo(false);
+
+        estudianteRepository.save(estudiante);
     }
 
-    private DatosEstudiante prepararDatos(EstudianteDTO dto) {
+    private DatosEstudiante prepararDatos(
+            EstudianteDTO dto,
+            Boolean activo,
+            Boolean conciliacion) {
         String nombre = normalizarTexto(dto.getNombre());
         String documento = normalizarNumeroDocumento(dto.getDocumento());
         String email = normalizarEmail(dto.getEmail());
@@ -142,9 +176,6 @@ public class EstudianteCommandService {
         TipoDocumento tipoDocumento = obtenerTipoDocumento(dto.getTipoDocumentoId());
         Sede sede = obtenerSede(dto.getSedeId());
         Asesor asesor = obtenerAsesor(dto.getAsesorId());
-
-        Boolean activo = dto.getActivo() != null ? dto.getActivo() : true;
-        Boolean conciliacion = dto.getConciliacion() != null ? dto.getConciliacion() : false;
 
         return new DatosEstudiante(
                 nombre,
@@ -174,9 +205,9 @@ public class EstudianteCommandService {
             throw new BusinessException("El tipo de documento es obligatorio");
         }
 
-        return tipoDocumentoRepository.findById(tipoDocumentoId)
+        return tipoDocumentoRepository.findByIdAndActivoTrue(tipoDocumentoId)
                 .orElseThrow(() -> new BusinessException(
-                        "Tipo de documento no encontrado con id: " + tipoDocumentoId));
+                        "Tipo de documento no encontrado o inactivo con id: " + tipoDocumentoId));
     }
 
     private Sede obtenerSede(Long sedeId) {
@@ -184,8 +215,8 @@ public class EstudianteCommandService {
             throw new BusinessException("La sede es obligatoria");
         }
 
-        return sedeRepository.findById(sedeId)
-                .orElseThrow(() -> new BusinessException("Sede no encontrada con id: " + sedeId));
+        return sedeRepository.findByIdAndActivoTrue(sedeId)
+                .orElseThrow(() -> new BusinessException("Sede no encontrada o inactiva con id: " + sedeId));
     }
 
     private Asesor obtenerAsesor(Long asesorId) {

@@ -55,7 +55,7 @@ public class AdministrativoCommandService {
         administrativoAccessService.validarPuedeGestionarAdministradores();
         administrativoValidator.validarIdNoEnviadoEnCreacion(dto.getId());
 
-        DatosAdministrativo datos = prepararDatos(dto);
+        DatosAdministrativo datos = prepararDatos(dto, true, false);
 
         administrativoValidator.validarCamposObligatorios(datos);
         administrativoValidator.validarDuplicadosCreacion(
@@ -70,7 +70,8 @@ public class AdministrativoCommandService {
 
         Administrativo administrativoGuardado = administrativoRepository.save(administrativo);
 
-        // El perfil se guarda primero porque el usuario del sistema se crea con datos del administrativo persistido.
+        // El perfil se guarda primero porque el usuario del sistema se crea con datos
+        // del administrativo persistido.
         UsuarioSistema usuarioSistema = usuarioSistemaRegistroService.crearParaAdministrativo(administrativoGuardado);
 
         // El perfil real queda apuntando al usuario del sistema normalizado.
@@ -87,7 +88,12 @@ public class AdministrativoCommandService {
 
         administrativoValidator.validarIdNoCambiado(id, dto.getId());
 
-        DatosAdministrativo datos = prepararDatos(dto);
+        // Actualizar datos del perfil no debe cambiar activo ni directora.
+        // Para esos campos existen cambiarEstado() y cambiarDirectora().
+        DatosAdministrativo datos = prepararDatos(
+                dto,
+                existente.getActivo(),
+                existente.getDirectora());
 
         administrativoValidator.validarCamposObligatorios(datos);
         administrativoValidator.validarDuplicadosActualizacion(
@@ -137,14 +143,21 @@ public class AdministrativoCommandService {
 
         Administrativo administrativo = buscarPorId(id);
 
-        // Se conserva el comportamiento actual: eliminación física.
-        // En la fase de estandarización técnica revisamos si debe pasar a desactivación lógica.
-        administrativoRepository.delete(administrativo);
+        // Se conserva el perfil y se desactiva porque tiene usuario del sistema
+        // asociado.
+        administrativoValidator.validarCambioEstado(administrativo, false);
+
+        administrativo.setActivo(false);
+
+        administrativoRepository.save(administrativo);
     }
 
-    private DatosAdministrativo prepararDatos(AdministrativoDTO dto) {
+    private DatosAdministrativo prepararDatos(
+            AdministrativoDTO dto,
+            Boolean activo,
+            Boolean directora) {
         String nombre = normalizarTexto(dto.getNombre());
-        String documento = normalizarDocumentoOpcional(dto.getDocumento());
+        String documento = normalizarNumeroDocumento(dto.getDocumento());
         String email = normalizarEmail(dto.getEmail());
         String telefono = normalizarTelefono(dto.getTelefono());
         String usuario = normalizarUsuario(dto.getUsuario());
@@ -152,9 +165,6 @@ public class AdministrativoCommandService {
 
         TipoDocumento tipoDocumento = obtenerTipoDocumento(dto.getTipoDocumentoId());
         Sede sede = obtenerSede(dto.getSedeId());
-
-        Boolean activo = dto.getActivo() != null ? dto.getActivo() : true;
-        Boolean directora = dto.getDirectora() != null ? dto.getDirectora() : false;
 
         return new DatosAdministrativo(
                 nombre,
@@ -180,31 +190,21 @@ public class AdministrativoCommandService {
 
     private TipoDocumento obtenerTipoDocumento(Long tipoDocumentoId) {
         if (tipoDocumentoId == null) {
-            return null;
+            throw new BusinessException("El tipo de documento es obligatorio");
         }
 
-        return tipoDocumentoRepository.findById(tipoDocumentoId)
+        return tipoDocumentoRepository.findByIdAndActivoTrue(tipoDocumentoId)
                 .orElseThrow(() -> new BusinessException(
-                        "Tipo de documento no encontrado con id: " + tipoDocumentoId));
+                        "Tipo de documento no encontrado o inactivo con id: " + tipoDocumentoId));
     }
 
     private Sede obtenerSede(Long sedeId) {
         if (sedeId == null) {
-            return null;
+            throw new BusinessException("La sede es obligatoria");
         }
 
-        return sedeRepository.findById(sedeId)
-                .orElseThrow(() -> new BusinessException("Sede no encontrada con id: " + sedeId));
+        return sedeRepository.findByIdAndActivoTrue(sedeId)
+                .orElseThrow(() -> new BusinessException("Sede no encontrada o inactiva con id: " + sedeId));
     }
 
-    private String normalizarDocumentoOpcional(String valor) {
-        String documento = normalizarNumeroDocumento(valor);
-
-        // En administrativos el documento es opcional; vacío se guarda como null.
-        if (documento == null || documento.isBlank()) {
-            return null;
-        }
-
-        return documento;
-    }
 }

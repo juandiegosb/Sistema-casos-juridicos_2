@@ -55,7 +55,7 @@ public class MonitorCommandService {
         asesorMonitorAccessService.validarPuedeGestionarAsesoresYMonitores();
         monitorValidator.validarIdNoEnviadoEnCreacion(dto.getId());
 
-        DatosMonitor datos = prepararDatos(dto);
+        DatosMonitor datos = prepararDatos(dto, true);
 
         monitorValidator.validarDuplicadosCreacion(
                 datos.documento(),
@@ -69,7 +69,8 @@ public class MonitorCommandService {
 
         Monitor monitorGuardado = monitorRepository.save(monitor);
 
-        // El perfil se guarda primero porque el usuario del sistema se crea con datos del monitor persistido.
+        // El perfil se guarda primero porque el usuario del sistema se crea con datos
+        // del monitor persistido.
         UsuarioSistema usuarioSistema = usuarioSistemaRegistroService.crearParaMonitor(monitorGuardado);
 
         // El perfil real queda apuntando al usuario del sistema normalizado.
@@ -86,7 +87,9 @@ public class MonitorCommandService {
 
         monitorValidator.validarIdNoCambiado(id, dto.getId());
 
-        DatosMonitor datos = prepararDatos(dto);
+        // Actualizar datos del perfil no debe cambiar el estado activo.
+        // Para eso existe cambiarEstado().
+        DatosMonitor datos = prepararDatos(dto, existente.getActivo());
 
         monitorValidator.validarDuplicadosActualizacion(
                 id,
@@ -122,12 +125,16 @@ public class MonitorCommandService {
 
         Monitor monitor = buscarPorId(id);
 
-        // Se conserva el comportamiento actual: eliminación física.
-        // En la fase de estandarización técnica revisamos si debe pasar a desactivación lógica.
-        monitorRepository.delete(monitor);
+        // Se conserva el perfil y se desactiva porque puede estar asociado a consultas
+        // o seguimientos.
+        monitorValidator.validarCambioEstado(monitor, false);
+
+        monitor.setActivo(false);
+
+        monitorRepository.save(monitor);
     }
 
-    private DatosMonitor prepararDatos(MonitorDTO dto) {
+    private DatosMonitor prepararDatos(MonitorDTO dto, Boolean activo) {
         String nombre = normalizarTexto(dto.getNombre());
         String documento = normalizarNumeroDocumento(dto.getDocumento());
         String email = normalizarEmail(dto.getEmail());
@@ -137,6 +144,7 @@ public class MonitorCommandService {
 
         monitorValidator.validarCamposObligatorios(
                 nombre,
+                documento,
                 email,
                 telefono,
                 usuario,
@@ -144,8 +152,6 @@ public class MonitorCommandService {
 
         TipoDocumento tipoDocumento = obtenerTipoDocumento(dto.getTipoDocumentoId());
         Sede sede = obtenerSede(dto.getSedeId());
-
-        Boolean activo = dto.getActivo() != null ? dto.getActivo() : true;
 
         return new DatosMonitor(
                 nombre,
@@ -170,20 +176,20 @@ public class MonitorCommandService {
 
     private TipoDocumento obtenerTipoDocumento(Long tipoDocumentoId) {
         if (tipoDocumentoId == null) {
-            return null;
+            throw new BusinessException("El tipo de documento es obligatorio");
         }
 
-        return tipoDocumentoRepository.findById(tipoDocumentoId)
+        return tipoDocumentoRepository.findByIdAndActivoTrue(tipoDocumentoId)
                 .orElseThrow(() -> new BusinessException(
-                        "Tipo de documento no encontrado con id: " + tipoDocumentoId));
+                        "Tipo de documento no encontrado o inactivo con id: " + tipoDocumentoId));
     }
 
     private Sede obtenerSede(Long sedeId) {
         if (sedeId == null) {
-            return null;
+            throw new BusinessException("La sede es obligatoria");
         }
 
-        return sedeRepository.findById(sedeId)
-                .orElseThrow(() -> new BusinessException("Sede no encontrada con id: " + sedeId));
+        return sedeRepository.findByIdAndActivoTrue(sedeId)
+                .orElseThrow(() -> new BusinessException("Sede no encontrada o inactiva con id: " + sedeId));
     }
 }

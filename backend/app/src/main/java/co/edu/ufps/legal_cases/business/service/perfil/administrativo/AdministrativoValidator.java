@@ -39,6 +39,10 @@ public class AdministrativoValidator {
             throw new BusinessException("El nombre es obligatorio");
         }
 
+        if (datos.documento() == null || datos.documento().isBlank()) {
+            throw new BusinessException("El documento es obligatorio");
+        }
+
         if (datos.email() == null || datos.email().isBlank()) {
             throw new BusinessException("El email es obligatorio");
         }
@@ -54,6 +58,14 @@ public class AdministrativoValidator {
         if (datos.codigo() == null || datos.codigo().isBlank()) {
             throw new BusinessException("El código es obligatorio");
         }
+
+        if (datos.tipoDocumento() == null) {
+            throw new BusinessException("El tipo de documento es obligatorio");
+        }
+
+        if (datos.sede() == null) {
+            throw new BusinessException("La sede es obligatoria");
+        }
     }
 
     public void validarDuplicadosCreacion(
@@ -63,7 +75,7 @@ public class AdministrativoValidator {
             String usuario,
             String codigo) {
 
-        if (documento != null && administrativoRepository.existsByDocumento(documento)) {
+        if (administrativoRepository.existsByDocumento(documento)) {
             throw new BusinessException("Ya existe un administrativo con ese documento");
         }
 
@@ -92,7 +104,7 @@ public class AdministrativoValidator {
             String usuario,
             String codigo) {
 
-        if (documento != null && administrativoRepository.existsByDocumentoAndIdNot(documento, id)) {
+        if (administrativoRepository.existsByDocumentoAndIdNot(documento, id)) {
             throw new BusinessException("Ya existe un administrativo con ese documento");
         }
 

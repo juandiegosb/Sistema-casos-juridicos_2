@@ -58,7 +58,8 @@ public class ProcesoValidator {
                 ? proceso.getConsulta().getId()
                 : null;
 
-        // La consulta define el alcance del proceso, por eso no se permite cambiarla en edición.
+        // La consulta define el alcance del proceso, por eso no se permite cambiarla en
+        // edición.
         if (!Objects.equals(consultaActualId, dto.getConsultaId())) {
             throw new BusinessException("No se permite cambiar la consulta de un proceso existente");
         }
@@ -84,10 +85,9 @@ public class ProcesoValidator {
 
     public void validarExistenCambios(
             Proceso proceso,
-            DatosProceso datos,
-            Boolean activoNuevo) {
+            DatosProceso datos) {
 
-        if (sinCambios(proceso, datos, activoNuevo)) {
+        if (sinCambios(proceso, datos)) {
             throw new BusinessException("No hay cambios para actualizar");
         }
     }
@@ -100,15 +100,13 @@ public class ProcesoValidator {
 
     private boolean sinCambios(
             Proceso proceso,
-            DatosProceso datos,
-            Boolean activoNuevo) {
+            DatosProceso datos) {
 
         return Objects.equals(proceso.getNumeroRadicado(), datos.numeroRadicado())
                 && Objects.equals(idDepartamento(proceso.getDepartamento()), idDepartamento(datos.departamento()))
                 && Objects.equals(idConsulta(proceso.getConsulta()), idConsulta(datos.consulta()))
                 && Objects.equals(idOrganoControl(proceso.getOrganoControl()), idOrganoControl(datos.organoControl()))
-                && Objects.equals(idEspecialidad(proceso.getEspecialidad()), idEspecialidad(datos.especialidad()))
-                && Objects.equals(proceso.getActivo(), activoNuevo);
+                && Objects.equals(idEspecialidad(proceso.getEspecialidad()), idEspecialidad(datos.especialidad()));
     }
 
     private Long idDepartamento(Departamento departamento) {

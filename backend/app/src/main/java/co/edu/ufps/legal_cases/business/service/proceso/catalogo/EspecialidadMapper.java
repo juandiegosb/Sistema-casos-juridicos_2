@@ -18,21 +18,19 @@ public class EspecialidadMapper {
                 especialidad.getActivo());
     }
 
-    public Especialidad crearEntidad(String nombre, OrganoControl organoControl, Boolean activo) {
+    public Especialidad crearEntidad(String nombre, OrganoControl organoControl) {
         Especialidad especialidad = new Especialidad();
         especialidad.setNombre(nombre);
         especialidad.setOrganoControl(organoControl);
-        especialidad.setActivo(activo != null ? activo : true);
+        especialidad.setActivo(true);
         return especialidad;
     }
 
     public void aplicarDatos(
             Especialidad especialidad,
             String nombre,
-            OrganoControl organoControl,
-            Boolean activo) {
+            OrganoControl organoControl) {
         especialidad.setNombre(nombre);
         especialidad.setOrganoControl(organoControl);
-        especialidad.setActivo(activo);
     }
 }

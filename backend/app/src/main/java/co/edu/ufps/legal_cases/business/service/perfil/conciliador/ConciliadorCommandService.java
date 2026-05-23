@@ -55,7 +55,7 @@ public class ConciliadorCommandService {
         conciliadorAccessService.validarPuedeGestionarConciliadores();
         conciliadorValidator.validarIdNoEnviadoEnCreacion(dto.getId());
 
-        DatosConciliador datos = prepararDatos(dto);
+        DatosConciliador datos = prepararDatos(dto, true);
 
         conciliadorValidator.validarCamposObligatorios(datos);
         conciliadorValidator.validarDuplicadosCreacion(
@@ -70,7 +70,8 @@ public class ConciliadorCommandService {
 
         Conciliador conciliadorGuardado = conciliadorRepository.save(conciliador);
 
-        // El perfil se guarda primero porque el usuario del sistema se crea con datos del conciliador persistido.
+        // El perfil se guarda primero porque el usuario del sistema se crea con datos
+        // del conciliador persistido.
         UsuarioSistema usuarioSistema = usuarioSistemaRegistroService.crearParaConciliador(conciliadorGuardado);
 
         // El perfil real queda apuntando al usuario del sistema normalizado.
@@ -87,7 +88,9 @@ public class ConciliadorCommandService {
 
         conciliadorValidator.validarIdNoCambiado(id, dto.getId());
 
-        DatosConciliador datos = prepararDatos(dto);
+        // Actualizar datos del perfil no debe cambiar el estado activo.
+        // Para eso existe cambiarEstado().
+        DatosConciliador datos = prepararDatos(dto, existente.getActivo());
 
         conciliadorValidator.validarCamposObligatorios(datos);
         conciliadorValidator.validarDuplicadosActualizacion(
@@ -124,12 +127,16 @@ public class ConciliadorCommandService {
 
         Conciliador conciliador = buscarPorId(id);
 
-        // Se conserva el comportamiento actual: eliminación física.
-        // En la fase de estandarización técnica revisamos si debe pasar a desactivación lógica.
-        conciliadorRepository.delete(conciliador);
+        // Se conserva el perfil y se desactiva porque puede quedar asociado a
+        // conciliaciones.
+        conciliadorValidator.validarCambioEstado(conciliador, false);
+
+        conciliador.setActivo(false);
+
+        conciliadorRepository.save(conciliador);
     }
 
-    private DatosConciliador prepararDatos(ConciliadorDTO dto) {
+    private DatosConciliador prepararDatos(ConciliadorDTO dto, Boolean activo) {
         String nombre = normalizarTexto(dto.getNombre());
         String documento = normalizarNumeroDocumento(dto.getDocumento());
         String email = normalizarEmail(dto.getEmail());
@@ -139,8 +146,6 @@ public class ConciliadorCommandService {
 
         TipoDocumento tipoDocumento = obtenerTipoDocumento(dto.getTipoDocumentoId());
         Sede sede = obtenerSede(dto.getSedeId());
-
-        Boolean activo = dto.getActivo() != null ? dto.getActivo() : true;
 
         return new DatosConciliador(
                 nombre,
@@ -166,20 +171,20 @@ public class ConciliadorCommandService {
 
     private TipoDocumento obtenerTipoDocumento(Long tipoDocumentoId) {
         if (tipoDocumentoId == null) {
-            return null;
+            throw new BusinessException("El tipo de documento es obligatorio");
         }
 
-        return tipoDocumentoRepository.findById(tipoDocumentoId)
+        return tipoDocumentoRepository.findByIdAndActivoTrue(tipoDocumentoId)
                 .orElseThrow(() -> new BusinessException(
-                        "Tipo de documento no encontrado con id: " + tipoDocumentoId));
+                        "Tipo de documento no encontrado o inactivo con id: " + tipoDocumentoId));
     }
 
     private Sede obtenerSede(Long sedeId) {
         if (sedeId == null) {
-            return null;
+            throw new BusinessException("La sede es obligatoria");
         }
 
-        return sedeRepository.findById(sedeId)
-                .orElseThrow(() -> new BusinessException("Sede no encontrada con id: " + sedeId));
+        return sedeRepository.findByIdAndActivoTrue(sedeId)
+                .orElseThrow(() -> new BusinessException("Sede no encontrada o inactiva con id: " + sedeId));
     }
 }

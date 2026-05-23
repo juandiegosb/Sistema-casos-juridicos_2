@@ -16,15 +16,14 @@ public class OrganoControlMapper {
                 organoControl.getActivo());
     }
 
-    public OrganoControl crearEntidad(String nombre, Boolean activo) {
+    public OrganoControl crearEntidad(String nombre) {
         OrganoControl organoControl = new OrganoControl();
         organoControl.setNombre(nombre);
-        organoControl.setActivo(activo != null ? activo : true);
+        organoControl.setActivo(true);
         return organoControl;
     }
 
-    public void aplicarDatos(OrganoControl organoControl, String nombre, Boolean activo) {
+    public void aplicarDatos(OrganoControl organoControl, String nombre) {
         organoControl.setNombre(nombre);
-        organoControl.setActivo(activo);
     }
 }

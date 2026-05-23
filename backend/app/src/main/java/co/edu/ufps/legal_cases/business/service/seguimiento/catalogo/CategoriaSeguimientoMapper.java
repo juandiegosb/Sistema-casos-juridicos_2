@@ -19,17 +19,16 @@ public class CategoriaSeguimientoMapper {
         return dto;
     }
 
-    public CategoriaSeguimiento crearEntidad(String nombre, Boolean activo) {
+    public CategoriaSeguimiento crearEntidad(String nombre) {
         CategoriaSeguimiento categoria = new CategoriaSeguimiento();
 
         categoria.setNombre(nombre);
-        categoria.setActivo(activo != null ? activo : true);
+        categoria.setActivo(true);
 
         return categoria;
     }
 
-    public void aplicarDatos(CategoriaSeguimiento categoria, String nombre, Boolean activo) {
+    public void aplicarDatos(CategoriaSeguimiento categoria, String nombre) {
         categoria.setNombre(nombre);
-        categoria.setActivo(activo);
     }
 }

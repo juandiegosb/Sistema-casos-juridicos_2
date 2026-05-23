@@ -9,20 +9,15 @@ import org.springframework.stereotype.Component;
 import co.edu.ufps.legal_cases.business.dto.seguimiento.CategoriaSeguimientoDTO;
 import co.edu.ufps.legal_cases.business.model.seguimiento.CategoriaSeguimiento;
 import co.edu.ufps.legal_cases.business.repository.seguimiento.CategoriaSeguimientoRepository;
-import co.edu.ufps.legal_cases.business.repository.seguimiento.SeguimientoRepository;
 import co.edu.ufps.legal_cases.common.exception.BusinessException;
 
 @Component
 public class CategoriaSeguimientoValidator {
 
     private final CategoriaSeguimientoRepository categoriaSeguimientoRepository;
-    private final SeguimientoRepository seguimientoRepository;
 
-    public CategoriaSeguimientoValidator(
-            CategoriaSeguimientoRepository categoriaSeguimientoRepository,
-            SeguimientoRepository seguimientoRepository) {
+    public CategoriaSeguimientoValidator(CategoriaSeguimientoRepository categoriaSeguimientoRepository) {
         this.categoriaSeguimientoRepository = categoriaSeguimientoRepository;
-        this.seguimientoRepository = seguimientoRepository;
     }
 
     public void validarCreacion(CategoriaSeguimientoDTO dto) {
@@ -67,15 +62,8 @@ public class CategoriaSeguimientoValidator {
         }
     }
 
-    public void validarExistenCambios(
-            CategoriaSeguimiento categoria,
-            String nombreNuevo,
-            Boolean activoNuevo) {
-
-        boolean sinCambios = Objects.equals(categoria.getNombre(), nombreNuevo)
-                && Objects.equals(categoria.getActivo(), activoNuevo);
-
-        if (sinCambios) {
+    public void validarExistenCambios(CategoriaSeguimiento categoria, String nombreNuevo) {
+        if (Objects.equals(categoria.getNombre(), nombreNuevo)) {
             throw new BusinessException("No hay cambios para actualizar");
         }
     }
@@ -87,13 +75,6 @@ public class CategoriaSeguimientoValidator {
 
         if (Objects.equals(categoria.getActivo(), activo)) {
             throw new BusinessException("La categoría ya tiene ese estado");
-        }
-    }
-
-    public void validarPuedeEliminarse(Long id) {
-        // Se conserva la regla actual: solo se elimina físicamente si no tiene seguimientos asociados.
-        if (seguimientoRepository.existsByCategoriaSeguimiento_Id(id)) {
-            throw new BusinessException("No se puede eliminar la categoría porque tiene seguimientos asociados");
         }
     }
 

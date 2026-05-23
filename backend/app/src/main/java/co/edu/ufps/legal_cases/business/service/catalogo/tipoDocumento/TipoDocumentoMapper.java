@@ -19,20 +19,16 @@ public class TipoDocumentoMapper {
         return dto;
     }
 
-    public TipoDocumento crearEntidad(String nombre, Boolean activo) {
+    public TipoDocumento crearEntidad(String nombre) {
         TipoDocumento tipoDocumento = new TipoDocumento();
 
         tipoDocumento.setNombre(nombre);
-        tipoDocumento.setActivo(activo != null ? activo : true);
+        tipoDocumento.setActivo(true);
 
         return tipoDocumento;
     }
 
-    public void aplicarDatos(TipoDocumento tipoDocumento, String nombre, Boolean activo) {
+    public void aplicarDatos(TipoDocumento tipoDocumento, String nombre) {
         tipoDocumento.setNombre(nombre);
-
-        if (activo != null) {
-            tipoDocumento.setActivo(activo);
-        }
     }
 }

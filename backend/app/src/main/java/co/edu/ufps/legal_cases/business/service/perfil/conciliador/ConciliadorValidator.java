@@ -59,6 +59,14 @@ public class ConciliadorValidator {
             throw new BusinessException("El código es obligatorio");
         }
 
+        if (datos.tipoDocumento() == null) {
+            throw new BusinessException("El tipo de documento es obligatorio");
+        }
+
+        if (datos.sede() == null) {
+            throw new BusinessException("La sede es obligatoria");
+        }
+
         if (datos.tipoConciliador() == null) {
             throw new BusinessException("El tipo de conciliador es obligatorio");
         }

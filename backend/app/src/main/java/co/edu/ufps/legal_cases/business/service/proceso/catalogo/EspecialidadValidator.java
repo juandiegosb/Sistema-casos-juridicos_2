@@ -75,22 +75,34 @@ public class EspecialidadValidator {
     public void validarExistenCambios(
             Especialidad especialidad,
             String nombreNuevo,
-            OrganoControl organoControlNuevo,
-            Boolean activoNuevo) {
+            OrganoControl organoControlNuevo) {
 
-        boolean sinCambios = Objects.equals(especialidad.getNombre(), nombreNuevo)
-                && Objects.equals(especialidad.getActivo(), activoNuevo)
-                && especialidad.getOrganoControl() != null
+        boolean mismoNombre = Objects.equals(especialidad.getNombre(), nombreNuevo);
+        boolean mismoOrgano = especialidad.getOrganoControl() != null
                 && Objects.equals(especialidad.getOrganoControl().getId(), organoControlNuevo.getId());
 
-        if (sinCambios) {
+        if (mismoNombre && mismoOrgano) {
             throw new BusinessException("No hay cambios para actualizar");
+        }
+    }
+
+    public void validarCambioEstado(Especialidad especialidad, Boolean activo) {
+        if (activo == null) {
+            throw new BusinessException("El estado activo es obligatorio");
+        }
+
+        if (Objects.equals(especialidad.getActivo(), activo)) {
+            throw new BusinessException("La especialidad ya tiene ese estado");
         }
     }
 
     private void validarDtoObligatorio(EspecialidadDTO dto) {
         if (dto == null) {
             throw new BusinessException("Los datos de la especialidad son obligatorios");
+        }
+
+        if (dto.getOrganoControlId() == null) {
+            throw new BusinessException("El órgano de control es obligatorio");
         }
     }
 }

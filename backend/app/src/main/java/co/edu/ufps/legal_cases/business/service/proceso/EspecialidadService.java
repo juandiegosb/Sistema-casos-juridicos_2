@@ -80,10 +80,7 @@ public class EspecialidadService {
 
         especialidadValidator.validarNombreDisponible(nombre, organoControl.getId());
 
-        Especialidad especialidad = especialidadMapper.crearEntidad(
-                nombre,
-                organoControl,
-                dto.getActivo());
+        Especialidad especialidad = especialidadMapper.crearEntidad(nombre, organoControl);
 
         return especialidadMapper.convertirADTO(especialidadRepository.save(especialidad));
     }
@@ -96,7 +93,6 @@ public class EspecialidadService {
 
         String nombreNuevo = especialidadValidator.normalizarNombre(dto.getNombre());
         OrganoControl organoControlNuevo = obtenerOrganoControlActivo(dto.getOrganoControlId());
-        Boolean activoNuevo = dto.getActivo() != null ? dto.getActivo() : especialidad.getActivo();
 
         especialidadValidator.validarNombreDisponibleParaActualizacion(
                 nombreNuevo,
@@ -106,14 +102,25 @@ public class EspecialidadService {
         especialidadValidator.validarExistenCambios(
                 especialidad,
                 nombreNuevo,
-                organoControlNuevo,
-                activoNuevo);
+                organoControlNuevo);
 
+        // Actualizar datos del catálogo no debe cambiar activo.
+        // Para eso existe cambiarEstado().
         especialidadMapper.aplicarDatos(
                 especialidad,
                 nombreNuevo,
-                organoControlNuevo,
-                activoNuevo);
+                organoControlNuevo);
+
+        return especialidadMapper.convertirADTO(especialidadRepository.save(especialidad));
+    }
+
+    @Transactional
+    public EspecialidadDTO cambiarEstado(Long id, Boolean activo) {
+        Especialidad especialidad = buscarPorId(id);
+
+        especialidadValidator.validarCambioEstado(especialidad, activo);
+
+        especialidad.setActivo(activo);
 
         return especialidadMapper.convertirADTO(especialidadRepository.save(especialidad));
     }

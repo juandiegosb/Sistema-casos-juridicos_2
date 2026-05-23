@@ -75,16 +75,19 @@ public class OrganoControlValidator {
         }
     }
 
-    public void validarExistenCambios(
-            OrganoControl organoControl,
-            String nombreNuevo,
-            Boolean activoNuevo) {
-
-        boolean sinCambios = Objects.equals(organoControl.getNombre(), nombreNuevo)
-                && Objects.equals(organoControl.getActivo(), activoNuevo);
-
-        if (sinCambios) {
+    public void validarExistenCambios(OrganoControl organoControl, String nombreNuevo) {
+        if (Objects.equals(organoControl.getNombre(), nombreNuevo)) {
             throw new BusinessException("No hay cambios para actualizar");
+        }
+    }
+
+    public void validarCambioEstado(OrganoControl organoControl, Boolean activo) {
+        if (activo == null) {
+            throw new BusinessException("El estado activo es obligatorio");
+        }
+
+        if (Objects.equals(organoControl.getActivo(), activo)) {
+            throw new BusinessException("El órgano de control ya tiene ese estado");
         }
     }
 

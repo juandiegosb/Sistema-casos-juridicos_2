@@ -60,7 +60,7 @@ public class AsesorCommandService {
         asesorMonitorAccessService.validarPuedeGestionarAsesoresYMonitores();
         asesorValidator.validarIdNoEnviadoEnCreacion(dto.getId());
 
-        DatosAsesor datos = prepararDatos(dto);
+        DatosAsesor datos = prepararDatos(dto, true);
 
         asesorValidator.validarDuplicadosCreacion(
                 datos.documento(),
@@ -74,7 +74,8 @@ public class AsesorCommandService {
 
         Asesor asesorGuardado = asesorRepository.save(asesor);
 
-        // El perfil se guarda primero porque el usuario del sistema se crea con datos del asesor persistido.
+        // El perfil se guarda primero porque el usuario del sistema se crea con datos
+        // del asesor persistido.
         UsuarioSistema usuarioSistema = usuarioSistemaRegistroService.crearParaAsesor(asesorGuardado);
 
         // El perfil real queda apuntando al usuario del sistema normalizado.
@@ -91,7 +92,9 @@ public class AsesorCommandService {
 
         asesorValidator.validarIdNoCambiado(id, dto.getId());
 
-        DatosAsesor datos = prepararDatos(dto);
+        // Actualizar datos del perfil no debe cambiar el estado activo.
+        // Para eso existe cambiarEstado().
+        DatosAsesor datos = prepararDatos(dto, existente.getActivo());
 
         asesorValidator.validarDuplicadosActualizacion(
                 id,
@@ -127,12 +130,16 @@ public class AsesorCommandService {
 
         Asesor asesor = buscarPorId(id);
 
-        // Se conserva el comportamiento actual: eliminación física.
-        // En la fase de estandarización técnica revisamos si debe pasar a desactivación lógica.
-        asesorRepository.delete(asesor);
+        // Se conserva el perfil y se desactiva porque puede estar asociado a
+        // estudiantes o consultas.
+        asesorValidator.validarCambioEstado(asesor, false);
+
+        asesor.setActivo(false);
+
+        asesorRepository.save(asesor);
     }
 
-    private DatosAsesor prepararDatos(AsesorDTO dto) {
+    private DatosAsesor prepararDatos(AsesorDTO dto, Boolean activo) {
         String nombre = normalizarTexto(dto.getNombre());
         String documento = normalizarNumeroDocumento(dto.getDocumento());
         String email = normalizarEmail(dto.getEmail());
@@ -151,8 +158,6 @@ public class AsesorCommandService {
         TipoDocumento tipoDocumento = obtenerTipoDocumento(dto.getTipoDocumentoId());
         Sede sede = obtenerSede(dto.getSedeId());
         Area area = obtenerArea(dto.getAreaId());
-
-        Boolean activo = dto.getActivo() != null ? dto.getActivo() : true;
 
         return new DatosAsesor(
                 nombre,
@@ -181,9 +186,9 @@ public class AsesorCommandService {
             throw new BusinessException("El tipo de documento es obligatorio");
         }
 
-        return tipoDocumentoRepository.findById(tipoDocumentoId)
+        return tipoDocumentoRepository.findByIdAndActivoTrue(tipoDocumentoId)
                 .orElseThrow(() -> new BusinessException(
-                        "Tipo de documento no encontrado con id: " + tipoDocumentoId));
+                        "Tipo de documento no encontrado o inactivo con id: " + tipoDocumentoId));
     }
 
     private Sede obtenerSede(Long sedeId) {
@@ -191,8 +196,8 @@ public class AsesorCommandService {
             throw new BusinessException("La sede es obligatoria");
         }
 
-        return sedeRepository.findById(sedeId)
-                .orElseThrow(() -> new BusinessException("Sede no encontrada con id: " + sedeId));
+        return sedeRepository.findByIdAndActivoTrue(sedeId)
+                .orElseThrow(() -> new BusinessException("Sede no encontrada o inactiva con id: " + sedeId));
     }
 
     private Area obtenerArea(Long areaId) {
@@ -200,7 +205,7 @@ public class AsesorCommandService {
             throw new BusinessException("El área es obligatoria");
         }
 
-        return areaRepository.findById(areaId)
-                .orElseThrow(() -> new BusinessException("Área no encontrada con id: " + areaId));
+        return areaRepository.findByIdAndActivoTrue(areaId)
+                .orElseThrow(() -> new BusinessException("Área no encontrada o inactiva con id: " + areaId));
     }
 }

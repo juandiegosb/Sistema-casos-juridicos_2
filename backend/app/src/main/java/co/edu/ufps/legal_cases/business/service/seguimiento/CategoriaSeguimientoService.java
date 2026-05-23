@@ -60,9 +60,7 @@ public class CategoriaSeguimientoService {
 
         categoriaSeguimientoValidator.validarNombreDisponible(nombre);
 
-        CategoriaSeguimiento categoria = categoriaSeguimientoMapper.crearEntidad(
-                nombre,
-                dto.getActivo());
+        CategoriaSeguimiento categoria = categoriaSeguimientoMapper.crearEntidad(nombre);
 
         return categoriaSeguimientoMapper.convertirADTO(categoriaSeguimientoRepository.save(categoria));
     }
@@ -74,12 +72,13 @@ public class CategoriaSeguimientoService {
         categoriaSeguimientoValidator.validarActualizacion(id, dto);
 
         String nombreNuevo = categoriaSeguimientoValidator.normalizarNombre(dto.getNombre());
-        Boolean activoNuevo = dto.getActivo() != null ? dto.getActivo() : categoria.getActivo();
 
         categoriaSeguimientoValidator.validarNombreDisponibleParaActualizacion(nombreNuevo, id);
-        categoriaSeguimientoValidator.validarExistenCambios(categoria, nombreNuevo, activoNuevo);
+        categoriaSeguimientoValidator.validarExistenCambios(categoria, nombreNuevo);
 
-        categoriaSeguimientoMapper.aplicarDatos(categoria, nombreNuevo, activoNuevo);
+        // Actualizar datos del catálogo no debe cambiar activo.
+        // Para eso existe cambiarEstado().
+        categoriaSeguimientoMapper.aplicarDatos(categoria, nombreNuevo);
 
         return categoriaSeguimientoMapper.convertirADTO(categoriaSeguimientoRepository.save(categoria));
     }
@@ -99,10 +98,12 @@ public class CategoriaSeguimientoService {
     public void eliminar(Long id) {
         CategoriaSeguimiento categoria = buscarPorId(id);
 
-        categoriaSeguimientoValidator.validarPuedeEliminarse(id);
+        categoriaSeguimientoValidator.validarCambioEstado(categoria, false);
 
-        // En este catálogo se conserva el comportamiento actual: borrar si no tiene seguimientos asociados.
-        categoriaSeguimientoRepository.delete(categoria);
+        // Desactivación lógica: se conserva porque puede estar asociada a seguimientos existentes.
+        categoria.setActivo(false);
+
+        categoriaSeguimientoRepository.save(categoria);
     }
 
     private CategoriaSeguimiento buscarPorId(Long id) {

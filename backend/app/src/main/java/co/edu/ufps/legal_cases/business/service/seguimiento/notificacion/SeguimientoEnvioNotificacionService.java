@@ -14,7 +14,8 @@ import co.edu.ufps.legal_cases.business.repository.seguimiento.notificacion.Segu
 import co.edu.ufps.legal_cases.common.exception.BusinessException;
 import lombok.RequiredArgsConstructor;
 
-// Este servicio sirve para crear, actualizar, reactivar o cancelar recordatorios programados.
+// Envía notificaciones pendientes y registra el resultado del intento.
+// No decide si la notificación aplica; eso ya viene resuelto por los servicios de sincronización.
 @Service
 @RequiredArgsConstructor
 public class SeguimientoEnvioNotificacionService {

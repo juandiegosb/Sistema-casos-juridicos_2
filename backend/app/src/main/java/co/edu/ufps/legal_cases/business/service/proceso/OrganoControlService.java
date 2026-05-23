@@ -59,9 +59,10 @@ public class OrganoControlService {
         organoControlValidator.validarCreacion(dto);
 
         String nombre = organoControlValidator.normalizarNombre(dto.getNombre());
+
         organoControlValidator.validarNombreDisponible(nombre);
 
-        OrganoControl organoControl = organoControlMapper.crearEntidad(nombre, dto.getActivo());
+        OrganoControl organoControl = organoControlMapper.crearEntidad(nombre);
 
         return organoControlMapper.convertirADTO(organoControlRepository.save(organoControl));
     }
@@ -73,17 +74,28 @@ public class OrganoControlService {
         organoControlValidator.validarActualizacion(id, dto);
 
         String nombreNuevo = organoControlValidator.normalizarNombre(dto.getNombre());
-        Boolean activoNuevo = dto.getActivo() != null ? dto.getActivo() : organoControl.getActivo();
 
         organoControlValidator.validarNombreDisponibleParaActualizacion(nombreNuevo, id);
+        organoControlValidator.validarExistenCambios(organoControl, nombreNuevo);
 
-        if (Boolean.FALSE.equals(activoNuevo)) {
+        // Actualizar datos del catálogo no debe cambiar activo.
+        // Para eso existe cambiarEstado().
+        organoControlMapper.aplicarDatos(organoControl, nombreNuevo);
+
+        return organoControlMapper.convertirADTO(organoControlRepository.save(organoControl));
+    }
+
+    @Transactional
+    public OrganoControlDTO cambiarEstado(Long id, Boolean activo) {
+        OrganoControl organoControl = buscarPorId(id);
+
+        organoControlValidator.validarCambioEstado(organoControl, activo);
+
+        if (Boolean.FALSE.equals(activo)) {
             organoControlValidator.validarPuedeDesactivarse(id);
         }
 
-        organoControlValidator.validarExistenCambios(organoControl, nombreNuevo, activoNuevo);
-
-        organoControlMapper.aplicarDatos(organoControl, nombreNuevo, activoNuevo);
+        organoControl.setActivo(activo);
 
         return organoControlMapper.convertirADTO(organoControlRepository.save(organoControl));
     }
