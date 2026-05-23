@@ -1,9 +1,6 @@
 package co.edu.ufps.legal_cases.business.service.catalogo;
 
-import static co.edu.ufps.legal_cases.common.util.NormalizacionUtils.normalizarTexto;
-
 import java.util.List;
-import java.util.Objects;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -13,6 +10,8 @@ import co.edu.ufps.legal_cases.business.model.catalogo.Tema;
 import co.edu.ufps.legal_cases.business.model.catalogo.Tipo;
 import co.edu.ufps.legal_cases.business.repository.catalogo.TemaRepository;
 import co.edu.ufps.legal_cases.business.repository.catalogo.TipoRepository;
+import co.edu.ufps.legal_cases.business.service.catalogo.tipo.TipoMapper;
+import co.edu.ufps.legal_cases.business.service.catalogo.tipo.TipoValidator;
 import co.edu.ufps.legal_cases.common.exception.BusinessException;
 
 @Service
@@ -20,10 +19,18 @@ public class TipoService {
 
     private final TipoRepository tipoRepository;
     private final TemaRepository temaRepository;
+    private final TipoMapper tipoMapper;
+    private final TipoValidator tipoValidator;
 
-    public TipoService(TipoRepository tipoRepository, TemaRepository temaRepository) {
+    public TipoService(
+            TipoRepository tipoRepository,
+            TemaRepository temaRepository,
+            TipoMapper tipoMapper,
+            TipoValidator tipoValidator) {
         this.tipoRepository = tipoRepository;
         this.temaRepository = temaRepository;
+        this.tipoMapper = tipoMapper;
+        this.tipoValidator = tipoValidator;
     }
 
     // Lista tipos activos para formularios, selects y uso normal del sistema.
@@ -31,7 +38,7 @@ public class TipoService {
     public List<TipoDTO> listar() {
         return tipoRepository.findByActivoTrueOrderByNombreAsc()
                 .stream()
-                .map(this::convertirADTO)
+                .map(tipoMapper::convertirADTO)
                 .toList();
     }
 
@@ -40,7 +47,7 @@ public class TipoService {
     public List<TipoDTO> listarTodos() {
         return tipoRepository.findAllByOrderByNombreAsc()
                 .stream()
-                .map(this::convertirADTO)
+                .map(tipoMapper::convertirADTO)
                 .toList();
     }
 
@@ -51,7 +58,7 @@ public class TipoService {
 
         return tipoRepository.findByTemaIdAndActivoTrueOrderByNombreAsc(temaId)
                 .stream()
-                .map(this::convertirADTO)
+                .map(tipoMapper::convertirADTO)
                 .toList();
     }
 
@@ -62,80 +69,60 @@ public class TipoService {
 
         return tipoRepository.findByTemaIdOrderByNombreAsc(temaId)
                 .stream()
-                .map(this::convertirADTO)
+                .map(tipoMapper::convertirADTO)
                 .toList();
     }
 
     @Transactional(readOnly = true)
     public TipoDTO obtenerPorId(Long id) {
         Tipo tipo = buscarPorIdActivo(id);
-        return convertirADTO(tipo);
+        return tipoMapper.convertirADTO(tipo);
     }
 
     @Transactional
-    public TipoDTO crear(TipoDTO tipoDTO) {
-        validarCreacion(tipoDTO);
+    public TipoDTO crear(TipoDTO dto) {
+        tipoValidator.validarCreacion(dto);
 
-        String nombre = normalizarNombre(tipoDTO.getNombre());
-        Tema tema = obtenerTemaActivo(tipoDTO.getTemaId());
+        String nombre = tipoValidator.normalizarNombre(dto.getNombre());
+        Tema tema = obtenerTemaActivo(dto.getTemaId());
 
-        if (tipoRepository.existsByNombreIgnoreCaseAndTemaId(nombre, tema.getId())) {
-            throw new BusinessException("Ya existe un tipo con ese nombre en el tema seleccionado");
-        }
+        tipoValidator.validarNombreDisponible(nombre, tema.getId());
 
-        Tipo tipo = new Tipo();
-        tipo.setNombre(nombre);
-        tipo.setTema(tema);
-        tipo.setActivo(true);
+        Tipo tipo = tipoMapper.crearEntidad(nombre, tema);
 
-        return convertirADTO(tipoRepository.save(tipo));
+        return tipoMapper.convertirADTO(tipoRepository.save(tipo));
     }
 
     @Transactional
-    public TipoDTO actualizar(Long id, TipoDTO tipoDTO) {
+    public TipoDTO actualizar(Long id, TipoDTO dto) {
         Tipo tipo = buscarPorId(id);
 
-        validarActualizacion(id, tipoDTO);
+        tipoValidator.validarActualizacion(id, dto);
 
-        String nuevoNombre = normalizarNombre(tipoDTO.getNombre());
-        Tema nuevoTema = obtenerTemaActivo(tipoDTO.getTemaId());
+        String nombreNuevo = tipoValidator.normalizarNombre(dto.getNombre());
+        Tema temaNuevo = obtenerTemaActivo(dto.getTemaId());
 
-        if (tipoRepository.existsByNombreIgnoreCaseAndTemaIdAndIdNot(
-                nuevoNombre,
-                nuevoTema.getId(),
-                tipo.getId())) {
-            throw new BusinessException("Ya existe un tipo con ese nombre en el tema seleccionado");
-        }
+        tipoValidator.validarNombreDisponibleParaActualizacion(
+                nombreNuevo,
+                temaNuevo.getId(),
+                tipo.getId());
 
-        boolean mismoNombre = Objects.equals(tipo.getNombre(), nuevoNombre);
-        boolean mismoTema = tipo.getTema() != null
-                && Objects.equals(tipo.getTema().getId(), nuevoTema.getId());
+        tipoValidator.validarExistenCambios(tipo, nombreNuevo, temaNuevo);
 
-        if (mismoNombre && mismoTema) {
-            throw new BusinessException("No hay cambios para actualizar");
-        }
+        tipoMapper.aplicarDatos(tipo, nombreNuevo, temaNuevo);
 
-        tipo.setNombre(nuevoNombre);
-        tipo.setTema(nuevoTema);
-
-        return convertirADTO(tipoRepository.save(tipo));
+        return tipoMapper.convertirADTO(tipoRepository.save(tipo));
     }
 
     @Transactional
     public TipoDTO cambiarEstado(Long id, Boolean activo) {
         Tipo tipo = buscarPorId(id);
 
-        if (activo == null) {
-            throw new BusinessException("El estado activo es obligatorio");
-        }
-
-        if (Objects.equals(tipo.getActivo(), activo)) {
-            throw new BusinessException("El tipo ya tiene ese estado");
-        }
+        tipoValidator.validarCambioEstado(tipo, activo);
 
         tipo.setActivo(activo);
 
-        return convertirADTO(tipoRepository.save(tipo));
+        return tipoMapper.convertirADTO(tipoRepository.save(tipo));
     }
 
     @Transactional
@@ -146,46 +133,6 @@ public class TipoService {
         tipo.setActivo(false);
 
         tipoRepository.save(tipo);
-    }
-
-    private void validarCreacion(TipoDTO tipoDTO) {
-        validarDtoObligatorio(tipoDTO);
-
-        if (tipoDTO.getId() != null) {
-            throw new BusinessException("El id no debe enviarse en la creación");
-        }
-    }
-
-    private void validarActualizacion(Long id, TipoDTO tipoDTO) {
-        validarDtoObligatorio(tipoDTO);
-
-        if (tipoDTO.getId() != null && !Objects.equals(tipoDTO.getId(), id)) {
-            throw new BusinessException("No se permite cambiar el id del tipo");
-        }
-    }
-
-    private void validarDtoObligatorio(TipoDTO tipoDTO) {
-        if (tipoDTO == null) {
-            throw new BusinessException("Los datos del tipo son obligatorios");
-        }
-
-        if (tipoDTO.getTemaId() == null) {
-            throw new BusinessException("El tema es obligatorio");
-        }
-    }
-
-    private String normalizarNombre(String nombre) {
-        String nombreNormalizado = normalizarTexto(nombre);
-
-        if (nombreNormalizado == null || nombreNormalizado.isBlank()) {
-            throw new BusinessException("El nombre del tipo es obligatorio");
-        }
-
-        if (nombreNormalizado.length() > 80) {
-            throw new BusinessException("El nombre del tipo no puede superar los 80 caracteres");
-        }
-
-        return nombreNormalizado;
     }
 
     private void validarTemaActivo(Long temaId) {
@@ -226,13 +173,5 @@ public class TipoService {
 
         return tipoRepository.findByIdAndActivoTrue(id)
                 .orElseThrow(() -> new BusinessException("Tipo no encontrado o inactivo con id: " + id));
-    }
-
-    private TipoDTO convertirADTO(Tipo tipo) {
-        return new TipoDTO(
-                tipo.getId(),
-                tipo.getNombre(),
-                tipo.getTema().getId(),
-                tipo.getActivo());
     }
 }

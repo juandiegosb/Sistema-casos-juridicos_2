@@ -1,128 +1,101 @@
 package co.edu.ufps.legal_cases.business.service.catalogo;
 
-import static co.edu.ufps.legal_cases.common.util.NormalizacionUtils.normalizarTexto;
-
 import java.util.List;
 
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import co.edu.ufps.legal_cases.business.dto.catalogo.TipoDocumentoDTO;
 import co.edu.ufps.legal_cases.business.model.catalogo.TipoDocumento;
 import co.edu.ufps.legal_cases.business.repository.catalogo.TipoDocumentoRepository;
+import co.edu.ufps.legal_cases.business.service.catalogo.tipoDocumento.TipoDocumentoMapper;
+import co.edu.ufps.legal_cases.business.service.catalogo.tipoDocumento.TipoDocumentoValidator;
 import co.edu.ufps.legal_cases.common.exception.BusinessException;
 
 @Service
 public class TipoDocumentoService {
 
     private final TipoDocumentoRepository tipoDocumentoRepository;
+    private final TipoDocumentoMapper tipoDocumentoMapper;
+    private final TipoDocumentoValidator tipoDocumentoValidator;
 
-    public TipoDocumentoService(TipoDocumentoRepository tipoDocumentoRepository) {
+    public TipoDocumentoService(
+            TipoDocumentoRepository tipoDocumentoRepository,
+            TipoDocumentoMapper tipoDocumentoMapper,
+            TipoDocumentoValidator tipoDocumentoValidator) {
         this.tipoDocumentoRepository = tipoDocumentoRepository;
+        this.tipoDocumentoMapper = tipoDocumentoMapper;
+        this.tipoDocumentoValidator = tipoDocumentoValidator;
     }
 
+    // Lista todos los tipos de documento para administración del catálogo.
+    @Transactional(readOnly = true)
     public List<TipoDocumentoDTO> listar() {
         return tipoDocumentoRepository.findAllByOrderByNombreAsc()
                 .stream()
-                .map(this::convertirADTO)
+                .map(tipoDocumentoMapper::convertirADTO)
                 .toList();
     }
 
+    // Lista solo tipos de documento activos para formularios.
+    @Transactional(readOnly = true)
     public List<TipoDocumentoDTO> listarActivos() {
         return tipoDocumentoRepository.findByActivoTrueOrderByNombreAsc()
                 .stream()
-                .map(this::convertirADTO)
+                .map(tipoDocumentoMapper::convertirADTO)
                 .toList();
     }
 
+    @Transactional(readOnly = true)
     public TipoDocumentoDTO obtenerPorId(Long id) {
-        TipoDocumento tipoDocumento = tipoDocumentoRepository.findById(id)
-                .orElseThrow(() -> new BusinessException("Tipo de documento no encontrado con id: " + id));
-
-        return convertirADTO(tipoDocumento);
+        TipoDocumento tipoDocumento = buscarPorId(id);
+        return tipoDocumentoMapper.convertirADTO(tipoDocumento);
     }
 
+    @Transactional
     public TipoDocumentoDTO crear(TipoDocumentoDTO dto) {
-        String nombre = normalizarNombre(dto);
+        String nombre = tipoDocumentoValidator.normalizarNombre(dto);
 
-        if (tipoDocumentoRepository.existsByNombreIgnoreCase(nombre)) {
-            throw new BusinessException("Ya existe un tipo de documento con ese nombre");
-        }
+        tipoDocumentoValidator.validarNombreDisponible(nombre);
 
-        TipoDocumento tipoDocumento = new TipoDocumento();
-        tipoDocumento.setNombre(nombre);
-        // Guarda por defecto como activo.
-        tipoDocumento.setActivo(dto.getActivo() != null ? dto.getActivo() : true);
+        TipoDocumento tipoDocumento = tipoDocumentoMapper.crearEntidad(nombre, dto.getActivo());
 
-        return convertirADTO(tipoDocumentoRepository.save(tipoDocumento));
+        return tipoDocumentoMapper.convertirADTO(tipoDocumentoRepository.save(tipoDocumento));
     }
 
+    @Transactional
     public TipoDocumentoDTO actualizar(Long id, TipoDocumentoDTO dto) {
-        TipoDocumento documentoExistente = tipoDocumentoRepository.findById(id)
-                .orElseThrow(() -> new BusinessException("Tipo de documento no encontrado con id: " + id));
+        TipoDocumento tipoDocumento = buscarPorId(id);
 
-        String nombreNuevo = normalizarNombre(dto);
+        tipoDocumentoValidator.validarActualizacion(id, dto, tipoDocumento);
 
-        // El id no debe cambiarse desde el DTO.
-        if (dto.getId() != null && !dto.getId().equals(documentoExistente.getId())) {
-            throw new BusinessException("No se permite cambiar el id del tipo de documento");
-        }
+        String nombreNuevo = tipoDocumentoValidator.normalizarNombre(dto);
 
-        boolean mismoNombre = documentoExistente.getNombre().equalsIgnoreCase(nombreNuevo);
-        boolean mismoEstado = dto.getActivo() == null || documentoExistente.getActivo().equals(dto.getActivo());
+        tipoDocumentoValidator.validarExistenCambios(tipoDocumento, nombreNuevo, dto.getActivo());
+        tipoDocumentoValidator.validarNombreDisponibleParaActualizacion(nombreNuevo, tipoDocumento.getId());
 
-        if (mismoNombre && mismoEstado) {
-            throw new BusinessException("No hay cambios para actualizar");
-        }
+        tipoDocumentoMapper.aplicarDatos(tipoDocumento, nombreNuevo, dto.getActivo());
 
-        if (tipoDocumentoRepository.existsByNombreIgnoreCaseAndIdNot(nombreNuevo, documentoExistente.getId())) {
-            throw new BusinessException("Ya existe un tipo de documento con ese nombre");
-        }
-
-        documentoExistente.setNombre(nombreNuevo);
-
-        if (dto.getActivo() != null) {
-            documentoExistente.setActivo(dto.getActivo());
-        }
-
-        return convertirADTO(tipoDocumentoRepository.save(documentoExistente));
+        return tipoDocumentoMapper.convertirADTO(tipoDocumentoRepository.save(tipoDocumento));
     }
 
+    @Transactional
     public TipoDocumentoDTO cambiarEstado(Long id, Boolean activo) {
-        TipoDocumento documentoExistente = tipoDocumentoRepository.findById(id)
+        TipoDocumento tipoDocumento = buscarPorId(id);
+
+        tipoDocumentoValidator.validarCambioEstado(tipoDocumento, activo);
+
+        tipoDocumento.setActivo(activo);
+
+        return tipoDocumentoMapper.convertirADTO(tipoDocumentoRepository.save(tipoDocumento));
+    }
+
+    private TipoDocumento buscarPorId(Long id) {
+        if (id == null) {
+            throw new BusinessException("El id del tipo de documento es obligatorio");
+        }
+
+        return tipoDocumentoRepository.findById(id)
                 .orElseThrow(() -> new BusinessException("Tipo de documento no encontrado con id: " + id));
-
-        if (activo == null) {
-            throw new BusinessException("El estado activo es obligatorio");
-        }
-
-        if (documentoExistente.getActivo().equals(activo)) {
-            throw new BusinessException("El tipo de documento ya tiene ese estado");
-        }
-
-        documentoExistente.setActivo(activo);
-
-        return convertirADTO(tipoDocumentoRepository.save(documentoExistente));
-    }
-
-    private String normalizarNombre(TipoDocumentoDTO dto) {
-        if (dto == null) {
-            throw new BusinessException("Los datos del tipo de documento son obligatorios");
-        }
-
-        String nombre = normalizarTexto(dto.getNombre());
-
-        if (nombre == null || nombre.isBlank()) {
-            throw new BusinessException("El nombre es obligatorio");
-        }
-
-        return nombre;
-    }
-
-    private TipoDocumentoDTO convertirADTO(TipoDocumento tipoDocumento) {
-        TipoDocumentoDTO dto = new TipoDocumentoDTO();
-        dto.setId(tipoDocumento.getId());
-        dto.setNombre(tipoDocumento.getNombre());
-        dto.setActivo(tipoDocumento.getActivo());
-        return dto;
     }
 }

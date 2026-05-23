@@ -1,9 +1,6 @@
 package co.edu.ufps.legal_cases.business.service.catalogo;
 
-import static co.edu.ufps.legal_cases.common.util.NormalizacionUtils.normalizarTexto;
-
 import java.util.List;
-import java.util.Objects;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -13,6 +10,8 @@ import co.edu.ufps.legal_cases.business.model.catalogo.Area;
 import co.edu.ufps.legal_cases.business.model.catalogo.Tema;
 import co.edu.ufps.legal_cases.business.repository.catalogo.AreaRepository;
 import co.edu.ufps.legal_cases.business.repository.catalogo.TemaRepository;
+import co.edu.ufps.legal_cases.business.service.catalogo.tema.TemaMapper;
+import co.edu.ufps.legal_cases.business.service.catalogo.tema.TemaValidator;
 import co.edu.ufps.legal_cases.common.exception.BusinessException;
 
 @Service
@@ -20,10 +19,18 @@ public class TemaService {
 
     private final TemaRepository temaRepository;
     private final AreaRepository areaRepository;
+    private final TemaMapper temaMapper;
+    private final TemaValidator temaValidator;
 
-    public TemaService(TemaRepository temaRepository, AreaRepository areaRepository) {
+    public TemaService(
+            TemaRepository temaRepository,
+            AreaRepository areaRepository,
+            TemaMapper temaMapper,
+            TemaValidator temaValidator) {
         this.temaRepository = temaRepository;
         this.areaRepository = areaRepository;
+        this.temaMapper = temaMapper;
+        this.temaValidator = temaValidator;
     }
 
     // Lista temas activos para formularios, selects y uso normal del sistema.
@@ -31,7 +38,7 @@ public class TemaService {
     public List<TemaDTO> listar() {
         return temaRepository.findByActivoTrueOrderByNombreAsc()
                 .stream()
-                .map(this::convertirADTO)
+                .map(temaMapper::convertirADTO)
                 .toList();
     }
 
@@ -40,7 +47,7 @@ public class TemaService {
     public List<TemaDTO> listarTodos() {
         return temaRepository.findAllByOrderByNombreAsc()
                 .stream()
-                .map(this::convertirADTO)
+                .map(temaMapper::convertirADTO)
                 .toList();
     }
 
@@ -51,7 +58,7 @@ public class TemaService {
 
         return temaRepository.findByAreaIdAndActivoTrueOrderByNombreAsc(areaId)
                 .stream()
-                .map(this::convertirADTO)
+                .map(temaMapper::convertirADTO)
                 .toList();
     }
 
@@ -62,80 +69,60 @@ public class TemaService {
 
         return temaRepository.findByAreaIdOrderByNombreAsc(areaId)
                 .stream()
-                .map(this::convertirADTO)
+                .map(temaMapper::convertirADTO)
                 .toList();
     }
 
     @Transactional(readOnly = true)
     public TemaDTO obtenerPorId(Long id) {
         Tema tema = buscarPorIdActivo(id);
-        return convertirADTO(tema);
+        return temaMapper.convertirADTO(tema);
     }
 
     @Transactional
-    public TemaDTO crear(TemaDTO temaDTO) {
-        validarCreacion(temaDTO);
+    public TemaDTO crear(TemaDTO dto) {
+        temaValidator.validarCreacion(dto);
 
-        String nombre = normalizarNombre(temaDTO.getNombre());
-        Area area = obtenerAreaActiva(temaDTO.getAreaId());
+        String nombre = temaValidator.normalizarNombre(dto.getNombre());
+        Area area = obtenerAreaActiva(dto.getAreaId());
 
-        if (temaRepository.existsByNombreIgnoreCaseAndAreaId(nombre, area.getId())) {
-            throw new BusinessException("Ya existe un tema con ese nombre en el área seleccionada");
-        }
+        temaValidator.validarNombreDisponible(nombre, area.getId());
 
-        Tema tema = new Tema();
-        tema.setNombre(nombre);
-        tema.setArea(area);
-        tema.setActivo(true);
+        Tema tema = temaMapper.crearEntidad(nombre, area);
 
-        return convertirADTO(temaRepository.save(tema));
+        return temaMapper.convertirADTO(temaRepository.save(tema));
     }
 
     @Transactional
-    public TemaDTO actualizar(Long id, TemaDTO temaDTO) {
+    public TemaDTO actualizar(Long id, TemaDTO dto) {
         Tema tema = buscarPorId(id);
 
-        validarActualizacion(id, temaDTO);
+        temaValidator.validarActualizacion(id, dto);
 
-        String nuevoNombre = normalizarNombre(temaDTO.getNombre());
-        Area nuevaArea = obtenerAreaActiva(temaDTO.getAreaId());
+        String nombreNuevo = temaValidator.normalizarNombre(dto.getNombre());
+        Area areaNueva = obtenerAreaActiva(dto.getAreaId());
 
-        if (temaRepository.existsByNombreIgnoreCaseAndAreaIdAndIdNot(
-                nuevoNombre,
-                nuevaArea.getId(),
-                tema.getId())) {
-            throw new BusinessException("Ya existe un tema con ese nombre en el área seleccionada");
-        }
+        temaValidator.validarNombreDisponibleParaActualizacion(
+                nombreNuevo,
+                areaNueva.getId(),
+                tema.getId());
 
-        boolean mismoNombre = Objects.equals(tema.getNombre(), nuevoNombre);
-        boolean mismaArea = tema.getArea() != null
-                && Objects.equals(tema.getArea().getId(), nuevaArea.getId());
+        temaValidator.validarExistenCambios(tema, nombreNuevo, areaNueva);
 
-        if (mismoNombre && mismaArea) {
-            throw new BusinessException("No hay cambios para actualizar");
-        }
+        temaMapper.aplicarDatos(tema, nombreNuevo, areaNueva);
 
-        tema.setNombre(nuevoNombre);
-        tema.setArea(nuevaArea);
-
-        return convertirADTO(temaRepository.save(tema));
+        return temaMapper.convertirADTO(temaRepository.save(tema));
     }
 
     @Transactional
     public TemaDTO cambiarEstado(Long id, Boolean activo) {
         Tema tema = buscarPorId(id);
 
-        if (activo == null) {
-            throw new BusinessException("El estado activo es obligatorio");
-        }
-
-        if (Objects.equals(tema.getActivo(), activo)) {
-            throw new BusinessException("El tema ya tiene ese estado");
-        }
+        temaValidator.validarCambioEstado(tema, activo);
 
         tema.setActivo(activo);
 
-        return convertirADTO(temaRepository.save(tema));
+        return temaMapper.convertirADTO(temaRepository.save(tema));
     }
 
     @Transactional
@@ -146,46 +133,6 @@ public class TemaService {
         tema.setActivo(false);
 
         temaRepository.save(tema);
-    }
-
-    private void validarCreacion(TemaDTO temaDTO) {
-        validarDtoObligatorio(temaDTO);
-
-        if (temaDTO.getId() != null) {
-            throw new BusinessException("El id no debe enviarse en la creación");
-        }
-    }
-
-    private void validarActualizacion(Long id, TemaDTO temaDTO) {
-        validarDtoObligatorio(temaDTO);
-
-        if (temaDTO.getId() != null && !Objects.equals(temaDTO.getId(), id)) {
-            throw new BusinessException("No se permite cambiar el id del tema");
-        }
-    }
-
-    private void validarDtoObligatorio(TemaDTO temaDTO) {
-        if (temaDTO == null) {
-            throw new BusinessException("Los datos del tema son obligatorios");
-        }
-
-        if (temaDTO.getAreaId() == null) {
-            throw new BusinessException("El área es obligatoria");
-        }
-    }
-
-    private String normalizarNombre(String nombre) {
-        String nombreNormalizado = normalizarTexto(nombre);
-
-        if (nombreNormalizado == null || nombreNormalizado.isBlank()) {
-            throw new BusinessException("El nombre del tema es obligatorio");
-        }
-
-        if (nombreNormalizado.length() > 80) {
-            throw new BusinessException("El nombre del tema no puede superar los 80 caracteres");
-        }
-
-        return nombreNormalizado;
     }
 
     private void validarAreaActiva(Long areaId) {
@@ -226,13 +173,5 @@ public class TemaService {
 
         return temaRepository.findByIdAndActivoTrue(id)
                 .orElseThrow(() -> new BusinessException("Tema no encontrado o inactivo con id: " + id));
-    }
-
-    private TemaDTO convertirADTO(Tema tema) {
-        return new TemaDTO(
-                tema.getId(),
-                tema.getNombre(),
-                tema.getArea().getId(),
-                tema.getActivo());
     }
 }

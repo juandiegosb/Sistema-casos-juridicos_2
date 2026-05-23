@@ -1,9 +1,6 @@
 package co.edu.ufps.legal_cases.business.service.catalogo;
 
-import static co.edu.ufps.legal_cases.common.util.NormalizacionUtils.normalizarTexto;
-
 import java.util.List;
-import java.util.Objects;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -11,15 +8,24 @@ import org.springframework.transaction.annotation.Transactional;
 import co.edu.ufps.legal_cases.business.dto.catalogo.DepartamentoDTO;
 import co.edu.ufps.legal_cases.business.model.catalogo.Departamento;
 import co.edu.ufps.legal_cases.business.repository.catalogo.DepartamentoRepository;
+import co.edu.ufps.legal_cases.business.service.catalogo.departamento.DepartamentoMapper;
+import co.edu.ufps.legal_cases.business.service.catalogo.departamento.DepartamentoValidator;
 import co.edu.ufps.legal_cases.common.exception.BusinessException;
 
 @Service
 public class DepartamentoService {
 
     private final DepartamentoRepository departamentoRepository;
+    private final DepartamentoMapper departamentoMapper;
+    private final DepartamentoValidator departamentoValidator;
 
-    public DepartamentoService(DepartamentoRepository departamentoRepository) {
+    public DepartamentoService(
+            DepartamentoRepository departamentoRepository,
+            DepartamentoMapper departamentoMapper,
+            DepartamentoValidator departamentoValidator) {
         this.departamentoRepository = departamentoRepository;
+        this.departamentoMapper = departamentoMapper;
+        this.departamentoValidator = departamentoValidator;
     }
 
     // Lista departamentos activos para formularios y selects del frontend.
@@ -27,7 +33,7 @@ public class DepartamentoService {
     public List<DepartamentoDTO> listar() {
         return departamentoRepository.findByActivoTrueOrderByNombreAsc()
                 .stream()
-                .map(this::convertirADTO)
+                .map(departamentoMapper::convertirADTO)
                 .toList();
     }
 
@@ -36,54 +42,43 @@ public class DepartamentoService {
     public List<DepartamentoDTO> listarTodos() {
         return departamentoRepository.findAllByOrderByNombreAsc()
                 .stream()
-                .map(this::convertirADTO)
+                .map(departamentoMapper::convertirADTO)
                 .toList();
     }
 
     @Transactional(readOnly = true)
     public DepartamentoDTO obtenerPorId(Long id) {
         Departamento departamento = buscarPorIdActivo(id);
-        return convertirADTO(departamento);
+        return departamentoMapper.convertirADTO(departamento);
     }
 
     @Transactional
     public DepartamentoDTO crear(DepartamentoDTO dto) {
-        validarCreacion(dto);
+        departamentoValidator.validarCreacion(dto);
 
-        String nombre = normalizarNombre(dto.getNombre());
+        String nombre = departamentoValidator.normalizarNombre(dto.getNombre());
 
-        if (departamentoRepository.existsByNombreIgnoreCase(nombre)) {
-            throw new BusinessException("Ya existe un departamento con ese nombre");
-        }
+        departamentoValidator.validarNombreDisponible(nombre);
 
-        Departamento departamento = new Departamento();
-        departamento.setNombre(nombre);
-        departamento.setActivo(true);
+        Departamento departamento = departamentoMapper.crearEntidad(nombre);
 
-        return convertirADTO(departamentoRepository.save(departamento));
+        return departamentoMapper.convertirADTO(departamentoRepository.save(departamento));
     }
 
     @Transactional
     public DepartamentoDTO actualizar(Long id, DepartamentoDTO dto) {
-        Departamento departamentoExistente = buscarPorId(id);
+        Departamento departamento = buscarPorId(id);
 
-        validarActualizacion(id, dto);
+        departamentoValidator.validarActualizacion(id, dto);
 
-        String nombreNuevo = normalizarNombre(dto.getNombre());
+        String nombreNuevo = departamentoValidator.normalizarNombre(dto.getNombre());
 
-        if (departamentoRepository.existsByNombreIgnoreCaseAndIdNot(nombreNuevo, departamentoExistente.getId())) {
-            throw new BusinessException("Ya existe un departamento con ese nombre");
-        }
+        departamentoValidator.validarNombreDisponibleParaActualizacion(nombreNuevo, departamento.getId());
+        departamentoValidator.validarExistenCambios(departamento, nombreNuevo);
 
-        boolean sinCambios = Objects.equals(departamentoExistente.getNombre(), nombreNuevo);
+        departamentoMapper.aplicarDatos(departamento, nombreNuevo);
 
-        if (sinCambios) {
-            throw new BusinessException("No hay cambios para actualizar");
-        }
-
-        departamentoExistente.setNombre(nombreNuevo);
-
-        return convertirADTO(departamentoRepository.save(departamentoExistente));
+        return departamentoMapper.convertirADTO(departamentoRepository.save(departamento));
     }
 
     @Transactional
@@ -100,53 +95,11 @@ public class DepartamentoService {
     public DepartamentoDTO cambiarEstado(Long id, Boolean activo) {
         Departamento departamento = buscarPorId(id);
 
-        if (activo == null) {
-            throw new BusinessException("El estado activo es obligatorio");
-        }
-
-        if (Objects.equals(departamento.getActivo(), activo)) {
-            throw new BusinessException("El departamento ya tiene ese estado");
-        }
+        departamentoValidator.validarCambioEstado(departamento, activo);
 
         departamento.setActivo(activo);
 
-        return convertirADTO(departamentoRepository.save(departamento));
-    }
-
-    private void validarCreacion(DepartamentoDTO dto) {
-        validarDtoObligatorio(dto);
-
-        if (dto.getId() != null) {
-            throw new BusinessException("El id no debe enviarse en la creación");
-        }
-    }
-
-    private void validarActualizacion(Long id, DepartamentoDTO dto) {
-        validarDtoObligatorio(dto);
-
-        if (dto.getId() != null && !Objects.equals(dto.getId(), id)) {
-            throw new BusinessException("No se permite cambiar el id del departamento");
-        }
-    }
-
-    private void validarDtoObligatorio(DepartamentoDTO dto) {
-        if (dto == null) {
-            throw new BusinessException("Los datos del departamento son obligatorios");
-        }
-    }
-
-    private String normalizarNombre(String nombre) {
-        String nombreNormalizado = normalizarTexto(nombre);
-
-        if (nombreNormalizado == null || nombreNormalizado.isBlank()) {
-            throw new BusinessException("El nombre del departamento es obligatorio");
-        }
-
-        if (nombreNormalizado.length() > 80) {
-            throw new BusinessException("El nombre no puede superar los 80 caracteres");
-        }
-
-        return nombreNormalizado;
+        return departamentoMapper.convertirADTO(departamentoRepository.save(departamento));
     }
 
     private Departamento buscarPorId(Long id) {
@@ -165,12 +118,5 @@ public class DepartamentoService {
 
         return departamentoRepository.findByIdAndActivoTrue(id)
                 .orElseThrow(() -> new BusinessException("Departamento no encontrado o inactivo con id: " + id));
-    }
-
-    private DepartamentoDTO convertirADTO(Departamento departamento) {
-        return new DepartamentoDTO(
-                departamento.getId(),
-                departamento.getNombre(),
-                departamento.getActivo());
     }
 }
