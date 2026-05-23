@@ -11,6 +11,7 @@ import org.springframework.stereotype.Repository;
 
 import co.edu.ufps.legal_cases.business.dto.seguimiento.notificacion.DatosCorreoSeguimientoDTO;
 import co.edu.ufps.legal_cases.business.dto.seguimiento.notificacion.DatosNotificacionSeguimientoDTO;
+import co.edu.ufps.legal_cases.business.model.seguimiento.EstadoSeguimiento;
 import co.edu.ufps.legal_cases.business.model.seguimiento.Seguimiento;
 
 @Repository
@@ -56,7 +57,8 @@ public interface SeguimientoRepository extends JpaRepository<Seguimiento, Long> 
     Optional<DatosNotificacionSeguimientoDTO> findDatosNotificacionById(
             @Param("seguimientoId") Long seguimientoId);
 
-    // Para enviar datos al servicio de correo sin exponer toda la entidad de seguimiento.
+    // Para enviar datos al servicio de correo sin exponer toda la entidad de
+    // seguimiento.
     @Query("""
             SELECT new co.edu.ufps.legal_cases.business.dto.seguimiento.notificacion.DatosCorreoSeguimientoDTO(
                 s.id,
@@ -74,4 +76,6 @@ public interface SeguimientoRepository extends JpaRepository<Seguimiento, Long> 
             AND s.activo = true
             """)
     Optional<DatosCorreoSeguimientoDTO> findDatosCorreoById(@Param("seguimientoId") Long seguimientoId);
+
+    boolean existsByConsulta_IdAndActivoTrueAndEstado(Long consultaId, EstadoSeguimiento estado);
 }

@@ -12,24 +12,27 @@ import co.edu.ufps.legal_cases.business.model.seguimiento.respuesta.SeguimientoR
 @Repository
 public interface SeguimientoRespuestaRepository extends JpaRepository<SeguimientoRespuesta, Long> {
 
-    Optional<SeguimientoRespuesta> findByIdAndActivoTrue(Long id);
+        Optional<SeguimientoRespuesta> findByIdAndActivoTrue(Long id);
 
-    Optional<SeguimientoRespuesta> findBySeguimiento_IdAndEstudiante_IdAndActivoTrue(
-            Long seguimientoId,
-            Long estudianteId);
+        Optional<SeguimientoRespuesta> findBySeguimiento_IdAndEstudiante_IdAndActivoTrue(
+                        Long seguimientoId,
+                        Long estudianteId);
 
-    // Trae el último intento activo del estudiante para ese seguimiento.
-    // Se usa para decidir si puede crear una nueva respuesta.
-    Optional<SeguimientoRespuesta> findFirstBySeguimiento_IdAndEstudiante_IdAndActivoTrueOrderByFechaCreacionDescIdDesc(
-            Long seguimientoId,
-            Long estudianteId);
+        // Trae el último intento activo del estudiante para ese seguimiento.
+        // Se usa para decidir si puede crear una nueva respuesta.
+        Optional<SeguimientoRespuesta> findFirstBySeguimiento_IdAndEstudiante_IdAndActivoTrueOrderByFechaCreacionDescIdDesc(
+                        Long seguimientoId,
+                        Long estudianteId);
 
-    List<SeguimientoRespuesta> findBySeguimiento_IdAndActivoTrueOrderByFechaCreacionDesc(Long seguimientoId);
+        List<SeguimientoRespuesta> findBySeguimiento_IdAndActivoTrueOrderByFechaCreacionDesc(Long seguimientoId);
 
-    List<SeguimientoRespuesta> findByEstadoAndActivoTrueOrderByFechaCreacionDesc(
-            EstadoRespuestaSeguimiento estado);
+        List<SeguimientoRespuesta> findByEstadoAndActivoTrueOrderByFechaCreacionDesc(
+                        EstadoRespuestaSeguimiento estado);
+        
+        // Sirve para validar un seguimiento puntual
+        boolean existsBySeguimiento_IdAndActivoTrueAndEstado(Long seguimientoId, EstadoRespuestaSeguimiento estado);
 
-    boolean existsBySeguimiento_IdAndActivoTrueAndEstado(
-        Long seguimientoId,
-        EstadoRespuestaSeguimiento estado);
+        // Sirve para validar todos los seguimientos de una consulta
+        boolean existsBySeguimiento_Consulta_IdAndSeguimiento_ActivoTrueAndActivoTrueAndEstado(Long consultaId,
+                        EstadoRespuestaSeguimiento estado);
 }

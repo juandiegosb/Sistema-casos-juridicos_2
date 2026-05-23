@@ -53,6 +53,7 @@ public class ConsultaCommandService {
     private final ConsultaAccessService consultaAccessService;
     private final ConsultaValidator consultaValidator;
     private final ConsultaMapper consultaMapper;
+    private final ConsultaEstadoService consultaEstadoReglaService;
 
     @Transactional
     public ConsultaDTO crear(ConsultaDTO dto) {
@@ -112,6 +113,7 @@ public class ConsultaCommandService {
 
         consultaValidator.validarNoArchivada(consulta);
         consultaValidator.validarCambioEstadoPermitido(consulta, estado);
+        consultaEstadoReglaService.validarCambioEstado(consulta, estado);
 
         consulta.setEstado(estado);
 
@@ -128,6 +130,7 @@ public class ConsultaCommandService {
                 .orElseThrow(() -> new BusinessException("Consulta no encontrada con id: " + id));
 
         consultaValidator.validarNoArchivadaParaArchivar(consulta);
+        consultaEstadoReglaService.validarPuedeArchivar(consulta);
 
         consulta.setEstado(ESTADO_ARCHIVADO);
         consultaRepository.save(consulta);
@@ -141,6 +144,7 @@ public class ConsultaCommandService {
                 .orElseThrow(() -> new BusinessException("Consulta no encontrada con id: " + id));
 
         consultaValidator.validarNoArchivadaParaArchivar(consulta);
+        consultaEstadoReglaService.validarPuedeArchivar(consulta);
 
         consulta.setEstado(ESTADO_ARCHIVADO);
 
