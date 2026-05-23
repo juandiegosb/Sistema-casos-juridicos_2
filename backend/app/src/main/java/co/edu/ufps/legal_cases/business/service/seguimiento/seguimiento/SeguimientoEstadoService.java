@@ -9,31 +9,26 @@ import co.edu.ufps.legal_cases.business.model.seguimiento.respuesta.EstadoRespue
 import co.edu.ufps.legal_cases.business.model.seguimiento.respuesta.SeguimientoRespuesta;
 import co.edu.ufps.legal_cases.business.repository.seguimiento.SeguimientoRepository;
 import co.edu.ufps.legal_cases.business.repository.seguimiento.respuesta.SeguimientoRespuestaRepository;
+import co.edu.ufps.legal_cases.business.service.consulta.consulta.ConsultaEstadoService;
 import co.edu.ufps.legal_cases.business.service.seguimiento.SeguimientoNotificacionService;
 import co.edu.ufps.legal_cases.common.exception.BusinessException;
+import lombok.AllArgsConstructor;
 
 @Service
+@AllArgsConstructor
 public class SeguimientoEstadoService {
 
     private final SeguimientoRepository seguimientoRepository;
     private final SeguimientoRespuestaRepository seguimientoRespuestaRepository;
     private final SeguimientoNotificacionService seguimientoNotificacionService;
     private final SeguimientoValidator seguimientoValidator;
-
-    public SeguimientoEstadoService(
-            SeguimientoRepository seguimientoRepository,
-            SeguimientoRespuestaRepository seguimientoRespuestaRepository,
-            SeguimientoNotificacionService seguimientoNotificacionService,
-            SeguimientoValidator seguimientoValidator) {
-        this.seguimientoRepository = seguimientoRepository;
-        this.seguimientoRespuestaRepository = seguimientoRespuestaRepository;
-        this.seguimientoNotificacionService = seguimientoNotificacionService;
-        this.seguimientoValidator = seguimientoValidator;
-    }
+    private final ConsultaEstadoService consultaEstadoService;
 
     @Transactional
     public Seguimiento cambiarEstado(Long seguimientoId, EstadoSeguimiento estado) {
         Seguimiento seguimiento = obtenerSeguimientoActivo(seguimientoId);
+
+        consultaEstadoService.validarPermiteOperacionOperativa(seguimiento.getConsulta());
 
         seguimientoValidator.validarCambioEstadoSeguimiento(seguimiento, estado);
         validarTransicionPermitida(seguimiento, estado);
@@ -77,6 +72,8 @@ public class SeguimientoEstadoService {
             throw new BusinessException("El seguimiento es obligatorio");
         }
 
+        consultaEstadoService.validarPermiteOperacionOperativa(seguimiento.getConsulta());
+
         if (!EstadoSeguimiento.PENDIENTE.equals(seguimiento.getEstado())) {
             throw new BusinessException("Solo se pueden responder seguimientos pendientes");
         }
@@ -92,7 +89,8 @@ public class SeguimientoEstadoService {
             return;
         }
 
-        // Los seguimientos completados o cancelados no deben conservar notificaciones pendientes.
+        // Los seguimientos completados o cancelados no deben conservar notificaciones
+        // pendientes.
         seguimientoNotificacionService.cancelarNotificacionesPendientes(seguimiento.getId());
     }
 

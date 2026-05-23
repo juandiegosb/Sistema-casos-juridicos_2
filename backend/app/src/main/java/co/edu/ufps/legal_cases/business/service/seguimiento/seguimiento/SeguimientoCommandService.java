@@ -13,12 +13,15 @@ import co.edu.ufps.legal_cases.business.repository.consulta.ConsultaRepository;
 import co.edu.ufps.legal_cases.business.repository.seguimiento.CategoriaSeguimientoRepository;
 import co.edu.ufps.legal_cases.business.repository.seguimiento.SeguimientoRepository;
 import co.edu.ufps.legal_cases.business.service.acceso.seguimiento.SeguimientoAccessService;
+import co.edu.ufps.legal_cases.business.service.consulta.consulta.ConsultaEstadoService;
 import co.edu.ufps.legal_cases.business.service.seguimiento.SeguimientoNotificacionService;
 import co.edu.ufps.legal_cases.common.exception.BusinessException;
 import co.edu.ufps.legal_cases.security.model.account.UsuarioSistema;
 import co.edu.ufps.legal_cases.security.repository.account.UsuarioSistemaRepository;
+import lombok.AllArgsConstructor;
 
 @Service
+@AllArgsConstructor
 public class SeguimientoCommandService {
 
     private final SeguimientoRepository seguimientoRepository;
@@ -30,27 +33,7 @@ public class SeguimientoCommandService {
     private final SeguimientoEstadoService seguimientoEstadoService;
     private final SeguimientoMapper seguimientoMapper;
     private final SeguimientoValidator seguimientoValidator;
-
-    public SeguimientoCommandService(
-            SeguimientoRepository seguimientoRepository,
-            CategoriaSeguimientoRepository categoriaSeguimientoRepository,
-            ConsultaRepository consultaRepository,
-            UsuarioSistemaRepository usuarioSistemaRepository,
-            SeguimientoNotificacionService seguimientoNotificacionService,
-            SeguimientoAccessService seguimientoAccessService,
-            SeguimientoEstadoService seguimientoEstadoService,
-            SeguimientoMapper seguimientoMapper,
-            SeguimientoValidator seguimientoValidator) {
-        this.seguimientoRepository = seguimientoRepository;
-        this.categoriaSeguimientoRepository = categoriaSeguimientoRepository;
-        this.consultaRepository = consultaRepository;
-        this.usuarioSistemaRepository = usuarioSistemaRepository;
-        this.seguimientoNotificacionService = seguimientoNotificacionService;
-        this.seguimientoAccessService = seguimientoAccessService;
-        this.seguimientoEstadoService = seguimientoEstadoService;
-        this.seguimientoMapper = seguimientoMapper;
-        this.seguimientoValidator = seguimientoValidator;
-    }
+    private final ConsultaEstadoService consultaEstadoService;
 
     @Transactional
     public SeguimientoResponseDTO crear(SeguimientoRequestDTO dto) {
@@ -71,7 +54,8 @@ public class SeguimientoCommandService {
 
         Seguimiento seguimientoGuardado = seguimientoRepository.save(seguimiento);
 
-        // Las notificaciones dependen del id del seguimiento, por eso se sincronizan después de guardar.
+        // Las notificaciones dependen del id del seguimiento, por eso se sincronizan
+        // después de guardar.
         seguimientoNotificacionService.sincronizarNotificaciones(seguimientoGuardado.getId());
 
         return seguimientoMapper.convertirAResponseDTO(seguimientoGuardado);
@@ -82,6 +66,8 @@ public class SeguimientoCommandService {
         seguimientoAccessService.validarPuedeEditarSeguimiento(id);
 
         Seguimiento seguimiento = buscarPorId(id);
+
+        consultaEstadoService.validarPermiteOperacionOperativa(seguimiento.getConsulta());
 
         seguimientoValidator.validarSeguimientoEditable(seguimiento);
         seguimientoValidator.validarActualizacion(id, dto);
@@ -116,10 +102,13 @@ public class SeguimientoCommandService {
 
         Seguimiento seguimiento = buscarPorId(id);
 
+        consultaEstadoService.validarPermiteOperacionOperativa(seguimiento.getConsulta());
+
         // Primero se cancelan pendientes; las enviadas quedan como historial.
         seguimientoNotificacionService.cancelarNotificacionesPendientes(seguimiento.getId());
 
-        // El seguimiento queda inactivo para no perder trazabilidad dentro de la consulta.
+        // El seguimiento queda inactivo para no perder trazabilidad dentro de la
+        // consulta.
         seguimiento.setActivo(false);
 
         seguimientoRepository.save(seguimiento);
@@ -170,8 +159,12 @@ public class SeguimientoCommandService {
             throw new BusinessException("La consulta es obligatoria");
         }
 
-        return consultaRepository.findById(consultaId)
+        Consulta consulta = consultaRepository.findById(consultaId)
                 .orElseThrow(() -> new BusinessException("Consulta no encontrada con id: " + consultaId));
+
+        consultaEstadoService.validarPermiteOperacionOperativa(consulta);
+
+        return consulta;
     }
 
     private UsuarioSistema obtenerAutorActual() {

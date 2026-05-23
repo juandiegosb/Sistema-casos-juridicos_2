@@ -113,6 +113,8 @@ public class SeguimientoRespuestaCommandService {
         seguimientoRespuestaValidator.validarDecision(dto);
 
         SeguimientoRespuesta respuesta = obtenerRespuestaActiva(id);
+        seguimientoEstadoService.validarPermiteRespuesta(respuesta.getSeguimiento());
+
         UsuarioSistema revisor = obtenerUsuarioActual();
 
         respuesta.setEstado(dto.getEstado());

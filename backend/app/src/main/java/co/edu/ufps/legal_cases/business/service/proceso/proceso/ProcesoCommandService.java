@@ -16,9 +16,12 @@ import co.edu.ufps.legal_cases.business.repository.proceso.EspecialidadRepositor
 import co.edu.ufps.legal_cases.business.repository.proceso.OrganoControlRepository;
 import co.edu.ufps.legal_cases.business.repository.proceso.ProcesoRepository;
 import co.edu.ufps.legal_cases.business.service.acceso.proceso.ProcesoAccessService;
+import co.edu.ufps.legal_cases.business.service.consulta.consulta.ConsultaEstadoService;
 import co.edu.ufps.legal_cases.common.exception.BusinessException;
+import lombok.AllArgsConstructor;
 
 @Service
+@AllArgsConstructor
 public class ProcesoCommandService {
 
     private final ProcesoRepository procesoRepository;
@@ -29,25 +32,7 @@ public class ProcesoCommandService {
     private final ProcesoAccessService procesoAccessService;
     private final ProcesoValidator procesoValidator;
     private final ProcesoMapper procesoMapper;
-
-    public ProcesoCommandService(
-            ProcesoRepository procesoRepository,
-            DepartamentoRepository departamentoRepository,
-            ConsultaRepository consultaRepository,
-            OrganoControlRepository organoControlRepository,
-            EspecialidadRepository especialidadRepository,
-            ProcesoAccessService procesoAccessService,
-            ProcesoValidator procesoValidator,
-            ProcesoMapper procesoMapper) {
-        this.procesoRepository = procesoRepository;
-        this.departamentoRepository = departamentoRepository;
-        this.consultaRepository = consultaRepository;
-        this.organoControlRepository = organoControlRepository;
-        this.especialidadRepository = especialidadRepository;
-        this.procesoAccessService = procesoAccessService;
-        this.procesoValidator = procesoValidator;
-        this.procesoMapper = procesoMapper;
-    }
+    private final ConsultaEstadoService consultaEstadoService;
 
     // Crea un proceso asociado a una consulta existente.
     // El alcance se valida con la consulta porque Proceso no tiene un alcance
@@ -108,6 +93,8 @@ public class ProcesoCommandService {
 
         Proceso proceso = buscarProcesoActivo(id);
 
+        consultaEstadoService.validarPermiteOperacionOperativa(proceso.getConsulta());
+
         procesoValidator.validarCambioEstadoProceso(proceso, estado);
 
         proceso.setEstado(estado);
@@ -121,6 +108,8 @@ public class ProcesoCommandService {
 
         Proceso proceso = buscarProcesoActivo(id);
 
+        consultaEstadoService.validarPermiteOperacionOperativa(proceso.getConsulta());
+
         // Se desactiva para conservar el historial del proceso dentro de la consulta.
         proceso.setActivo(false);
 
@@ -132,6 +121,8 @@ public class ProcesoCommandService {
         procesoAccessService.validarPuedeCambiarEstadoProceso(id);
 
         Proceso proceso = buscarProcesoPorId(id);
+
+        consultaEstadoService.validarPermiteOperacionOperativa(proceso.getConsulta());
 
         procesoValidator.validarCambioEstado(proceso, activo);
 
@@ -189,8 +180,12 @@ public class ProcesoCommandService {
             throw new BusinessException("La consulta es obligatoria");
         }
 
-        return consultaRepository.findById(consultaId)
+        Consulta consulta = consultaRepository.findById(consultaId)
                 .orElseThrow(() -> new BusinessException("Consulta no encontrada con id: " + consultaId));
+
+        consultaEstadoService.validarPermiteOperacionOperativa(consulta);
+
+        return consulta;
     }
 
     private OrganoControl obtenerOrganoControlOpcional(Long organoControlId) {

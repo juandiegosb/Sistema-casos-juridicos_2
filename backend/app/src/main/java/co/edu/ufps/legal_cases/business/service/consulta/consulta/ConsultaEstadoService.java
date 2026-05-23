@@ -61,8 +61,22 @@ public class ConsultaEstadoService {
         }
 
         // Defensa adicional: una consulta cerrada no debería tener pendientes,
-        // pero se valida otra vez para proteger el sistema ante datos históricos o cambios manuales.
+        // pero se valida otra vez para proteger el sistema ante datos históricos o
+        // cambios manuales.
         validarNoTienePendientesOperativos(consulta.getId());
+    }
+
+    // Si una consulta esta cerrada o archivada no se puede hacer nada sobre ella
+    public void validarPermiteOperacionOperativa(Consulta consulta) {
+        validarConsultaObligatoria(consulta);
+
+        if (EstadoConsulta.CERRADO.equals(consulta.getEstado())) {
+            throw new BusinessException("No se pueden realizar operaciones sobre una consulta cerrada");
+        }
+
+        if (EstadoConsulta.ARCHIVADO.equals(consulta.getEstado())) {
+            throw new BusinessException("No se pueden realizar operaciones sobre una consulta archivada");
+        }
     }
 
     private void validarPuedeCerrar(Long consultaId) {
@@ -86,14 +100,16 @@ public class ConsultaEstadoService {
             throw new BusinessException("No se puede cerrar la consulta porque tiene seguimientos pendientes");
         }
 
-        if (seguimientoRespuestaRepository.existsBySeguimiento_Consulta_IdAndSeguimiento_ActivoTrueAndActivoTrueAndEstado(
-                consultaId,
-                EstadoRespuestaSeguimiento.PENDIENTE)) {
+        if (seguimientoRespuestaRepository
+                .existsBySeguimiento_Consulta_IdAndSeguimiento_ActivoTrueAndActivoTrueAndEstado(
+                        consultaId,
+                        EstadoRespuestaSeguimiento.PENDIENTE)) {
             throw new BusinessException("No se puede cerrar la consulta porque tiene respuestas pendientes");
         }
 
-        if (seguimientoNotificacionRepository.existsBySeguimiento_Consulta_IdAndSeguimiento_ActivoTrueAndActivoTrueAndEnviadaFalse(
-                consultaId)) {
+        if (seguimientoNotificacionRepository
+                .existsBySeguimiento_Consulta_IdAndSeguimiento_ActivoTrueAndActivoTrueAndEnviadaFalse(
+                        consultaId)) {
             throw new BusinessException("No se puede cerrar la consulta porque tiene notificaciones pendientes");
         }
     }
