@@ -5,6 +5,7 @@ import static co.edu.ufps.legal_cases.security.constant.PermisoNombre.ASIGNAR_RE
 import static co.edu.ufps.legal_cases.security.constant.PermisoNombre.CAMBIAR_ESTADO_CONSULTAS;
 import static co.edu.ufps.legal_cases.security.constant.PermisoNombre.CREAR_CONSULTAS;
 import static co.edu.ufps.legal_cases.security.constant.PermisoNombre.EDITAR_CONSULTAS;
+import static co.edu.ufps.legal_cases.security.constant.PermisoNombre.GESTIONAR_CONSULTAS;
 import static co.edu.ufps.legal_cases.security.constant.PermisoNombre.VER_CONSULTAS;
 
 import java.util.Objects;
@@ -20,7 +21,6 @@ import co.edu.ufps.legal_cases.security.dto.account.PerfilUsuarioActual;
 import co.edu.ufps.legal_cases.security.model.account.TipoPerfilUsuario;
 import co.edu.ufps.legal_cases.security.service.context.UsuarioActualService;
 
-// Este servicio valida los persmisos de acceso a las consultas de cada usuario
 @Service
 public class ConsultaAccessService {
 
@@ -34,27 +34,31 @@ public class ConsultaAccessService {
         this.consultaRepository = consultaRepository;
     }
 
-    // Metodos para validar cada permiso de consulta que puede tener cada usuario
+    // Replica el acceso del buscador de consultas y luego QueryService filtra por alcance.
+    @Transactional(readOnly = true)
+    public void validarPuedeBuscarConsultas() {
+        validarTieneAlgunPermiso(VER_CONSULTAS, GESTIONAR_CONSULTAS);
+    }
 
     @Transactional(readOnly = true)
     public void validarPuedeVerConsulta(Long consultaId) {
-        validarTienePermiso(VER_CONSULTAS); // Primero ve si tiene permiso global para ver consultas
+        validarTieneAlgunPermiso(VER_CONSULTAS, GESTIONAR_CONSULTAS);
 
         Consulta consulta = obtenerConsulta(consultaId);
 
-        if (!puedeAccederAConsulta(consulta)) { // MIra si el usuario si esta asociado a la consulta o no
+        if (!puedeAccederAConsulta(consulta)) {
             throw new AccessDeniedException("No tiene permisos para ver esta consulta");
         }
     }
 
     @Transactional(readOnly = true)
     public void validarPuedeCrearConsulta() {
-        validarTienePermiso(CREAR_CONSULTAS);
+        validarTieneAlgunPermiso(CREAR_CONSULTAS, GESTIONAR_CONSULTAS);
     }
 
     @Transactional(readOnly = true)
     public void validarPuedeEditarConsulta(Long consultaId) {
-        validarTienePermiso(EDITAR_CONSULTAS);
+        validarTieneAlgunPermiso(EDITAR_CONSULTAS, GESTIONAR_CONSULTAS);
 
         Consulta consulta = obtenerConsulta(consultaId);
 
@@ -65,7 +69,7 @@ public class ConsultaAccessService {
 
     @Transactional(readOnly = true)
     public void validarPuedeCambiarEstadoConsulta(Long consultaId) {
-        validarTienePermiso(CAMBIAR_ESTADO_CONSULTAS);
+        validarTieneAlgunPermiso(CAMBIAR_ESTADO_CONSULTAS, GESTIONAR_CONSULTAS);
 
         Consulta consulta = obtenerConsulta(consultaId);
 
@@ -90,6 +94,15 @@ public class ConsultaAccessService {
     }
 
     @Transactional(readOnly = true)
+    public void validarPuedeListarConsultasArchivadas() {
+        validarTienePermiso(ARCHIVAR_CONSULTAS);
+
+        if (!usuarioActualService.esRolAdministrador()) {
+            throw new AccessDeniedException("Solo el administrador puede consultar consultas archivadas");
+        }
+    }
+
+    @Transactional(readOnly = true)
     public void validarPuedeAsignarResponsablesConsulta() {
         validarTienePermiso(ASIGNAR_RESPONSABLES_CONSULTA);
 
@@ -109,14 +122,13 @@ public class ConsultaAccessService {
         return puedeAccederAConsulta(consulta);
     }
 
-    // Aqui se verifica si el usuario tiene relacion con una consulta para que la puede ver o editar
     @Transactional(readOnly = true)
     public boolean puedeAccederAConsulta(Consulta consulta) {
         if (consulta == null) {
             return false;
         }
 
-        // El administrador tiene acceso a todo de consultas
+        // Administrador ve todas las consultas; los demás dependen de relación con el caso.
         if (usuarioActualService.esRolAdministrador()) {
             return true;
         }
@@ -124,7 +136,6 @@ public class ConsultaAccessService {
         PerfilUsuarioActual perfil = usuarioActualService.obtenerPerfilActual();
         Long perfilId = perfil.getPerfilId();
 
-        // Aqui se valida que el usuario tenga relacion con la consulta para que la vea o edite
         if (perfil.getTipoPerfil() == TipoPerfilUsuario.ESTUDIANTE) {
             return consulta.getEstudiante() != null
                     && Objects.equals(consulta.getEstudiante().getId(), perfilId);
@@ -147,16 +158,12 @@ public class ConsultaAccessService {
         }
 
         if (perfil.getTipoPerfil() == TipoPerfilUsuario.CONCILIADOR) {
-            // Cuando se implemente el módulo de conciliaciones, aquí se validará:
-            // conciliacion -> consulta.
-            // Por ahora no se concede acceso global al conciliador.
+            // Cuando conciliaciones tenga alcance real, aquí se habilitarán consultas asociadas.
             return false;
         }
 
         return false;
     }
-
-    // Aqui se revisa si el usuario tiene permisos particulares de edicion o no
 
     public boolean usuarioPuedeAsignarResponsables() {
         return usuarioActualService.esRolAdministrador()
@@ -164,11 +171,9 @@ public class ConsultaAccessService {
     }
 
     public boolean usuarioPuedeCambiarEstado() {
-        return usuarioActualService.tienePermiso(CAMBIAR_ESTADO_CONSULTAS)
+        return usuarioActualService.tieneAlgunPermiso(CAMBIAR_ESTADO_CONSULTAS, GESTIONAR_CONSULTAS)
                 && !usuarioActualService.esEstudiante();
     }
-
-    // Metodos particulares para validar el tipo de usuario logueado
 
     public boolean usuarioEsEstudiante() {
         return usuarioActualService.esEstudiante();
@@ -203,6 +208,12 @@ public class ConsultaAccessService {
     private void validarTienePermiso(String permiso) {
         if (!usuarioActualService.tienePermiso(permiso)) {
             throw new AccessDeniedException("No tiene el permiso requerido: " + permiso);
+        }
+    }
+
+    private void validarTieneAlgunPermiso(String... permisos) {
+        if (!usuarioActualService.tieneAlgunPermiso(permisos)) {
+            throw new AccessDeniedException("No tiene permisos para realizar esta acción");
         }
     }
 }

@@ -17,7 +17,6 @@ import co.edu.ufps.legal_cases.common.exception.BusinessException;
 import co.edu.ufps.legal_cases.security.dto.account.PerfilUsuarioActual;
 import co.edu.ufps.legal_cases.security.model.account.TipoPerfilUsuario;
 
-// Servicio que maneja las consultas de lectura y usa el servicio de acceso para validar permisos
 @Service
 public class ConsultaQueryService {
 
@@ -34,12 +33,11 @@ public class ConsultaQueryService {
         this.consultaMapper = consultaMapper;
     }
 
-    /**
-     * Busca consultas por texto libre en descripción, nombre, apellido o cédula.
-     * El resultado se filtra según el alcance del usuario autenticado.
-     */
+    // Busca consultas por texto libre y devuelve solo las que pertenecen al alcance del usuario actual.
     @Transactional(readOnly = true)
     public List<ConsultaBusquedaDTO> buscarParaUsuarioActual(String search) {
+        consultaAccessService.validarPuedeBuscarConsultas();
+
         String termino = normalizarTexto(search);
         PerfilUsuarioActual perfil = consultaAccessService.obtenerPerfilActual();
 
@@ -72,15 +70,14 @@ public class ConsultaQueryService {
         }
 
         if (perfil.getTipoPerfil() == TipoPerfilUsuario.CONCILIADOR) {
-            // Cuando esté implementado el módulo de conciliaciones, aquí se listarán
-            // las consultas asociadas a las conciliaciones del conciliador.
+            // Cuando conciliaciones tenga alcance real, aquí se listarán las consultas asociadas.
             return List.of();
         }
 
         return List.of();
     }
 
-    // Se conserva temporalmente para compatibilidad interna si alguna clase lo usa.
+    // Se conserva temporalmente para compatibilidad interna si alguna clase todavía lo llama.
     @Transactional(readOnly = true)
     public List<ConsultaBusquedaDTO> buscar(String search) {
         return buscarParaUsuarioActual(search);
@@ -88,8 +85,11 @@ public class ConsultaQueryService {
 
     @Transactional(readOnly = true)
     public List<ConsultaDTO> listar() {
+        consultaAccessService.validarPuedeBuscarConsultas();
+
         return consultaRepository.findAll()
                 .stream()
+                .filter(consultaAccessService::puedeAccederAConsulta)
                 .map(consultaMapper::convertirADTO)
                 .toList();
     }
@@ -100,6 +100,8 @@ public class ConsultaQueryService {
 
         Consulta consulta = consultaRepository.findByIdConPartes(id)
                 .orElseThrow(() -> new BusinessException("Consulta no encontrada con id: " + id));
+
+        // Esta consulta carga la colección en el contexto para que el mapper tenga contrapartes disponibles.
         consultaRepository.findByIdConContrapartes(id);
 
         return consultaMapper.convertirADTO(consulta);
@@ -107,6 +109,8 @@ public class ConsultaQueryService {
 
     @Transactional(readOnly = true)
     public List<ConsultaBusquedaDTO> listarArchivadas() {
+        consultaAccessService.validarPuedeListarConsultasArchivadas();
+
         return consultaRepository.findByEstado(EstadoConsulta.ARCHIVADO)
                 .stream()
                 .map(consultaMapper::convertirABusquedaDTO)

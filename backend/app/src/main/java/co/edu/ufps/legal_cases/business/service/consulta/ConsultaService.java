@@ -10,8 +10,8 @@ import co.edu.ufps.legal_cases.business.service.consulta.consulta.ConsultaComman
 import co.edu.ufps.legal_cases.business.service.consulta.consulta.ConsultaQueryService;
 
 
-// Funciona como fachada para manejar todas las operaciones de una consulta
-// porque está dividido en más servicios por responsabilidad
+// Fachada del módulo de consultas.
+// El controller entra por aquí, pero lectura y escritura quedan separadas por responsabilidad.
 @Service
 public class ConsultaService {
 

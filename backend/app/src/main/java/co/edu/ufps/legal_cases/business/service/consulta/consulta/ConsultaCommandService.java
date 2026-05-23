@@ -100,10 +100,8 @@ public class ConsultaCommandService {
         return consultaMapper.convertirADTO(consultaRepository.save(existente));
     }
 
-    /**
-     * Se conserva el nombre eliminar por compatibilidad con el endpoint antiguo.
-     * Para evitar eliminar información, ahora funciona como archivado lógico.
-     */
+    // Se conserva el nombre eliminar por compatibilidad con el endpoint antiguo.
+    // Para evitar pérdida de información, funciona como archivado lógico.
     @Transactional
     public void eliminar(Long id) {
         consultaAccessService.validarPuedeArchivarConsulta(id);
@@ -223,11 +221,9 @@ public class ConsultaCommandService {
             Asesor asesor = obtenerAsesor(dto.getAsesorId());
             Estudiante estudiante = obtenerEstudiante(dto.getEstudianteId());
 
-            /*
-             * Si se asigna un estudiante pero no se envía asesor,
-             * se toma automáticamente el asesor activo asociado al estudiante.
-             * Esto evita consultas con estudiante asignado pero sin responsable académico.
-             */
+            // Si se asigna estudiante sin asesor explícito, se toma el asesor activo del
+            // estudiante.
+            // Esto evita consultas con estudiante asignado pero sin responsable académico.
             if (asesor == null && estudiante != null) {
                 asesor = obtenerAsesorDelEstudianteActivo(estudiante);
             }
