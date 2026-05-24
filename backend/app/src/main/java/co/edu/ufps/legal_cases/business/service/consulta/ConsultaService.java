@@ -65,4 +65,8 @@ public class ConsultaService {
     public ConsultaDTO archivar(Long id) {
         return consultaCommandService.archivar(id);
     }
+
+    public ConsultaDTO desarchivar(Long id) {
+        return consultaCommandService.desarchivar(id);
+    }
 }

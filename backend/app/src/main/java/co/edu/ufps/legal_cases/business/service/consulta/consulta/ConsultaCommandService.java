@@ -125,4 +125,20 @@ public class ConsultaCommandService {
 
         return consultaMapper.convertirADTO(consultaRepository.save(consulta));
     }
+
+    @Transactional
+    public ConsultaDTO desarchivar(Long id) {
+        consultaAccessService.validarPuedeDesarchivarConsulta(id);
+
+        Consulta consulta = consultaRepository.findById(id)
+                .orElseThrow(() -> new BusinessException("Consulta no encontrada con id: " + id));
+
+        consultaEstadoService.validarPuedeDesarchivar(consulta);
+
+        // Desarchivar no reabre la consulta.
+        // Solo la devuelve al estado cerrado para consulta histórica.
+        consulta.setEstado(EstadoConsulta.CERRADO);
+
+        return consultaMapper.convertirADTO(consultaRepository.save(consulta));
+    }
 }

@@ -66,6 +66,18 @@ public class ConsultaEstadoService {
         validarNoTienePendientesOperativos(consulta.getId());
     }
 
+    public void validarPuedeDesarchivar(Consulta consulta) {
+        validarConsultaObligatoria(consulta);
+
+        if (!EstadoConsulta.ARCHIVADO.equals(consulta.getEstado())) {
+            throw new BusinessException("Solo se pueden desarchivar consultas archivadas");
+        }
+
+        // Defensa adicional: una consulta archivada debió venir de CERRADO.
+        // Al desarchivar vuelve a CERRADO, por eso no debe tener pendientes operativos.
+        validarNoTienePendientesOperativos(consulta.getId());
+    }
+
     // Si una consulta esta cerrada o archivada no se puede hacer nada sobre ella
     public void validarPermiteOperacionOperativa(Consulta consulta) {
         validarConsultaObligatoria(consulta);

@@ -110,6 +110,13 @@ public class ConsultaAccessService {
     }
 
     @Transactional(readOnly = true)
+    public void validarPuedeDesarchivarConsulta(Long consultaId) {
+        // Desarchivar usa la misma política de permisos que archivar:
+        // permiso ARCHIVAR_CONSULTAS y rol administrador.
+        validarPuedeArchivarConsulta(consultaId);
+    }
+
+    @Transactional(readOnly = true)
     public void validarPuedeListarConsultasArchivadas() {
         validarTienePermiso(ARCHIVAR_CONSULTAS);
 

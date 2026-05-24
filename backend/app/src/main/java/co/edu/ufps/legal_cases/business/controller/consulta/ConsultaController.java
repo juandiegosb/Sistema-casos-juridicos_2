@@ -91,4 +91,10 @@ public class ConsultaController {
     public List<ConsultaBusquedaDTO> listarArchivadas() {
         return consultaService.listarArchivadas();
     }
+
+    @PatchMapping("/{id}/desarchivar")
+    @PreAuthorize("hasAuthority('" + ARCHIVAR_CONSULTAS + "')")
+    public ConsultaDTO desarchivar(@PathVariable Long id) {
+        return consultaService.desarchivar(id);
+    }
 }
