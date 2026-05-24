@@ -39,12 +39,8 @@ public class PersonaQueryService {
 
     @Transactional(readOnly = true)
     public List<PersonaDTO> listarActivos() {
-        personaAccessService.validarPuedeVerPersonas();
-
-        return personaRepository.findAll()
+        return personaRepository.findByActivoTrueOrderByNombresAscApellidosAsc()
                 .stream()
-                .filter(persona -> Boolean.TRUE.equals(persona.getActivo()))
-                .sorted((a, b) -> Long.compare(a.getId(), b.getId()))
                 .map(personaMapper::convertirADTO)
                 .toList();
     }
