@@ -3,6 +3,7 @@ package co.edu.ufps.legal_cases.config.security;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
+import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -12,8 +13,15 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 import co.edu.ufps.legal_cases.security.filter.jwt.JwtAuthenticationFilter;
 
 @Configuration
-@EnableMethodSecurity // Para poder proteger endpoints por @PreAuthorize
+@EnableMethodSecurity // Habilita @PreAuthorize en controllers y services.
 public class SecurityConfig {
+
+    private static final String[] PUBLIC_POST_ENDPOINTS = {
+            "/api/auth/login",
+            "/api/auth/logout",
+            "/api/auth/solicitar-recuperacion",
+            "/api/auth/restablecer-password"
+    };
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
     private final SecurityExceptionHandler securityExceptionHandler;
@@ -28,40 +36,47 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-                .cors(cors -> {}) // Agrega la configuracion de cors que tengo definida
+                // Usa el CorsConfigurationSource definido en config/cors.
+                .cors(Customizer.withDefaults())
 
-                .csrf(csrf -> csrf.disable()) // Se deshabilita porque la seguridad no va a ser por sesion sino por token jwt
+                // Se deshabilita CSRF porque la API no usa sesión de servidor,
+                // sino autenticación stateless por JWT.
+                .csrf(csrf -> csrf.disable())
 
+                // Cada petición debe autenticarse con el token.
+                // No se crea ni se conserva sesión HTTP en el servidor.
                 .sessionManagement(session -> session
-                        .sessionCreationPolicy(SessionCreationPolicy.STATELESS) // Cada peticion se valida con el token
-                )
+                        .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 
-                .formLogin(form -> form.disable()) // Deshabilita el login que trae por defecto
-                .httpBasic(basic -> basic.disable()) // Para que no traiga en los headers la autenticacion basica
+                // Se deshabilitan mecanismos de autenticación por defecto
+                // que no usa esta API.
+                .formLogin(form -> form.disable())
+                .httpBasic(basic -> basic.disable())
 
-                // Configura las respuestas personalizadas cuando el usuario no esta autenticado o no tiene permisos
+                // Respuestas JSON estándar para errores 401 y 403 generados por Spring Security.
                 .exceptionHandling(ex -> ex
-                        .authenticationEntryPoint(securityExceptionHandler) // Maneja errores 401: no autenticado
-                        .accessDeniedHandler(securityExceptionHandler) // Maneja errores 403: no autorizado
-                )
+                        .authenticationEntryPoint(securityExceptionHandler)
+                        .accessDeniedHandler(securityExceptionHandler))
 
-                // Aqui le digo que apis son publicas y cuales no
+                // Define endpoints públicos y protegidos.
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll() // Permite peticiones preflight de CORS
-                        .requestMatchers(HttpMethod.POST, "/api/auth/login").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/api/auth/logout").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/api/auth/solicitar-recuperacion").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/api/auth/restablecer-password").permitAll()
+                        // Permite preflight de CORS.
+                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+
+                        // Endpoints públicos de autenticación.
+                        .requestMatchers(HttpMethod.POST, PUBLIC_POST_ENDPOINTS).permitAll()
+
+                        // Endpoints de usuario autenticado.
                         .requestMatchers(HttpMethod.GET, "/api/auth/me").authenticated()
                         .requestMatchers(HttpMethod.PATCH, "/api/auth/cambiar-password").authenticated()
-                        .anyRequest().authenticated() // Le digo que de resto deben estar autenticados
-                )
 
-                // Esto es para que primero el filtro jwt valide el token y luego lo registra en el contexto de seguridad de spring
+                        // Todo lo demás requiere autenticación.
+                        .anyRequest().authenticated())
+
+                // El filtro JWT valida el token antes del filtro estándar de usuario/password.
                 .addFilterBefore(
                         jwtAuthenticationFilter,
-                        UsernamePasswordAuthenticationFilter.class
-                );
+                        UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }

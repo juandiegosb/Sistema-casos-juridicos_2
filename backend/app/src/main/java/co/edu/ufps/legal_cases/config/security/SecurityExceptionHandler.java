@@ -14,20 +14,22 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import tools.jackson.databind.json.JsonMapper;
 
-// Para comunicar correctamente los errores por JSON y enviarlos desde Spring Security al frontend.
-// 401 = no ha iniciado sesión o el token no es válido.
-// 403 = inició sesión, pero no tiene permiso para acceder al recurso.
+// Maneja errores generados directamente por Spring Security.
+// Estos errores no siempre pasan por GlobalExceptionHandler,
+// por eso se responden aquí con el mismo DTO estándar de la API.
+//
+// 401 = no autenticado o token inválido.
+// 403 = autenticado, pero sin permisos suficientes.
 @Component
 public class SecurityExceptionHandler implements AuthenticationEntryPoint, AccessDeniedHandler {
 
-    private final JsonMapper jsonMapper; // Convierte el error a JSON para enviarlo al frontend.
+    private final JsonMapper jsonMapper;
 
     public SecurityExceptionHandler(JsonMapper jsonMapper) {
         this.jsonMapper = jsonMapper;
     }
 
     @Override
-    // Sin iniciar sesión o sin token válido.
     public void commence(
             HttpServletRequest request,
             HttpServletResponse response,
@@ -43,7 +45,6 @@ public class SecurityExceptionHandler implements AuthenticationEntryPoint, Acces
     }
 
     @Override
-    // Inició sesión, pero no tiene permisos suficientes.
     public void handle(
             HttpServletRequest request,
             HttpServletResponse response,
