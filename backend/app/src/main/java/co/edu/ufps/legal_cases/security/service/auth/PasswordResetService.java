@@ -18,8 +18,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import co.edu.ufps.legal_cases.common.email.EmailService;
 import co.edu.ufps.legal_cases.common.exception.BusinessException;
-import co.edu.ufps.legal_cases.security.dto.auth.RestablecerPasswordDTO;
-import co.edu.ufps.legal_cases.security.dto.auth.SolicitarRecuperacionPasswordDTO;
+import co.edu.ufps.legal_cases.security.dto.auth.password.RestablecerPasswordDTO;
+import co.edu.ufps.legal_cases.security.dto.auth.password.SolicitarRecuperacionPasswordDTO;
 import co.edu.ufps.legal_cases.security.model.account.UsuarioSistema;
 import co.edu.ufps.legal_cases.security.model.auth.PasswordResetToken;
 import co.edu.ufps.legal_cases.security.repository.account.UsuarioSistemaRepository;

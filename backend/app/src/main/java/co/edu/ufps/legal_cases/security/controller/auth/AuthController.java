@@ -14,12 +14,12 @@ import org.springframework.web.bind.annotation.RestController;
 
 import co.edu.ufps.legal_cases.security.dto.account.UsuarioSistemaDTO;
 import co.edu.ufps.legal_cases.security.dto.auth.AuthMessageResponseDTO;
-import co.edu.ufps.legal_cases.security.dto.auth.CambiarPasswordRequestDTO;
-import co.edu.ufps.legal_cases.security.dto.auth.LoginRequestDTO;
-import co.edu.ufps.legal_cases.security.dto.auth.LoginResponseDTO;
-import co.edu.ufps.legal_cases.security.dto.auth.LoginResultDTO;
-import co.edu.ufps.legal_cases.security.dto.auth.RestablecerPasswordDTO;
-import co.edu.ufps.legal_cases.security.dto.auth.SolicitarRecuperacionPasswordDTO;
+import co.edu.ufps.legal_cases.security.dto.auth.login.LoginRequestDTO;
+import co.edu.ufps.legal_cases.security.dto.auth.login.LoginResponseDTO;
+import co.edu.ufps.legal_cases.security.dto.auth.login.LoginResultDTO;
+import co.edu.ufps.legal_cases.security.dto.auth.password.CambiarPasswordRequestDTO;
+import co.edu.ufps.legal_cases.security.dto.auth.password.RestablecerPasswordDTO;
+import co.edu.ufps.legal_cases.security.dto.auth.password.SolicitarRecuperacionPasswordDTO;
 import co.edu.ufps.legal_cases.security.service.auth.AuthService;
 import co.edu.ufps.legal_cases.security.service.auth.PasswordResetService;
 import jakarta.validation.Valid;

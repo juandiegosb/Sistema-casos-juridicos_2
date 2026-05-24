@@ -1,4 +1,4 @@
-package co.edu.ufps.legal_cases.security.dto.auth;
+package co.edu.ufps.legal_cases.security.dto.auth.password;
 
 import com.fasterxml.jackson.annotation.JsonAlias;
 
