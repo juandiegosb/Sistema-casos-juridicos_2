@@ -6,6 +6,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import co.edu.ufps.legal_cases.business.dto.proceso.ProcesoDTO;
+import co.edu.ufps.legal_cases.business.model.consulta.EstadoConsulta;
 import co.edu.ufps.legal_cases.business.model.proceso.Proceso;
 import co.edu.ufps.legal_cases.business.repository.proceso.ProcesoRepository;
 import co.edu.ufps.legal_cases.business.service.acceso.proceso.ProcesoAccessService;
@@ -13,6 +14,8 @@ import co.edu.ufps.legal_cases.common.exception.BusinessException;
 
 @Service
 public class ProcesoQueryService {
+
+    private static final EstadoConsulta ESTADO_ARCHIVADO = EstadoConsulta.ARCHIVADO;
 
     private final ProcesoRepository procesoRepository;
     private final ProcesoAccessService procesoAccessService;
@@ -29,11 +32,12 @@ public class ProcesoQueryService {
 
     // Lee procesos activos y aplica alcance registro por registro.
     // El permiso general ya existe, pero el listado no debe exponer procesos fuera del alcance del usuario.
+    // Además, no se listan procesos de consultas archivadas para evitar contaminación visual en pantallas operativas.
     @Transactional(readOnly = true)
     public List<ProcesoDTO> listar() {
         procesoAccessService.validarPuedeListarProcesos();
 
-        return procesoRepository.findByActivoTrueOrderByIdDesc()
+        return procesoRepository.findByActivoTrueAndConsulta_EstadoNotOrderByIdDesc(ESTADO_ARCHIVADO)
                 .stream()
                 .filter(procesoAccessService::puedeAccederAProceso)
                 .map(procesoMapper::convertirADTO)
@@ -41,6 +45,7 @@ public class ProcesoQueryService {
     }
 
     // Obtiene un proceso activo específico después de validar acceso sobre ese registro.
+    // Si el proceso pertenece a una consulta archivada, no se expone por este flujo operativo.
     @Transactional(readOnly = true)
     public ProcesoDTO obtenerPorId(Long id) {
         procesoAccessService.validarPuedeVerProceso(id);
@@ -55,7 +60,7 @@ public class ProcesoQueryService {
             throw new BusinessException("El id del proceso es obligatorio");
         }
 
-        return procesoRepository.findByIdAndActivoTrue(id)
+        return procesoRepository.findByIdAndActivoTrueAndConsulta_EstadoNot(id, ESTADO_ARCHIVADO)
                 .orElseThrow(() -> new BusinessException("Proceso no encontrado con id: " + id));
     }
 }

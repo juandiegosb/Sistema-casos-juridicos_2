@@ -11,6 +11,7 @@ import org.springframework.stereotype.Repository;
 
 import co.edu.ufps.legal_cases.business.dto.seguimiento.notificacion.DatosCorreoSeguimientoDTO;
 import co.edu.ufps.legal_cases.business.dto.seguimiento.notificacion.DatosNotificacionSeguimientoDTO;
+import co.edu.ufps.legal_cases.business.model.consulta.EstadoConsulta;
 import co.edu.ufps.legal_cases.business.model.seguimiento.EstadoSeguimiento;
 import co.edu.ufps.legal_cases.business.model.seguimiento.Seguimiento;
 
@@ -19,17 +20,39 @@ public interface SeguimientoRepository extends JpaRepository<Seguimiento, Long> 
 
     Optional<Seguimiento> findByIdAndActivoTrue(Long id);
 
+    Optional<Seguimiento> findByIdAndActivoTrueAndConsulta_EstadoNot(
+            Long id,
+            EstadoConsulta estado);
+
     // Lista todos los seguimientos activos de una consulta.
     // Lo usarían asesor, monitor o administrativos según permisos.
     List<Seguimiento> findByConsulta_IdAndActivoTrueOrderByFechaCreacionDesc(Long consultaId);
+
+    // Lista todos los seguimientos activos de una consulta,
+    // excluyendo consultas archivadas para pantallas operativas.
+    List<Seguimiento> findByConsulta_IdAndActivoTrueAndConsulta_EstadoNotOrderByFechaCreacionDesc(
+            Long consultaId,
+            EstadoConsulta estado);
 
     // Lista únicamente los seguimientos activos visibles para el estudiante.
     // En tu regla actual, notificarEstudiante = true significa:
     // se notifica al estudiante y también se le puede mostrar.
     List<Seguimiento> findByConsulta_IdAndNotificarEstudianteTrueAndActivoTrueOrderByFechaCreacionDesc(Long consultaId);
 
+    // Lista seguimientos visibles para el estudiante,
+    // excluyendo consultas archivadas para evitar contaminación visual.
+    List<Seguimiento> findByConsulta_IdAndNotificarEstudianteTrueAndActivoTrueAndConsulta_EstadoNotOrderByFechaCreacionDesc(
+            Long consultaId,
+            EstadoConsulta estado);
+
     // Lista seguimientos activos creados por un usuario del sistema.
     List<Seguimiento> findByAutor_IdAndActivoTrueOrderByFechaCreacionDesc(Long autorId);
+
+    // Lista seguimientos activos creados por un usuario,
+    // excluyendo consultas archivadas.
+    List<Seguimiento> findByAutor_IdAndActivoTrueAndConsulta_EstadoNotOrderByFechaCreacionDesc(
+            Long autorId,
+            EstadoConsulta estado);
 
     // Se usa para evitar eliminar categorías que ya tienen seguimientos asociados.
     boolean existsByCategoriaSeguimiento_Id(Long categoriaSeguimientoId);
@@ -40,8 +63,19 @@ public interface SeguimientoRepository extends JpaRepository<Seguimiento, Long> 
     // Lista seguimientos activos marcados como alerta disciplinaria.
     List<Seguimiento> findByAlertaDisciplinariaTrueAndActivoTrueOrderByFechaCreacionDesc();
 
+    // Lista alertas disciplinarias activas,
+    // excluyendo consultas archivadas.
+    List<Seguimiento> findByAlertaDisciplinariaTrueAndActivoTrueAndConsulta_EstadoNotOrderByFechaCreacionDesc(
+            EstadoConsulta estado);
+
     // Lista seguimientos activos por fecha de entrega.
     List<Seguimiento> findByFechaEntregaAndActivoTrueOrderByFechaCreacionDesc(LocalDate fechaEntrega);
+
+    // Lista seguimientos activos por fecha de entrega,
+    // excluyendo consultas archivadas.
+    List<Seguimiento> findByFechaEntregaAndActivoTrueAndConsulta_EstadoNotOrderByFechaCreacionDesc(
+            LocalDate fechaEntrega,
+            EstadoConsulta estado);
 
     @Query("""
             SELECT new co.edu.ufps.legal_cases.business.dto.seguimiento.notificacion.DatosNotificacionSeguimientoDTO(
