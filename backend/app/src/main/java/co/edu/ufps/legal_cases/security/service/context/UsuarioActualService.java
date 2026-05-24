@@ -15,7 +15,7 @@ import co.edu.ufps.legal_cases.security.dto.account.PerfilUsuarioActual;
 import co.edu.ufps.legal_cases.security.model.account.TipoPerfilUsuario;
 import co.edu.ufps.legal_cases.security.model.account.UsuarioSistema;
 import co.edu.ufps.legal_cases.security.repository.account.UsuarioSistemaRepository;
-import co.edu.ufps.legal_cases.security.service.account.PerfilUsuarioResolverService;
+import co.edu.ufps.legal_cases.security.service.account.perfil.PerfilUsuarioResolverService;
 
 // Este servicion se encarga de obtener y consultar información del usuario autenticado.
 @Service

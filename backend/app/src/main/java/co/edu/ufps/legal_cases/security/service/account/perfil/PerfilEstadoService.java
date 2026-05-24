@@ -1,4 +1,4 @@
-package co.edu.ufps.legal_cases.security.service.account;
+package co.edu.ufps.legal_cases.security.service.account.perfil;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;

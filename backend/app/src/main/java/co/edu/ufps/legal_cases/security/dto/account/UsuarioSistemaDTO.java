@@ -5,11 +5,12 @@ import java.util.List;
 import lombok.Getter;
 import lombok.Setter;
 
+// DTO de salida para usuarios del sistema.
+// No tiene validaciones porque no se recibe como entrada.
 @Getter
 @Setter
 public class UsuarioSistemaDTO {
 
-    //Aqui no valido nada porque es un DTO de salida, no de entrada
     private Long id;
 
     private String username;

@@ -1,4 +1,4 @@
-package co.edu.ufps.legal_cases.security.service.account;
+package co.edu.ufps.legal_cases.security.service.account.usuario;
 
 import static co.edu.ufps.legal_cases.common.util.NormalizacionUtils.normalizarEmail;
 import static co.edu.ufps.legal_cases.common.util.NormalizacionUtils.normalizarNumeroDocumento;

@@ -13,7 +13,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
 import co.edu.ufps.legal_cases.security.model.access.Permiso;
 import co.edu.ufps.legal_cases.security.model.account.UsuarioSistema;
 import co.edu.ufps.legal_cases.security.repository.account.UsuarioSistemaRepository;
-import co.edu.ufps.legal_cases.security.service.account.PerfilUsuarioResolverService;
+import co.edu.ufps.legal_cases.security.service.account.perfil.PerfilUsuarioResolverService;
 import co.edu.ufps.legal_cases.security.service.jwt.JwtService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;

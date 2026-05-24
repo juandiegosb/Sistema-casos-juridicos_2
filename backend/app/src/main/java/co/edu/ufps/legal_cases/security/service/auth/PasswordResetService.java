@@ -24,7 +24,7 @@ import co.edu.ufps.legal_cases.security.model.account.UsuarioSistema;
 import co.edu.ufps.legal_cases.security.model.auth.PasswordResetToken;
 import co.edu.ufps.legal_cases.security.repository.account.UsuarioSistemaRepository;
 import co.edu.ufps.legal_cases.security.repository.auth.PasswordResetTokenRepository;
-import co.edu.ufps.legal_cases.security.service.account.PerfilUsuarioResolverService;
+import co.edu.ufps.legal_cases.security.service.account.perfil.PerfilUsuarioResolverService;
 
 @Service
 public class PasswordResetService {

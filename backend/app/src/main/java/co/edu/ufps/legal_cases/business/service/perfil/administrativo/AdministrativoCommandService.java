@@ -20,7 +20,7 @@ import co.edu.ufps.legal_cases.business.repository.perfil.AdministrativoReposito
 import co.edu.ufps.legal_cases.business.service.acceso.perfil.AdministrativoAccessService;
 import co.edu.ufps.legal_cases.common.exception.BusinessException;
 import co.edu.ufps.legal_cases.security.model.account.UsuarioSistema;
-import co.edu.ufps.legal_cases.security.service.account.UsuarioSistemaRegistroService;
+import co.edu.ufps.legal_cases.security.service.account.usuario.UsuarioSistemaRegistroService;
 
 @Service
 public class AdministrativoCommandService {

@@ -23,6 +23,9 @@ import co.edu.ufps.legal_cases.security.model.account.UsuarioSistema;
 import co.edu.ufps.legal_cases.security.repository.access.RolRepository;
 import co.edu.ufps.legal_cases.security.repository.account.UsuarioSistemaRepository;
 import co.edu.ufps.legal_cases.security.service.account.cambio.PerfilCambioHandler;
+import co.edu.ufps.legal_cases.security.service.account.cambio.UsuarioCambioPerfilHistorialService;
+import co.edu.ufps.legal_cases.security.service.account.perfil.PerfilEstadoService;
+import co.edu.ufps.legal_cases.security.service.account.perfil.PerfilUsuarioResolverService;
 
 import static co.edu.ufps.legal_cases.common.util.NormalizacionUtils.normalizarEmail;
 

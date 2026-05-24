@@ -22,7 +22,7 @@ import co.edu.ufps.legal_cases.business.repository.perfil.AsesorRepository;
 import co.edu.ufps.legal_cases.business.service.acceso.perfil.AsesorMonitorAccessService;
 import co.edu.ufps.legal_cases.common.exception.BusinessException;
 import co.edu.ufps.legal_cases.security.model.account.UsuarioSistema;
-import co.edu.ufps.legal_cases.security.service.account.UsuarioSistemaRegistroService;
+import co.edu.ufps.legal_cases.security.service.account.usuario.UsuarioSistemaRegistroService;
 
 @Service
 public class AsesorCommandService {
