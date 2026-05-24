@@ -1,4 +1,4 @@
-package co.edu.ufps.legal_cases.common.service;
+package co.edu.ufps.legal_cases.common.email;
 
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -17,10 +17,13 @@ import org.springframework.stereotype.Service;
 import co.edu.ufps.legal_cases.common.exception.BusinessException;
 import tools.jackson.databind.json.JsonMapper;
 
+// Implementación de EmailService usando Brevo como proveedor externo.
+// La lógica de negocio no debe depender directamente de esta clase.
 @Service
-public class EmailService {
+public class BrevoEmailService implements EmailService {
 
-    private static final Logger log = LoggerFactory.getLogger(EmailService.class);
+    private static final Logger log = LoggerFactory.getLogger(BrevoEmailService.class);
+
     private static final URI BREVO_EMAIL_URI = URI.create("https://api.brevo.com/v3/smtp/email");
 
     private final JsonMapper jsonMapper;
@@ -30,7 +33,7 @@ public class EmailService {
     private final String fromEmail;
     private final String fromName;
 
-    public EmailService(
+    public BrevoEmailService(
             JsonMapper jsonMapper,
             @Value("${brevo.api-key:}") String brevoApiKey,
             @Value("${app.mail.from-email}") String fromEmail,
@@ -45,15 +48,17 @@ public class EmailService {
                 .build();
     }
 
-    // Envia un correo HTML. El contenido se construye en el modulo que lo necesita.
+    // Envía un correo HTML.
+    // El contenido del correo se construye en el módulo que lo necesita.
+    @Override
     public void enviarHtml(
             String destinatario,
             String nombreDestinatario,
             String asunto,
             String html,
-            String tipoCorreo) {    // Es solo para entender en el log que tipo de correo se envio
+            String tipoCorreo) {
 
-        validarConfiguracion(); // Verificar variables de entorno
+        validarConfiguracion();
 
         try {
             log.info("Enviando correo de {} a {}", tipoCorreo, mascararCorreo(destinatario));
@@ -61,20 +66,18 @@ public class EmailService {
             Map<String, Object> payload = Map.of(
                     "sender", Map.of(
                             "name", fromName,
-                            "email", fromEmail
-                    ),
+                            "email", fromEmail),
                     "to", List.of(construirDestinatario(destinatario, nombreDestinatario)),
                     "subject", asunto,
-                    "htmlContent", html
-            );
+                    "htmlContent", html);
 
-            HttpRequest request = construirRequest(payload);    // Construye la peticion a Brevo
+            HttpRequest request = construirRequest(payload);
+
             HttpResponse<String> response = httpClient.send(
                     request,
-                    HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8)
-            );  // Envia la peticion a brevo y recibe su respuesta
+                    HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
 
-            validarRespuesta(response, tipoCorreo); // Analiza la respuesta
+            validarRespuesta(response, tipoCorreo);
 
             log.info("Correo de {} enviado correctamente a {}", tipoCorreo, mascararCorreo(destinatario));
 
@@ -90,7 +93,7 @@ public class EmailService {
         }
     }
 
-    // Contrstuye la peticion que se le envia a Brevo con el json del correo
+    // Construye la petición HTTP que se envía a Brevo.
     private HttpRequest construirRequest(Map<String, Object> payload) throws Exception {
         String json = jsonMapper.writeValueAsString(payload);
 
@@ -104,20 +107,19 @@ public class EmailService {
                 .build();
     }
 
-    // Construye el destinatario para el payload de Brevo
+    // Construye el destinatario para el payload esperado por Brevo.
     private Map<String, String> construirDestinatario(String email, String nombre) {
         if (nombre == null || nombre.isBlank()) {
             return Map.of("email", email);
         }
 
-        // Con el nombre, para que el correo se vea mas personalizado
         return Map.of(
                 "email", email,
-                "name", nombre
-        );
+                "name", nombre);
     }
 
-    // Para validar si se envio o si no mostrar el error que envio Brevo
+    // Valida la respuesta del proveedor externo.
+    // Si Brevo responde con error, se registra el detalle en logs y se devuelve error de negocio genérico.
     private void validarRespuesta(HttpResponse<String> response, String tipoCorreo) {
         if (response.statusCode() >= 200 && response.statusCode() < 300) {
             return;
@@ -127,13 +129,12 @@ public class EmailService {
                 "Brevo no pudo enviar el correo de {}. Status: {}. Body: {}",
                 tipoCorreo,
                 response.statusCode(),
-                response.body()
-        );
+                response.body());
 
         throw new BusinessException("No se pudo enviar el correo de " + tipoCorreo);
     }
 
-    // Verificar que las variables de entorno esten configuradas
+    // Verifica que las variables de configuración necesarias para correo existan.
     private void validarConfiguracion() {
         if (brevoApiKey == null || brevoApiKey.isBlank()) {
             log.error("No está configurada la variable BREVO_API_KEY");
@@ -144,10 +145,15 @@ public class EmailService {
             log.error("No está configurada la variable MAIL_FROM_EMAIL");
             throw new BusinessException("No se pudo enviar el correo");
         }
+
+        if (fromName == null || fromName.isBlank()) {
+            log.error("No está configurada la variable MAIL_FROM_NAME");
+            throw new BusinessException("No se pudo enviar el correo");
+        }
     }
 
-    // Para ocultar en consola el correo de los mensajes de Log
-    // de nelsoncondegpt@gmail.com a n***t@gmail.com
+    // Oculta parcialmente el correo en logs.
+    // Ejemplo: nelsoncondegpt@gmail.com -> n***t@gmail.com
     private String mascararCorreo(String correo) {
         if (correo == null || correo.isBlank() || !correo.contains("@")) {
             return "correo-no-valido";
