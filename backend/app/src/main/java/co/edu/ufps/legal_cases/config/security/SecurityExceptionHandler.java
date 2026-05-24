@@ -9,63 +9,74 @@ import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.access.AccessDeniedHandler;
 import org.springframework.stereotype.Component;
 
-import co.edu.ufps.legal_cases.common.exception.ErrorResponse;
+import co.edu.ufps.legal_cases.common.exception.dto.ErrorResponseDTO;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import tools.jackson.databind.json.JsonMapper;
 
-// Para comunicar correctamente los errores por json y enviarlos en el Spring Security al frontend
-//      401 = no ha iniciado sesión
-//      403 = inició sesión, pero no tiene permiso
+// Para comunicar correctamente los errores por JSON y enviarlos desde Spring Security al frontend.
+// 401 = no ha iniciado sesión o el token no es válido.
+// 403 = inició sesión, pero no tiene permiso para acceder al recurso.
 @Component
 public class SecurityExceptionHandler implements AuthenticationEntryPoint, AccessDeniedHandler {
 
-    private final JsonMapper jsonMapper;    // Para convertir el error a json y enviarlo al frontend
+    private final JsonMapper jsonMapper; // Convierte el error a JSON para enviarlo al frontend.
 
     public SecurityExceptionHandler(JsonMapper jsonMapper) {
         this.jsonMapper = jsonMapper;
     }
 
     @Override
-    // Sin iniciar sesion o token valido
+    // Sin iniciar sesión o sin token válido.
     public void commence(
             HttpServletRequest request,
             HttpServletResponse response,
             org.springframework.security.core.AuthenticationException authException) throws IOException {
 
-        ErrorResponse error = new ErrorResponse(
-                LocalDateTime.now(),
-                HttpStatus.UNAUTHORIZED.value(),
+        ErrorResponseDTO error = construirError(
+                HttpStatus.UNAUTHORIZED,
                 "No autenticado",
                 "Debe iniciar sesión para acceder a este recurso",
-                request.getRequestURI()
-        );
+                request);
 
         escribirRespuesta(response, HttpStatus.UNAUTHORIZED, error);
     }
 
     @Override
-    // Si inicio sesion pero no tiene permisos
+    // Inició sesión, pero no tiene permisos suficientes.
     public void handle(
             HttpServletRequest request,
             HttpServletResponse response,
             AccessDeniedException accessDeniedException) throws IOException {
 
-        ErrorResponse error = new ErrorResponse(
-                LocalDateTime.now(),
-                HttpStatus.FORBIDDEN.value(),
+        ErrorResponseDTO error = construirError(
+                HttpStatus.FORBIDDEN,
                 "No autorizado",
                 "No tiene permisos para acceder a este recurso",
-                request.getRequestURI()
-        );
+                request);
 
         escribirRespuesta(response, HttpStatus.FORBIDDEN, error);
+    }
+
+    private ErrorResponseDTO construirError(
+            HttpStatus status,
+            String error,
+            String mensaje,
+            HttpServletRequest request) {
+
+        return ErrorResponseDTO.builder()
+                .fecha(LocalDateTime.now())
+                .estado(status.value())
+                .error(error)
+                .mensaje(mensaje)
+                .ruta(request.getRequestURI())
+                .build();
     }
 
     private void escribirRespuesta(
             HttpServletResponse response,
             HttpStatus status,
-            ErrorResponse error) throws IOException {
+            ErrorResponseDTO error) throws IOException {
 
         response.setStatus(status.value());
         response.setContentType("application/json");
