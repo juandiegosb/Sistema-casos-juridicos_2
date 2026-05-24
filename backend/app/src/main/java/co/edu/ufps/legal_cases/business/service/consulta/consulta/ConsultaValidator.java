@@ -114,6 +114,20 @@ public class ConsultaValidator {
                 consulta.getContrapartes());
     }
 
+    public void validarEstadoInicialPermitido(EstadoConsulta estado) {
+        if (estado == null) {
+            throw new BusinessException("El estado de la consulta es obligatorio");
+        }
+
+        if (EstadoConsulta.CERRADO.equals(estado)) {
+            throw new BusinessException("Una consulta nueva no puede crearse cerrada");
+        }
+
+        if (EstadoConsulta.ARCHIVADO.equals(estado)) {
+            throw new BusinessException("Una consulta nueva no puede crearse archivada");
+        }
+    }
+
     private void validarJerarquiaCatalogos(Area area, Tema tema, Tipo tipo) {
         if (area == null) {
             throw new BusinessException("El área es obligatoria");

@@ -31,6 +31,7 @@ public class ConsultaCommandService {
         consultaAccessService.validarPuedeCrearConsulta();
         consultaValidator.validarIdNoEnviadoEnCreacion(dto.getId());
         consultaValidator.validarCamposObligatorios(dto);
+        consultaValidator.validarEstadoInicialPermitido(dto.getEstado());
 
         boolean puedeAsignarResponsables = consultaAccessService.usuarioPuedeAsignarResponsables();
 
@@ -59,6 +60,7 @@ public class ConsultaCommandService {
         consultaRepository.findByIdConContrapartes(id);
 
         consultaValidator.validarNoArchivada(existente);
+        consultaEstadoService.validarPermiteOperacionOperativa(existente);
         consultaValidator.validarCamposObligatorios(dto);
         consultaValidator.validarIdNoCambiado(existente.getId(), dto.getId());
 
