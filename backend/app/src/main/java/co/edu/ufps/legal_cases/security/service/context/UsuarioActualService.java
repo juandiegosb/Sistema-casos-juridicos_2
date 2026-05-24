@@ -17,7 +17,8 @@ import co.edu.ufps.legal_cases.security.model.account.UsuarioSistema;
 import co.edu.ufps.legal_cases.security.repository.account.UsuarioSistemaRepository;
 import co.edu.ufps.legal_cases.security.service.account.perfil.PerfilUsuarioResolverService;
 
-// Este servicion se encarga de obtener y consultar información del usuario autenticado.
+// Servicio de contexto para consultar el usuario autenticado.
+// Centraliza el acceso a Spring Security y evita duplicar lecturas del usuario actual.
 @Service
 public class UsuarioActualService {
 
@@ -33,8 +34,6 @@ public class UsuarioActualService {
         this.perfilUsuarioResolverService = perfilUsuarioResolverService;
     }
 
-    // Obtiene el usuario autenticado desde Spring Security.
-    // El filtro JWT guarda como principal el username del usuario.
     @Transactional(readOnly = true)
     public UsuarioSistema obtenerUsuarioActual() {
         String username = obtenerUsernameAutenticado();
@@ -70,8 +69,6 @@ public class UsuarioActualService {
         return obtenerPerfilActual().getTipoPerfil();
     }
 
-    // Revisa si el usuario autenticado tiene un permiso específico.
-    // Se usa SecurityContext porque el filtro JWT ya cargó los permisos activos del rol.
     public boolean tienePermiso(String permiso) {
         if (permiso == null || permiso.isBlank()) {
             return false;
@@ -88,7 +85,6 @@ public class UsuarioActualService {
                 .anyMatch(authority -> Objects.equals(authority.getAuthority(), permiso));
     }
 
-    // Revisa si el permiso que se le paso si esta entre los permisos del contexto de seguridad
     public boolean tieneAlgunPermiso(String... permisos) {
         if (permisos == null || permisos.length == 0) {
             return false;
@@ -98,8 +94,6 @@ public class UsuarioActualService {
                 .anyMatch(this::tienePermiso);
     }
 
-    // Se encarga de revisar que todos los permisos que trae en parametro esten en el contexto
-    // se encarga de verificar permiso a permiso con el metodo particular
     public boolean tieneTodosLosPermisos(String... permisos) {
         if (permisos == null || permisos.length == 0) {
             return false;
@@ -109,7 +103,6 @@ public class UsuarioActualService {
                 .allMatch(this::tienePermiso);
     }
 
-    // Metodos para verificar el tipo de perfil del usuario que se auntentico
     @Transactional(readOnly = true)
     public boolean esAdministrativo() {
         return esTipoPerfil(TipoPerfilUsuario.ADMINISTRATIVO);
@@ -135,7 +128,6 @@ public class UsuarioActualService {
         return esTipoPerfil(TipoPerfilUsuario.CONCILIADOR);
     }
 
-    // Comprueba si el usuario autenticado es de rol administrador (no tipo de perfil como antes)
     @Transactional(readOnly = true)
     public boolean esRolAdministrador() {
         UsuarioSistema usuario = obtenerUsuarioActual();
@@ -144,7 +136,6 @@ public class UsuarioActualService {
                 && ROL_ADMINISTRADOR.equalsIgnoreCase(usuario.getRol().getNombre());
     }
 
-    // Compara el tipo de perfil del usuario autenticado con el que se paso en el parametro
     @Transactional(readOnly = true)
     public boolean esTipoPerfil(TipoPerfilUsuario tipoPerfil) {
         if (tipoPerfil == null) {
@@ -154,7 +145,6 @@ public class UsuarioActualService {
         return obtenerTipoPerfilActual() == tipoPerfil;
     }
 
-    // Trae el contexto de seguridad y le saca el username del autenticado
     private String obtenerUsernameAutenticado() {
         Authentication authentication = obtenerAuthentication();
 
@@ -171,17 +161,14 @@ public class UsuarioActualService {
         return username;
     }
 
-    // Trae todo el contexto de autenticacion del usuario como username y permisos (Authorities)
     private Authentication obtenerAuthentication() {
         return SecurityContextHolder.getContext().getAuthentication();
     }
 
-    // Saca los permisos que el usuario tiene en el contexto de seguridad de Spring Security
     private Collection<? extends GrantedAuthority> obtenerAuthorities(Authentication authentication) {
         return authentication.getAuthorities();
     }
 
-    // Valida que el usuario y rol esten activos 
     private void validarUsuarioPuedeOperar(UsuarioSistema usuario) {
         if (!Boolean.TRUE.equals(usuario.getActivo())) {
             throw new BusinessException("El usuario se encuentra inactivo");

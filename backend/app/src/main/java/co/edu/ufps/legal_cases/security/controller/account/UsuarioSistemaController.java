@@ -9,7 +9,13 @@ import java.util.List;
 
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
 import co.edu.ufps.legal_cases.security.dto.account.UsuarioSistemaDTO;
 import co.edu.ufps.legal_cases.security.dto.account.cambio.CambiarPerfilAAdministrativoDTO;
@@ -19,6 +25,7 @@ import co.edu.ufps.legal_cases.security.dto.account.cambio.CambiarPerfilAEstudia
 import co.edu.ufps.legal_cases.security.dto.account.cambio.CambiarPerfilAMonitorDTO;
 import co.edu.ufps.legal_cases.security.service.account.UsuarioCambioPerfilService;
 import co.edu.ufps.legal_cases.security.service.account.UsuarioSistemaService;
+import jakarta.validation.Valid;
 
 @RestController
 @RequestMapping("/api/usuarios-sistema")
@@ -27,7 +34,8 @@ public class UsuarioSistemaController {
     private final UsuarioSistemaService usuarioSistemaService;
     private final UsuarioCambioPerfilService usuarioCambioPerfilService;
 
-    public UsuarioSistemaController(UsuarioSistemaService usuarioSistemaService,
+    public UsuarioSistemaController(
+            UsuarioSistemaService usuarioSistemaService,
             UsuarioCambioPerfilService usuarioCambioPerfilService) {
         this.usuarioSistemaService = usuarioSistemaService;
         this.usuarioCambioPerfilService = usuarioCambioPerfilService;
@@ -59,80 +67,73 @@ public class UsuarioSistemaController {
         return usuarioSistemaService.cambiarEstado(id, activo);
     }
 
-    // Endpoints para cambiar de roles
-
+    // Cambia el perfil real del usuario y deja historial del cambio.
     @PatchMapping("/{id}/perfil/administrativo")
     @PreAuthorize("hasAnyAuthority('" + ASIGNAR_ROL_USUARIOS + "', '" + GESTIONAR_USUARIOS + "')")
     public UsuarioSistemaDTO cambiarAAdministrativo(
             @PathVariable Long id,
-            @RequestBody CambiarPerfilAAdministrativoDTO dto,
+            @Valid @RequestBody CambiarPerfilAAdministrativoDTO dto,
             Authentication authentication) {
-
-        String cambiadoPorUsername = authentication != null ? authentication.getName() : null;
 
         return usuarioCambioPerfilService.cambiarAAdministrativo(
                 id,
                 dto,
-                cambiadoPorUsername);
+                obtenerUsernameAutenticado(authentication));
     }
 
     @PatchMapping("/{id}/perfil/estudiante")
     @PreAuthorize("hasAnyAuthority('" + ASIGNAR_ROL_USUARIOS + "', '" + GESTIONAR_USUARIOS + "')")
     public UsuarioSistemaDTO cambiarAEstudiante(
             @PathVariable Long id,
-            @RequestBody CambiarPerfilAEstudianteDTO dto,
+            @Valid @RequestBody CambiarPerfilAEstudianteDTO dto,
             Authentication authentication) {
-
-        String cambiadoPorUsername = authentication != null ? authentication.getName() : null;
 
         return usuarioCambioPerfilService.cambiarAEstudiante(
                 id,
                 dto,
-                cambiadoPorUsername);
+                obtenerUsernameAutenticado(authentication));
     }
 
     @PatchMapping("/{id}/perfil/asesor")
     @PreAuthorize("hasAnyAuthority('" + ASIGNAR_ROL_USUARIOS + "', '" + GESTIONAR_USUARIOS + "')")
     public UsuarioSistemaDTO cambiarAAsesor(
             @PathVariable Long id,
-            @RequestBody CambiarPerfilAAsesorDTO dto,
+            @Valid @RequestBody CambiarPerfilAAsesorDTO dto,
             Authentication authentication) {
-
-        String cambiadoPorUsername = authentication != null ? authentication.getName() : null;
 
         return usuarioCambioPerfilService.cambiarAAsesor(
                 id,
                 dto,
-                cambiadoPorUsername);
+                obtenerUsernameAutenticado(authentication));
     }
 
     @PatchMapping("/{id}/perfil/monitor")
     @PreAuthorize("hasAnyAuthority('" + ASIGNAR_ROL_USUARIOS + "', '" + GESTIONAR_USUARIOS + "')")
     public UsuarioSistemaDTO cambiarAMonitor(
             @PathVariable Long id,
-            @RequestBody CambiarPerfilAMonitorDTO dto,
+            @Valid @RequestBody CambiarPerfilAMonitorDTO dto,
             Authentication authentication) {
-
-        String cambiadoPorUsername = authentication != null ? authentication.getName() : null;
 
         return usuarioCambioPerfilService.cambiarAMonitor(
                 id,
                 dto,
-                cambiadoPorUsername);
+                obtenerUsernameAutenticado(authentication));
     }
 
     @PatchMapping("/{id}/perfil/conciliador")
     @PreAuthorize("hasAnyAuthority('" + ASIGNAR_ROL_USUARIOS + "', '" + GESTIONAR_USUARIOS + "')")
     public UsuarioSistemaDTO cambiarAConciliador(
             @PathVariable Long id,
-            @RequestBody CambiarPerfilAConciliadorDTO dto,
+            @Valid @RequestBody CambiarPerfilAConciliadorDTO dto,
             Authentication authentication) {
-
-        String cambiadoPorUsername = authentication != null ? authentication.getName() : null;
 
         return usuarioCambioPerfilService.cambiarAConciliador(
                 id,
                 dto,
-                cambiadoPorUsername);
+                obtenerUsernameAutenticado(authentication));
+    }
+
+    private String obtenerUsernameAutenticado(Authentication authentication) {
+        return authentication != null ? authentication.getName() : null;
     }
 }
