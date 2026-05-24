@@ -23,9 +23,8 @@ public class PersonaDTO {
     private Long id;
 
     // Informacion basica
-    @NotBlank(message = "El tipo de usuario es obligatorio")
-    @Size(max = 20, message = "El tipo de usuario no puede superar los 20 caracteres")
-    private String tipoUsuario;
+    @NotNull(message = "El tipo de persona es obligatorio")
+    private Long tipoPersonaId;
 
     @NotBlank(message = "El tipo de documento es obligatorio")
     @Size(max = 10, message = "El tipo de documento no puede superar los 10 caracteres")
@@ -80,9 +79,8 @@ public class PersonaDTO {
     @Size(max = 120, message = "El correo no puede superar los 120 caracteres")
     private String correo;
 
-    @NotBlank(message = "La nacionalidad es obligatoria")
-    @Size(max = 50, message = "La nacionalidad no puede superar los 50 caracteres")
-    private String nacionalidad;
+    @NotNull(message = "La nacionalidad es obligatoria")
+    private Long nacionalidadId;
 
     @NotBlank(message = "El estado civil es obligatorio")
     @Size(max = 30, message = "El estado civil no puede superar los 30 caracteres")
@@ -96,9 +94,8 @@ public class PersonaDTO {
     @Size(max = 100, message = "El grupo etnico no puede superar los 100 caracteres")
     private String grupoEtnico;
 
-    @NotBlank(message = "La condicion actual es obligatoria")
-    @Size(max = 100, message = "La condicion actual no puede superar los 100 caracteres")
-    private String condicionActual;
+    @NotNull(message = "La condicion actual es obligatoria")
+    private Long condicionActualId;
 
     @NotNull(message = "Debe indicar si sabe leer y escribir")
     private Boolean sabeLeerEscribir;
@@ -115,17 +112,14 @@ public class PersonaDTO {
     private Boolean necesitaAjustePcd;
 
     // Informacion de vivienda
-    @NotBlank(message = "El departamento es obligatorio")
-    @Size(max = 100, message = "El departamento no puede superar los 100 caracteres")
-    private String departamento;
+    // El departamento se resuelve desde el municipio; el frontend lo usa para filtrar el combo de municipios.
+    private Long departamentoId;
 
-    @NotBlank(message = "El municipio es obligatorio")
-    @Size(max = 100, message = "El municipio no puede superar los 100 caracteres")
-    private String municipio;
+    @NotNull(message = "El municipio es obligatorio")
+    private Long municipioId;
 
-    @NotBlank(message = "El barrio es obligatorio")
-    @Size(max = 100, message = "El barrio no puede superar los 100 caracteres")
-    private String barrio;
+    @NotNull(message = "El barrio es obligatorio")
+    private Long barrioId;
 
     @NotBlank(message = "La direccion es obligatoria")
     @Size(max = 150, message = "La direccion no puede superar los 150 caracteres")
@@ -172,13 +166,11 @@ public class PersonaDTO {
     private Boolean alcantarillado;
 
     // Aspectos economicos
-    @NotBlank(message = "La ocupacion es obligatoria")
-    @Size(max = 100, message = "La ocupacion no puede superar los 100 caracteres")
-    private String ocupacion;
+    @NotNull(message = "La ocupacion es obligatoria")
+    private Long ocupacionId;
 
-    @NotBlank(message = "La empresa es obligatoria")
-    @Size(max = 150, message = "La empresa no puede superar los 150 caracteres")
-    private String empresa;
+    @NotNull(message = "La empresa es obligatoria")
+    private Long empresaId;
 
     @NotNull(message = "El salario es obligatorio")
     @Min(value = 0, message = "El salario no puede ser negativo")

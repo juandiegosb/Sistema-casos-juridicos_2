@@ -7,7 +7,14 @@ import static co.edu.ufps.legal_cases.common.util.NormalizacionUtils.normalizarT
 import org.springframework.stereotype.Component;
 
 import co.edu.ufps.legal_cases.business.dto.persona.PersonaDTO;
+import co.edu.ufps.legal_cases.business.model.catalogo.Barrio;
+import co.edu.ufps.legal_cases.business.model.catalogo.Municipio;
+import co.edu.ufps.legal_cases.business.model.catalogo.Nacionalidad;
+import co.edu.ufps.legal_cases.business.model.persona.Condicion;
+import co.edu.ufps.legal_cases.business.model.persona.Empresa;
+import co.edu.ufps.legal_cases.business.model.persona.Ocupacion;
 import co.edu.ufps.legal_cases.business.model.persona.Persona;
+import co.edu.ufps.legal_cases.business.model.persona.TipoPersona;
 
 @Component
 public class PersonaMapper {
@@ -17,7 +24,9 @@ public class PersonaMapper {
         PersonaDTO dto = new PersonaDTO();
 
         dto.setId(persona.getId());
-        dto.setTipoUsuario(persona.getTipoUsuario());
+
+        // Relaciones: se expone solo el id para que el frontend pueda reconstruir los selects.
+        dto.setTipoPersonaId(persona.getTipoPersona().getId());
         dto.setTipoDocumento(persona.getTipoDocumento());
         dto.setNumeroDocumento(persona.getNumeroDocumento());
         dto.setFechaExpedicion(persona.getFechaExpedicion());
@@ -32,19 +41,20 @@ public class PersonaMapper {
         dto.setFechaNacimiento(persona.getFechaNacimiento());
         dto.setTelefono(persona.getTelefono());
         dto.setCorreo(persona.getCorreo());
-        dto.setNacionalidad(persona.getNacionalidad());
+        dto.setNacionalidadId(persona.getNacionalidad().getId());
         dto.setEstadoCivil(persona.getEstadoCivil());
         dto.setEscolaridad(persona.getEscolaridad());
         dto.setGrupoEtnico(persona.getGrupoEtnico());
-        dto.setCondicionActual(persona.getCondicionActual());
+        dto.setCondicionActualId(persona.getCondicionActual().getId());
         dto.setSabeLeerEscribir(persona.getSabeLeerEscribir());
         dto.setDiscapacidad(persona.getDiscapacidad());
         dto.setCaracterizacionPcd(persona.getCaracterizacionPcd());
         dto.setNecesitaAjustePcd(persona.getNecesitaAjustePcd());
 
-        dto.setDepartamento(persona.getDepartamento());
-        dto.setMunicipio(persona.getMunicipio());
-        dto.setBarrio(persona.getBarrio());
+        // Vivienda: se expone el id del municipio y barrio; el departamento se infiere del municipio.
+        dto.setMunicipioId(persona.getMunicipio().getId());
+        dto.setDepartamentoId(persona.getMunicipio().getDepartamento().getId());
+        dto.setBarrioId(persona.getBarrio().getId());
         dto.setDireccion(persona.getDireccion());
         dto.setComuna(persona.getComuna());
         dto.setLocalidad(persona.getLocalidad());
@@ -58,8 +68,8 @@ public class PersonaMapper {
         dto.setAcueducto(persona.getAcueducto());
         dto.setAlcantarillado(persona.getAlcantarillado());
 
-        dto.setOcupacion(persona.getOcupacion());
-        dto.setEmpresa(persona.getEmpresa());
+        dto.setOcupacionId(persona.getOcupacion().getId());
+        dto.setEmpresaId(persona.getEmpresa().getId());
         dto.setSalario(persona.getSalario());
         dto.setCargo(persona.getCargo());
         dto.setDireccionEmpresa(persona.getDireccionEmpresa());
@@ -78,14 +88,14 @@ public class PersonaMapper {
         return dto;
     }
 
-    public Persona crearEntidad(PersonaDTO dto, String numeroDocumento) {
+    public Persona crearEntidad(PersonaDTO dto, String numeroDocumento, DatosPersona datos) {
         Persona persona = new Persona();
-        aplicarDatos(persona, dto, numeroDocumento);
+        aplicarDatos(persona, dto, numeroDocumento, datos);
         return persona;
     }
 
-    public void aplicarDatos(Persona persona, PersonaDTO dto, String numeroDocumento) {
-        persona.setTipoUsuario(normalizarTexto(dto.getTipoUsuario()));
+    public void aplicarDatos(Persona persona, PersonaDTO dto, String numeroDocumento, DatosPersona datos) {
+        persona.setTipoPersona(datos.tipoPersona());
         persona.setTipoDocumento(normalizarTexto(dto.getTipoDocumento()));
         persona.setNumeroDocumento(normalizarNumeroDocumento(numeroDocumento));
         persona.setFechaExpedicion(dto.getFechaExpedicion());
@@ -100,19 +110,18 @@ public class PersonaMapper {
         persona.setFechaNacimiento(dto.getFechaNacimiento());
         persona.setTelefono(normalizarTelefono(dto.getTelefono()));
         persona.setCorreo(normalizarTexto(dto.getCorreo()));
-        persona.setNacionalidad(normalizarTexto(dto.getNacionalidad()));
+        persona.setNacionalidad(datos.nacionalidad());
         persona.setEstadoCivil(normalizarTexto(dto.getEstadoCivil()));
         persona.setEscolaridad(normalizarTexto(dto.getEscolaridad()));
         persona.setGrupoEtnico(normalizarTexto(dto.getGrupoEtnico()));
-        persona.setCondicionActual(normalizarTexto(dto.getCondicionActual()));
+        persona.setCondicionActual(datos.condicionActual());
         persona.setSabeLeerEscribir(dto.getSabeLeerEscribir());
         persona.setDiscapacidad(normalizarTexto(dto.getDiscapacidad()));
         persona.setCaracterizacionPcd(normalizarTexto(dto.getCaracterizacionPcd()));
         persona.setNecesitaAjustePcd(dto.getNecesitaAjustePcd());
 
-        persona.setDepartamento(normalizarTexto(dto.getDepartamento()));
-        persona.setMunicipio(normalizarTexto(dto.getMunicipio()));
-        persona.setBarrio(normalizarTexto(dto.getBarrio()));
+        persona.setMunicipio(datos.municipio());
+        persona.setBarrio(datos.barrio());
         persona.setDireccion(normalizarTexto(dto.getDireccion()));
         persona.setComuna(normalizarTexto(dto.getComuna()));
         persona.setLocalidad(normalizarTexto(dto.getLocalidad()));
@@ -126,8 +135,8 @@ public class PersonaMapper {
         persona.setAcueducto(dto.getAcueducto());
         persona.setAlcantarillado(dto.getAlcantarillado());
 
-        persona.setOcupacion(normalizarTexto(dto.getOcupacion()));
-        persona.setEmpresa(normalizarTexto(dto.getEmpresa()));
+        persona.setOcupacion(datos.ocupacion());
+        persona.setEmpresa(datos.empresa());
         persona.setSalario(dto.getSalario());
         persona.setCargo(normalizarTexto(dto.getCargo()));
         persona.setDireccionEmpresa(normalizarTexto(dto.getDireccionEmpresa()));
@@ -144,5 +153,17 @@ public class PersonaMapper {
 
         // El estado activo no se actualiza desde el formulario principal.
         // Para eso existen los flujos separados de desactivar y reactivar.
+    }
+
+    // Record auxiliar que agrupa las relaciones ya cargadas y validadas.
+    // Permite que el mapper reciba entidades listas en lugar de DTOs crudos.
+    public record DatosPersona(
+            TipoPersona tipoPersona,
+            Nacionalidad nacionalidad,
+            Condicion condicionActual,
+            Municipio municipio,
+            Barrio barrio,
+            Ocupacion ocupacion,
+            Empresa empresa) {
     }
 }

@@ -10,6 +10,8 @@ import java.util.Objects;
 import org.springframework.stereotype.Component;
 
 import co.edu.ufps.legal_cases.business.dto.persona.PersonaDTO;
+import co.edu.ufps.legal_cases.business.model.catalogo.Barrio;
+import co.edu.ufps.legal_cases.business.model.catalogo.Municipio;
 import co.edu.ufps.legal_cases.business.model.persona.Persona;
 import co.edu.ufps.legal_cases.business.repository.persona.PersonaRepository;
 import co.edu.ufps.legal_cases.common.exception.BusinessException;
@@ -70,6 +72,16 @@ public class PersonaValidator {
         if (!numeroDocumentoActual.equalsIgnoreCase(numeroDocumentoNuevo)
                 && personaRepository.existsByNumeroDocumento(numeroDocumentoNuevo)) {
             throw new BusinessException("Ya existe una persona con ese número de documento");
+        }
+    }
+
+    // Valida que el barrio seleccionado pertenezca al municipio seleccionado.
+    // Evita inconsistencias cuando el frontend no filtra correctamente el combo de barrios.
+    public void validarBarrioPerteneceAMunicipio(Barrio barrio, Municipio municipio) {
+        if (barrio.getMunicipio() == null
+                || !Objects.equals(barrio.getMunicipio().getId(), municipio.getId())) {
+            throw new BusinessException(
+                    "El barrio seleccionado no pertenece al municipio seleccionado");
         }
     }
 
