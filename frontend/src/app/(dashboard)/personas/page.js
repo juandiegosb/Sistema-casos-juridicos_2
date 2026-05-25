@@ -1,6 +1,6 @@
 "use client";
 
-import { PersonasForm } from "@/components/forms/PersonasForm";
+import { PersonasForm } from "@/components/forms/persona/PersonasForm";
 import { Users } from "lucide-react";
 
 export default function PersonasPage() {

@@ -5,6 +5,7 @@ import { Search, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { API_URL_BASE } from "@/lib/config";
 import { ConfirmActionDialog } from "@/components/ui/ConfirmActionDialog";
+import Pagination from "@/components/ui/Pagination";
 import { useRouter } from "next/navigation";
 import { PERMISOS } from "@/lib/permission";
 import { tienePermiso } from "@/lib/authz";
@@ -929,70 +930,15 @@ export function PersonasForm() {
           </div>
         </div>
 
-        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-          <div className="text-sm text-muted-foreground">
-            Página{" "}
-            <span className="font-semibold text-foreground">{paginaActual}</span>{" "}
-            de{" "}
-            <span className="font-semibold text-foreground">{totalPaginas}</span>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              disabled={paginaActual === 1}
-              onClick={() => setPaginaActual(1)}
-            >
-              Primera
-            </Button>
-
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              disabled={paginaActual === 1}
-              onClick={() => setPaginaActual((prev) => Math.max(1, prev - 1))}
-            >
-              Anterior
-            </Button>
-
-            {paginasVisibles.map((pagina) => (
-              <Button
-                key={pagina}
-                type="button"
-                variant={paginaActual === pagina ? "default" : "outline"}
-                size="sm"
-                onClick={() => setPaginaActual(pagina)}
-              >
-                {pagina}
-              </Button>
-            ))}
-
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              disabled={paginaActual === totalPaginas}
-              onClick={() =>
-                setPaginaActual((prev) => Math.min(totalPaginas, prev + 1))
-              }
-            >
-              Siguiente
-            </Button>
-
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              disabled={paginaActual === totalPaginas}
-              onClick={() => setPaginaActual(totalPaginas)}
-            >
-              Última
-            </Button>
-          </div>
-        </div>
+        <Pagination
+          currentPage={paginaActual}
+          totalPages={totalPaginas}
+          onPageChange={setPaginaActual}
+          pageSize={registrosPorPagina}
+          onPageSizeChange={setRegistrosPorPagina}
+          pageSizeOptions={REGISTROS_POR_PAGINA_OPTIONS}
+          totalItems={totalRegistros}
+        />
       </div>
 
       {personaEditando && (

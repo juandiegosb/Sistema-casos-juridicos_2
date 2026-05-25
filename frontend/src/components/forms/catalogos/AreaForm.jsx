@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from "react"
 import { useForm } from "react-hook-form"
-import { FormInput } from "./parts/FormInput"
+import { FormInput } from "../parts/FormInput"
 import { Button } from "@/components/ui/button"
 import { useRouter } from "next/navigation"
 import { API_URL_BASE } from "@/lib/config"

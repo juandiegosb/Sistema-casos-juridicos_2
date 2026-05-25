@@ -1,9 +1,9 @@
 import React from "react";
 import { useForm } from "react-hook-form";
 import { useApiForm } from "@/hooks/useApiForm";
-import { FormInput } from "./parts/FormInput";
-import { FormSelect } from "./parts/FormSelect";
-import { FormCheckbox } from "./parts/FormCheckbox";
+import { FormInput } from "../parts/FormInput";
+import { FormSelect } from "../parts/FormSelect";
+import { FormCheckbox } from "../parts/FormCheckbox";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { API_URL_BASE } from "@/lib/config";

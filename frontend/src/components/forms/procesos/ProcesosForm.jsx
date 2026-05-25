@@ -4,6 +4,8 @@ import React, { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { ConfirmActionDialog } from "@/components/ui/ConfirmActionDialog";
+import Pagination from "@/components/ui/Pagination";
 import { API_URL_BASE } from "@/lib/config";
 import { PERMISOS } from "@/lib/permission";
 import { tieneAlgunPermiso } from "@/lib/authz";
@@ -512,6 +514,10 @@ export function ProcesosForm() {
   const [procesoCambioEstado, setProcesoCambioEstado] = useState(null);
   const [estadoSeleccionado, setEstadoSeleccionado] = useState("");
   const [form, setForm] = useState(FORM_INICIAL);
+  const [paginaActual, setPaginaActual] = useState(1);
+  const [registrosPorPagina, setRegistrosPorPagina] = useState(10);
+  const REGISTROS_POR_PAGINA_OPTIONS = [5, 10, 20, 50];
+  const [confirmEliminar, setConfirmEliminar] = useState({ abierto: false, proceso: null, loading: false });
 
   const puedeVer = puedeVerProcesos(user);
   const puedeGestionar = puedeGestionarProcesos(user);
@@ -697,7 +703,15 @@ export function ProcesosForm() {
 
   async function eliminarProceso(proceso) {
     if (!puedeGestionar) { toast.error("No tienes permiso para eliminar procesos"); return; }
-    if (!window.confirm(`¿Seguro que deseas eliminar el proceso #${proceso.id}?`)) return;
+    setConfirmEliminar({ abierto: true, proceso, loading: false });
+  }
+
+  async function ejecutarEliminarProceso() {
+    const { proceso } = confirmEliminar;
+    if (!proceso) return;
+
+    setConfirmEliminar((s) => ({ ...s, loading: true }));
+
     try {
       await apiEnviar(`${API_URL_BASE}/procesos/${proceso.id}`, { method: "DELETE" });
       toast.success("Proceso eliminado correctamente");
@@ -706,6 +720,8 @@ export function ProcesosForm() {
       console.error(error);
       if (error.status === 401) { router.push("/"); return; }
       toast.error(error.message || "No se pudo eliminar el proceso");
+    } finally {
+      setConfirmEliminar({ abierto: false, proceso: null, loading: false });
     }
   }
 
@@ -763,7 +779,7 @@ export function ProcesosForm() {
                     </td>
                   </tr>
                 ) : (
-                  procesosFiltrados.map((proceso) => {
+                  procesosFiltrados.slice((paginaActual - 1) * registrosPorPagina, (paginaActual - 1) * registrosPorPagina + registrosPorPagina).map((proceso) => {
                     const consulta = mapaConsultas.get(Number(proceso.consultaId));
                     return (
                       <tr key={proceso.id} className="border-t align-top">
@@ -806,6 +822,16 @@ export function ProcesosForm() {
               </tbody>
             </table>
           </div>
+
+          <Pagination
+            currentPage={paginaActual}
+            totalPages={Math.max(1, Math.ceil(procesosFiltrados.length / registrosPorPagina))}
+            onPageChange={(p) => setPaginaActual(p)}
+            pageSize={registrosPorPagina}
+            onPageSizeChange={(v) => { setRegistrosPorPagina(v); setPaginaActual(1); }}
+            pageSizeOptions={REGISTROS_POR_PAGINA_OPTIONS}
+            totalItems={procesosFiltrados.length}
+          />
         </>
       )}
 
@@ -833,6 +859,18 @@ export function ProcesosForm() {
           guardando={guardando}
         />
       )}
+
+      <ConfirmActionDialog
+        open={confirmEliminar.abierto}
+        title="Eliminar proceso"
+        description={confirmEliminar.proceso ? `¿Seguro que deseas eliminar el proceso #${confirmEliminar.proceso.id}?` : "¿Eliminar este proceso?"}
+        confirmText="Eliminar"
+        cancelText="Cancelar"
+        loading={confirmEliminar.loading}
+        variant="destructive"
+        onConfirm={ejecutarEliminarProceso}
+        onClose={() => setConfirmEliminar({ abierto: false, proceso: null, loading: false })}
+      />
     </div>
   );
 }

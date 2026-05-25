@@ -8,7 +8,8 @@ import { Button } from "@/components/ui/button"
 import { API_URL_BASE, FILE_STORAGE_API_URL_BASE } from "@/lib/config"
 import { PERMISOS } from "@/lib/permission"
 import { tieneAlgunPermiso, tienePermiso } from "@/lib/authz"
-import { FormFileUpload } from "./parts/FormFileUpload"
+import { ConfirmActionDialog } from "@/components/ui/ConfirmActionDialog"
+import { FormFileUpload } from "@/components/forms/parts/FormFileUpload"
 
 const FORM_TAREA_INICIAL = {
   categoriaId: "",
@@ -1181,9 +1182,6 @@ export function SeguimientosForm() {
           <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
             <div>
               <h2 className="text-xl font-bold">Respuestas pendientes de revisión</h2>
-              <p className="text-sm text-muted-foreground">
-                El backend filtra estas respuestas por tu alcance.
-              </p>
             </div>
 
             <Button type="button" variant="outline" onClick={refrescarPendientesRevision}>

@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
 
 import { API_URL_BASE, FILE_STORAGE_API_URL_BASE } from "@/lib/config";
-import ArchivosConsultaForm from "./parts/ArchivosConsultaForm";
+import ArchivosConsultaForm from "../parts/ArchivosConsultaForm";
 import { PERMISOS } from "@/lib/permission";
 import { tienePermiso } from "@/lib/authz";
 

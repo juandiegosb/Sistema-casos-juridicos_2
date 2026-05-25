@@ -3,7 +3,7 @@
 import * as React from "react"
 import { ClipboardList } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
-import { SeguimientosForm } from "@/components/forms/SeguimientosForm"
+import { SeguimientosForm } from "@/components/forms/consulta/SeguimientosForm"
 
 export default function SeguimientosPage() {
   return (

@@ -8,6 +8,7 @@ import { PERMISOS } from "@/lib/permission";
 import { tienePermiso } from "@/lib/authz";
 
 import { API_URL_BASE, FILE_STORAGE_API_URL_BASE } from "@/lib/config";
+import { ConfirmActionDialog } from "@/components/ui/ConfirmActionDialog";
 
 const ESTADOS_CONSULTA = [
   { value: "ACTIVO", label: "Activo" },
@@ -307,6 +308,7 @@ export function ConsultasJuridicasForm() {
   const [cargandoArchivos, setCargandoArchivos] = useState(false);
   const [user, setUser] = useState(null);
   const [checkingPermisos, setCheckingPermisos] = useState(true);
+  const [confirmArchivar, setConfirmArchivar] = useState({ abierto: false, id: null, loading: false });
 
   // Estados modales edición
   const [modalAsesor, setModalAsesor] = useState({ abierto: false, busqueda: "" });
@@ -826,7 +828,14 @@ export function ConsultasJuridicasForm() {
       return;
     }
 
-    if (!confirm("¿Archivar esta consulta? El registro quedará como Archivado.")) return;
+    setConfirmArchivar({ abierto: true, id, loading: false });
+  }
+
+  async function ejecutarArchivar() {
+    const { id } = confirmArchivar;
+    if (!id) return;
+
+    setConfirmArchivar((s) => ({ ...s, loading: true }));
 
     try {
       const res = await fetch(`${API_URL_BASE}/consultas/${id}/archivar`, {
@@ -855,6 +864,8 @@ export function ConsultasJuridicasForm() {
     } catch (error) {
       console.error(error);
       toast.error("Error de conexión");
+    } finally {
+      setConfirmArchivar({ abierto: false, id: null, loading: false });
     }
   }
 
@@ -1113,7 +1124,7 @@ export function ConsultasJuridicasForm() {
                         </Button>
                       )}
 
-                      {puedeArchivarRegistro(row) && normalizarEstadoConsulta(row.estado) !== "ARCHIVADO" && (
+                      {puedeArchivarConsultas && normalizarEstadoConsulta(row.estado) !== "ARCHIVADO" && (
                         <Button
                           size="sm"
                           variant="destructive"
@@ -1195,6 +1206,18 @@ export function ConsultasJuridicasForm() {
         onCerrar={() => setModalContrapartes({ abierto: false, busqueda: "" })}
         seleccionados={form.contrapartesIds}
         renderItem={renderPersona}
+      />
+
+      <ConfirmActionDialog
+        open={confirmArchivar.abierto}
+        title="Archivar consulta"
+        description="¿Archivar esta consulta? El registro quedará como Archivado."
+        confirmText="Archivar"
+        cancelText="Cancelar"
+        loading={confirmArchivar.loading}
+        variant="destructive"
+        onConfirm={ejecutarArchivar}
+        onClose={() => setConfirmArchivar({ abierto: false, id: null, loading: false })}
       />
     </>
   );

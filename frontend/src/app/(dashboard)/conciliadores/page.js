@@ -1,7 +1,7 @@
 "use client"
 
 import { useRouter } from "next/navigation"
-import { ConciliadorForm } from "@/components/forms/ConciliadorForm"
+import { ConciliadorForm } from "@/components/forms/usuarios/ConciliadorForm"
 
 export default function NuevoConciliador() {
   const router = useRouter()

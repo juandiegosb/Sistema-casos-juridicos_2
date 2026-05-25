@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { API_URL_BASE } from "@/lib/config";
 import { ConfirmActionDialog } from "@/components/ui/ConfirmActionDialog";
+import Pagination from "@/components/ui/Pagination";
 import { PERMISOS } from "@/lib/permission";
 import { tienePermiso } from "@/lib/authz";
 
@@ -16,6 +17,10 @@ export function AsesoresYMonitoresForm() {
   const [monitores, setMonitores] = useState([]);
   const [busqueda, setBusqueda] = useState("");
   const [cargando, setCargando] = useState(true);
+
+  const [paginaActual, setPaginaActual] = useState(1);
+  const [registrosPorPagina, setRegistrosPorPagina] = useState(10);
+  const REGISTROS_POR_PAGINA_OPTIONS = [5, 10, 20, 50];
 
   const [confirmDialog, setConfirmDialog] = useState(null);
   const [confirmLoading, setConfirmLoading] = useState(false);
@@ -183,7 +188,7 @@ export function AsesoresYMonitoresForm() {
           </thead>
 
           <tbody>
-            {filtrados.map((u) => (
+            {filtrados.slice((paginaActual - 1) * registrosPorPagina, (paginaActual - 1) * registrosPorPagina + registrosPorPagina).map((u) => (
               <tr
                 key={`${u.rol}-${u.id}`}
                 className="border-t hover:bg-muted/30 transition"
@@ -231,6 +236,16 @@ export function AsesoresYMonitoresForm() {
           </tbody>
         </table>
       </div>
+
+      <Pagination
+        currentPage={paginaActual}
+        totalPages={Math.max(1, Math.ceil(filtrados.length / registrosPorPagina))}
+        onPageChange={(p) => setPaginaActual(p)}
+        pageSize={registrosPorPagina}
+        onPageSizeChange={(v) => { setRegistrosPorPagina(v); setPaginaActual(1); }}
+        pageSizeOptions={REGISTROS_POR_PAGINA_OPTIONS}
+        totalItems={filtrados.length}
+      />
 
       {filtrados.length === 0 && (
         <p className="text-center text-muted-foreground">

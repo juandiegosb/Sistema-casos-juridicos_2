@@ -1,7 +1,7 @@
 "use client"
 
 import { FileText } from "lucide-react"
-import { ConsultasJuridicasForm } from "@/components/forms/ConsultasJuridicasForm"
+import { ConsultasJuridicasForm } from "@/components/forms/consulta/ConsultasJuridicasForm"
 
 export default function ConsultasJuridicasPage() {
   return (

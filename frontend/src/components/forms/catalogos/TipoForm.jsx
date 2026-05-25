@@ -3,8 +3,8 @@
 import React, { useState, useEffect } from "react";
 import { useApiForm } from "@/hooks/useApiForm";
 import { useForm } from "react-hook-form";
-import { FormInput } from "./parts/FormInput";
-import { FormSelect } from "./parts/FormSelect";
+import { FormInput } from "../parts/FormInput";
+import { FormSelect } from "../parts/FormSelect";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
 import { API_URL_BASE } from "@/lib/config";

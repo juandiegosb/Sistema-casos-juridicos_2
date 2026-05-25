@@ -1,7 +1,7 @@
 "use client"
 
 import { FilePlus } from "lucide-react"
-import { NuevaConsultaForm } from "@/components/forms/NuevaConsultaForm"
+import { NuevaConsultaForm } from "@/components/forms/consulta/NuevaConsultaForm"
 
 export default function NuevaConsultaPage() {
   return (

@@ -4,13 +4,14 @@ import React, { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { API_URL_BASE } from "@/lib/config";
-import { FormInput } from "./parts/FormInput";
-import { FormSelect } from "./parts/FormSelect";
-import { FormCheckbox } from "./parts/FormCheckbox";
+import { FormInput } from "../parts/FormInput";
+import { FormSelect } from "../parts/FormSelect";
+import { FormCheckbox } from "../parts/FormCheckbox";
 import { useForm } from "react-hook-form";
 import { useRouter } from "next/navigation";
 import { PERMISOS } from "@/lib/permission";
 import { normalizar, tieneAlgunPermiso, tienePermiso } from "@/lib/authz";
+import Pagination from "@/components/ui/Pagination";
 
 const PERMISO_GESTIONAR_USUARIOS = "Gestionar usuarios";
 
@@ -131,6 +132,9 @@ export function CambiarRolUsuarioForm() {
   const router = useRouter();
 
   const [user, setUser] = useState(null);
+  const [paginaActualModal, setPaginaActualModal] = useState(1);
+  const [registrosPorPaginaModal, setRegistrosPorPaginaModal] = useState(10);
+  const REGISTROS_POR_PAGINA_OPTIONS_MODAL = [5, 10, 20, 50];
   const [usuarios, setUsuarios] = useState([]);
   const [roles, setRoles] = useState([]);
   const [tiposDocumento, setTiposDocumento] = useState([]);
@@ -855,7 +859,7 @@ export function CambiarRolUsuarioForm() {
                         </td>
                       </tr>
                     ) : (
-                      usuariosFiltrados.map((usuario) => (
+                      usuariosFiltrados.slice((paginaActualModal - 1) * registrosPorPaginaModal, (paginaActualModal - 1) * registrosPorPaginaModal + registrosPorPaginaModal).map((usuario) => (
                         <tr key={usuario.id} className="border-t hover:bg-muted/50">
                           <td className="px-4 py-3">{usuario.id}</td>
                           <td className="px-4 py-3">{usuario.username}</td>
@@ -880,6 +884,17 @@ export function CambiarRolUsuarioForm() {
                   </tbody>
                 </table>
               </div>
+
+              <Pagination
+                currentPage={paginaActualModal}
+                totalPages={Math.max(1, Math.ceil(usuariosFiltrados.length / registrosPorPaginaModal))}
+                onPageChange={(p) => setPaginaActualModal(p)}
+                pageSize={registrosPorPaginaModal}
+                onPageSizeChange={(v) => { setRegistrosPorPaginaModal(v); setPaginaActualModal(1); }}
+                pageSizeOptions={REGISTROS_POR_PAGINA_OPTIONS_MODAL}
+                totalItems={usuariosFiltrados.length}
+              />
+
             </div>
           </div>
         </div>

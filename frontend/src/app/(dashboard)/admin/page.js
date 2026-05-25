@@ -7,11 +7,11 @@ import {
   TabsTrigger,
 } from "@/components/ui/tabs"
 
-import { TemaForm } from "@/components/forms/TemaForm"
-import { TipoForm } from "@/components/forms/TipoForm"
-import { AreaForm } from "@/components/forms/AreaForm"
-import { RolePermissionsForm } from "@/components/forms/RolePermissionsForm"
-import { CambiarRolUsuarioForm } from "@/components/forms/CambiarRolUsuarioForm"
+import { TemaForm } from "@/components/forms/catalogos/TemaForm"
+import { TipoForm } from "@/components/forms/catalogos/TipoForm"
+import { AreaForm } from "@/components/forms/catalogos/AreaForm"
+import { RolePermissionsForm } from "@/components/forms/AdminUsuarios/RolePermissionsForm"
+import { CambiarRolUsuarioForm } from "@/components/forms/AdminUsuarios/CambiarRolUsuarioForm"
 
 export default function ConfiguracionCatalogos() {
   return (
