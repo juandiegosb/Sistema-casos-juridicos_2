@@ -8,20 +8,15 @@ import co.edu.ufps.legal_cases.business.dto.consulta.ConsultaDTO;
 import co.edu.ufps.legal_cases.business.model.consulta.Consulta;
 import co.edu.ufps.legal_cases.business.model.perfil.Asesor;
 import co.edu.ufps.legal_cases.business.model.perfil.Estudiante;
-import co.edu.ufps.legal_cases.business.service.acceso.consulta.ConsultaAccessService;
-import co.edu.ufps.legal_cases.security.dto.account.PerfilUsuarioActual;
-import co.edu.ufps.legal_cases.security.model.account.TipoPerfilUsuario;
 import lombok.AllArgsConstructor;
 
 // Centraliza la construcción de Consulta desde el DTO.
-// Mantiene fuera del CommandService la asignación de relaciones,
-// normalización de textos y asignación automática de responsables.
+// Mantiene fuera del CommandService la asignación de relaciones y normalización de textos.
 @Service
 @AllArgsConstructor
 public class ConsultaConstruccionService {
 
     private final ConsultaRelacionService consultaRelacionService;
-    private final ConsultaAccessService consultaAccessService;
 
     public Consulta aplicarDatos(
             Consulta consulta,
@@ -36,7 +31,6 @@ public class ConsultaConstruccionService {
         consulta.setTramite(normalizarTexto(dto.getTramite()));
         consulta.setObservaciones(normalizarTexto(dto.getObservaciones()));
         consulta.setTipoViolencia(normalizarTexto(dto.getTipoViolencia()));
-        consulta.setEstado(dto.getEstado());
         consulta.setResultado(normalizarTexto(dto.getResultado()));
 
         consulta.setPersona(consultaRelacionService.obtenerPersona(dto.getPersonaId()));
@@ -56,26 +50,6 @@ public class ConsultaConstruccionService {
         consulta.getContrapartes().addAll(consultaRelacionService.obtenerPersonas(dto.getContrapartesIds()));
 
         return consulta;
-    }
-
-    public void asignarResponsablesSegunUsuarioActual(Consulta consulta) {
-        PerfilUsuarioActual perfil = consultaAccessService.obtenerPerfilActual();
-
-        if (perfil.getTipoPerfil() == TipoPerfilUsuario.ESTUDIANTE) {
-            Estudiante estudiante = consultaRelacionService.obtenerEstudiante(perfil.getPerfilId());
-            consulta.setEstudiante(estudiante);
-            consulta.setAsesor(estudiante.getAsesor());
-            return;
-        }
-
-        if (perfil.getTipoPerfil() == TipoPerfilUsuario.ASESOR) {
-            consulta.setAsesor(consultaRelacionService.obtenerAsesor(perfil.getPerfilId()));
-            return;
-        }
-
-        if (perfil.getTipoPerfil() == TipoPerfilUsuario.MONITOR) {
-            consulta.setMonitor(consultaRelacionService.obtenerMonitor(perfil.getPerfilId()));
-        }
     }
 
     private void asignarResponsablesDesdeDto(Consulta consulta, ConsultaDTO dto) {

@@ -129,8 +129,15 @@ public class ConsultaAccessService {
     public void validarPuedeAsignarResponsablesConsulta() {
         validarTienePermiso(ASIGNAR_RESPONSABLES_CONSULTA);
 
-        if (!usuarioActualService.esRolAdministrador()) {
-            throw new AccessDeniedException("Solo el administrador puede asignar responsables de consulta");
+        if (usuarioActualService.esEstudiante()) {
+            throw new AccessDeniedException("El estudiante no puede asignar responsables de consulta");
+        }
+    }
+
+    @Transactional(readOnly = true)
+    public void validarPuedeAsignarResponsablesConsultaSiAplica(boolean solicitaAsignacionResponsables) {
+        if (solicitaAsignacionResponsables) {
+            validarPuedeAsignarResponsablesConsulta();
         }
     }
 
@@ -191,7 +198,7 @@ public class ConsultaAccessService {
     }
 
     public boolean usuarioPuedeAsignarResponsables() {
-        return usuarioActualService.esRolAdministrador()
+        return !usuarioActualService.esEstudiante()
                 && usuarioActualService.tienePermiso(ASIGNAR_RESPONSABLES_CONSULTA);
     }
 

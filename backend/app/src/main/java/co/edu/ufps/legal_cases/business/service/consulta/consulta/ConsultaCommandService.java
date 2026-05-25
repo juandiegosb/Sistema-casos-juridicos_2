@@ -31,7 +31,10 @@ public class ConsultaCommandService {
         consultaAccessService.validarPuedeCrearConsulta();
         consultaValidator.validarIdNoEnviadoEnCreacion(dto.getId());
         consultaValidator.validarCamposObligatorios(dto);
-        consultaValidator.validarEstadoInicialPermitido(dto.getEstado());
+        consultaValidator.validarEstadoInicialPendienteSiFueEnviado(dto.getEstado());
+
+        boolean solicitaAsignacionResponsables = consultaValidator.tieneResponsablesEnDto(dto);
+        consultaAccessService.validarPuedeAsignarResponsablesConsultaSiAplica(solicitaAsignacionResponsables);
 
         boolean puedeAsignarResponsables = consultaAccessService.usuarioPuedeAsignarResponsables();
 
@@ -40,9 +43,8 @@ public class ConsultaCommandService {
                 dto,
                 puedeAsignarResponsables);
 
-        if (!puedeAsignarResponsables) {
-            consultaConstruccionService.asignarResponsablesSegunUsuarioActual(consulta);
-        }
+        // Toda consulta nueva entra primero a revisión administrativa.
+        consulta.setEstado(EstadoConsulta.PENDIENTE);
 
         // Valida relaciones cruzadas del dominio antes de guardar.
         // Ejemplo: tema-área, tipo-tema, asesor-área y personas repetidas.
@@ -65,11 +67,17 @@ public class ConsultaCommandService {
         consultaValidator.validarIdNoCambiado(existente.getId(), dto.getId());
 
         EstadoConsulta estadoActual = existente.getEstado();
+        consultaValidator.validarEstadoNoCambiadoEnActualizacion(estadoActual, dto.getEstado());
+
+        boolean solicitaCambioResponsables = consultaValidator.cambiaResponsablesEnDto(existente, dto);
+        consultaAccessService.validarPuedeAsignarResponsablesConsultaSiAplica(solicitaCambioResponsables);
+
+        boolean puedeAsignarResponsables = consultaAccessService.usuarioPuedeAsignarResponsables();
 
         consultaConstruccionService.aplicarDatos(
                 existente,
                 dto,
-                consultaAccessService.usuarioPuedeAsignarResponsables());
+                puedeAsignarResponsables);
 
         // Actualizar datos de la consulta no debe cambiar el estado.
         // Para eso existe cambiarEstado().
@@ -89,6 +97,7 @@ public class ConsultaCommandService {
         consultaValidator.validarNoArchivada(consulta);
         consultaValidator.validarCambioEstadoPermitido(consulta, estado);
         consultaEstadoService.validarCambioEstado(consulta, estado);
+        consultaValidator.validarRequisitosParaEstadoOperativo(consulta, estado);
 
         consulta.setEstado(estado);
 

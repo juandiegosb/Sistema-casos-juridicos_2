@@ -17,6 +17,7 @@ import co.edu.ufps.legal_cases.business.model.consulta.Consulta;
 import co.edu.ufps.legal_cases.business.model.consulta.EstadoConsulta;
 import co.edu.ufps.legal_cases.business.model.perfil.Asesor;
 import co.edu.ufps.legal_cases.business.model.perfil.Estudiante;
+import co.edu.ufps.legal_cases.business.model.perfil.Monitor;
 import co.edu.ufps.legal_cases.business.model.persona.Persona;
 import co.edu.ufps.legal_cases.business.service.acceso.consulta.ConsultaAccessService;
 import co.edu.ufps.legal_cases.common.exception.BusinessException;
@@ -61,8 +62,6 @@ public class ConsultaValidator {
             throw new BusinessException("El concepto jurídico es obligatorio");
         if (normalizarTexto(dto.getTramite()) == null)
             throw new BusinessException("El trámite es obligatorio");
-        if (dto.getEstado() == null)
-            throw new BusinessException("El estado es obligatorio");
         if (dto.getPersonaId() == null)
             throw new BusinessException("La persona es obligatoria");
         if (dto.getSedeId() == null)
@@ -71,6 +70,21 @@ public class ConsultaValidator {
             throw new BusinessException("El área es obligatoria");
         if (dto.getTemaId() == null)
             throw new BusinessException("El tema es obligatorio");
+    }
+
+    public void validarEstadoInicialPendienteSiFueEnviado(EstadoConsulta estado) {
+        if (estado != null && !EstadoConsulta.PENDIENTE.equals(estado)) {
+            throw new BusinessException("Una consulta nueva debe iniciar en estado pendiente");
+        }
+    }
+
+    public void validarEstadoNoCambiadoEnActualizacion(
+            EstadoConsulta estadoActual,
+            EstadoConsulta estadoDto) {
+
+        if (estadoDto != null && !Objects.equals(estadoActual, estadoDto)) {
+            throw new BusinessException("El estado de la consulta no se cambia desde la edición de datos generales");
+        }
     }
 
     public void validarCambioEstadoPermitido(Consulta consulta, EstadoConsulta estadoNuevo) {
@@ -114,18 +128,38 @@ public class ConsultaValidator {
                 consulta.getContrapartes());
     }
 
-    public void validarEstadoInicialPermitido(EstadoConsulta estado) {
-        if (estado == null) {
-            throw new BusinessException("El estado de la consulta es obligatorio");
+    public void validarRequisitosParaEstadoOperativo(Consulta consulta, EstadoConsulta estadoNuevo) {
+        if (!requiereResponsablesParaAtencion(estadoNuevo)) {
+            return;
         }
 
-        if (EstadoConsulta.CERRADO.equals(estado)) {
-            throw new BusinessException("Una consulta nueva no puede crearse cerrada");
+        // Para entrar en atención real, la consulta debe tener responsables internos mínimos.
+        if (consulta.getAsesor() == null) {
+            throw new BusinessException("No se puede activar la consulta porque no tiene asesor asignado");
         }
 
-        if (EstadoConsulta.ARCHIVADO.equals(estado)) {
-            throw new BusinessException("Una consulta nueva no puede crearse archivada");
+        if (consulta.getEstudiante() == null) {
+            throw new BusinessException("No se puede activar la consulta porque no tiene estudiante asignado");
         }
+
+        validarCoherenciaDominio(consulta);
+    }
+
+    public boolean tieneResponsablesEnDto(ConsultaDTO dto) {
+        return dto != null
+                && (dto.getAsesorId() != null
+                        || dto.getMonitorId() != null
+                        || dto.getEstudianteId() != null);
+    }
+
+    public boolean cambiaResponsablesEnDto(Consulta consulta, ConsultaDTO dto) {
+        if (consulta == null || dto == null) {
+            return false;
+        }
+
+        return idFueEnviadoYEsDiferente(obtenerId(consulta.getAsesor()), dto.getAsesorId())
+                || idFueEnviadoYEsDiferente(obtenerId(consulta.getMonitor()), dto.getMonitorId())
+                || idFueEnviadoYEsDiferente(obtenerId(consulta.getEstudiante()), dto.getEstudianteId());
     }
 
     private void validarJerarquiaCatalogos(Area area, Tema tema, Tipo tipo) {
@@ -199,6 +233,28 @@ public class ConsultaValidator {
 
         validarSinDuplicados(partes, "partes");
         validarSinDuplicados(contrapartes, "contrapartes");
+    }
+
+    private boolean requiereResponsablesParaAtencion(EstadoConsulta estado) {
+        return EstadoConsulta.ACTIVO.equals(estado)
+                || EstadoConsulta.EN_PROCESO.equals(estado)
+                || EstadoConsulta.URGENTE.equals(estado);
+    }
+
+    private boolean idFueEnviadoYEsDiferente(Long idActual, Long idDto) {
+        return idDto != null && !Objects.equals(idActual, idDto);
+    }
+
+    private Long obtenerId(Asesor asesor) {
+        return asesor != null ? asesor.getId() : null;
+    }
+
+    private Long obtenerId(Monitor monitor) {
+        return monitor != null ? monitor.getId() : null;
+    }
+
+    private Long obtenerId(Estudiante estudiante) {
+        return estudiante != null ? estudiante.getId() : null;
     }
 
     private Set<Long> obtenerIds(List<Persona> personas) {

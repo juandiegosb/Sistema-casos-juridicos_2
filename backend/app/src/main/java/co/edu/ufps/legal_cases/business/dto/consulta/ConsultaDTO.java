@@ -42,7 +42,6 @@ public class ConsultaDTO {
     @Size(max = 100, message = "El tipo de violencia no puede superar los 100 caracteres")
     private String tipoViolencia;
 
-    @NotNull(message = "El estado es obligatorio")
     private EstadoConsulta estado;
 
     @Size(max = 100, message = "El resultado no puede superar los 100 caracteres")
