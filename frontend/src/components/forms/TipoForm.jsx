@@ -138,7 +138,7 @@ export function TipoForm() {
       setDesactivando(true);
 
       const res = await fetch(
-        `${API_URL_BASE}/tipos/${tipoADesactivar.id}/desactivar`,
+        `${API_URL_BASE}/tipos/${tipoADesactivar.id}/activo?activo=false`,
         {
           method: "PATCH",
           credentials: "include",

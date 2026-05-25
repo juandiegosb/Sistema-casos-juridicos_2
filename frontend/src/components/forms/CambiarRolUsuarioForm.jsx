@@ -10,14 +10,51 @@ import { FormCheckbox } from "./parts/FormCheckbox";
 import { useForm } from "react-hook-form";
 import { useRouter } from "next/navigation";
 import { PERMISOS } from "@/lib/permission";
-import { tienePermiso } from "@/lib/authz";
+import { normalizar, tieneAlgunPermiso, tienePermiso } from "@/lib/authz";
+
+const PERMISO_GESTIONAR_USUARIOS = "Gestionar usuarios";
 
 const TIPOS_PERFIL = [
-  { value: "ADMINISTRATIVO", label: "Administrativo", endpoint: "administrativo", endpointActual: "administrativos", rolId: 1 },
-  { value: "ASESOR", label: "Asesor", endpoint: "asesor", endpointActual: "asesores", rolId: 2 },
-  { value: "ESTUDIANTE", label: "Estudiante", endpoint: "estudiante", endpointActual: "estudiantes", rolId: 3 },
-  { value: "MONITOR", label: "Monitor", endpoint: "monitor", endpointActual: "monitores", rolId: 4 },
-  { value: "CONCILIADOR", label: "Conciliador", endpoint: "conciliador", endpointActual: "conciliadores", rolId: 5 },
+  {
+    value: "ADMINISTRATIVO",
+    label: "Administrativo",
+    endpoint: "administrativo",
+    endpointActual: "administrativos",
+    rolIdFallback: 1,
+    nombresRol: ["Administrador", "Administrativo"],
+  },
+  {
+    value: "ASESOR",
+    label: "Asesor",
+    endpoint: "asesor",
+    endpointActual: "asesores",
+    rolIdFallback: 2,
+    nombresRol: ["Asesor"],
+  },
+  {
+    value: "ESTUDIANTE",
+    label: "Estudiante",
+    endpoint: "estudiante",
+    endpointActual: "estudiantes",
+    rolIdFallback: 3,
+    nombresRol: ["Estudiante"],
+  },
+  {
+    value: "MONITOR",
+    label: "Monitor",
+    endpoint: "monitor",
+    endpointActual: "monitores",
+    rolIdFallback: 4,
+    nombresRol: ["Monitor"],
+  },
+  {
+    value: "CONCILIADOR",
+    label: "Conciliador",
+    endpoint: "conciliador",
+    endpointActual: "conciliadores",
+    rolIdFallback: 5,
+    nombresRol: ["Conciliador"],
+  },
 ];
 
 const VALORES_INICIALES = {
@@ -49,18 +86,60 @@ function filtrarActivos(lista) {
   return Array.isArray(lista) ? lista.filter(usuarioActivo) : [];
 }
 
+function extraerLista(data) {
+  if (Array.isArray(data)) return data;
+  if (Array.isArray(data?.content)) return data.content;
+  if (Array.isArray(data?.data)) return data.data;
+  if (Array.isArray(data?.items)) return data.items;
+  if (Array.isArray(data?.rows)) return data.rows;
+  return [];
+}
+
+function mapOption(item) {
+  return {
+    value: item.id,
+    label:
+      item.displayName ||
+      item.nombre ||
+      item.descripcion ||
+      item.codigo ||
+      String(item.id),
+  };
+}
+
+function normalizarTexto(value) {
+  const text = String(value || "").trim();
+  return text === "" ? null : text;
+}
+
+function toNumberOrNull(value) {
+  if (value === null || value === undefined || value === "") return null;
+  const parsed = Number(value);
+  return Number.isNaN(parsed) ? null : parsed;
+}
+
+function buscarPerfil(value) {
+  return TIPOS_PERFIL.find((perfil) => perfil.value === value);
+}
+
+function coincideNombreRol(rol, perfil) {
+  const nombre = normalizar(rol?.nombre);
+  return perfil.nombresRol.some((nombreRol) => normalizar(nombreRol) === nombre);
+}
+
 export function CambiarRolUsuarioForm() {
   const router = useRouter();
 
   const [user, setUser] = useState(null);
   const [usuarios, setUsuarios] = useState([]);
+  const [roles, setRoles] = useState([]);
   const [tiposDocumento, setTiposDocumento] = useState([]);
   const [sedes, setSedes] = useState([]);
   const [asesores, setAsesores] = useState([]);
   const [areas, setAreas] = useState([]);
   const [loading, setLoading] = useState(true);
   const [guardando, setGuardando] = useState(false);
-  const [perfilPrevioInfo, setPerfilPrevioInfo] = useState(null);
+  const [avisoPerfil, setAvisoPerfil] = useState(null);
   const [modalAbierto, setModalAbierto] = useState(false);
   const [busquedaModal, setBusquedaModal] = useState("");
 
@@ -81,11 +160,24 @@ export function CambiarRolUsuarioForm() {
     return usuarios.find((usuario) => String(usuario.id) === String(usuarioSistemaId));
   }, [usuarios, usuarioSistemaId]);
 
-  const perfilDestino = useMemo(() => {
-    return TIPOS_PERFIL.find((perfil) => perfil.value === destino);
-  }, [destino]);
+  const perfilDestino = useMemo(() => buscarPerfil(destino), [destino]);
 
-  const puedeAsignarRol = tienePermiso(user, PERMISOS.ASIGNAR_ROL_USUARIOS);
+  const rolesPorPerfil = useMemo(() => {
+    const mapa = {};
+
+    TIPOS_PERFIL.forEach((perfil) => {
+      const rol = roles.find((item) => coincideNombreRol(item, perfil));
+      if (rol?.id) mapa[perfil.value] = rol;
+    });
+
+    return mapa;
+  }, [roles]);
+
+  const puedeAsignarRol = tieneAlgunPermiso(user, [
+    PERMISOS.ASIGNAR_ROL_USUARIOS,
+    PERMISO_GESTIONAR_USUARIOS,
+  ]);
+
   const puedeGestionarAdministradores = tienePermiso(
     user,
     PERMISOS.GESTIONAR_ADMINISTRADORES
@@ -124,18 +216,24 @@ export function CambiarRolUsuarioForm() {
     if (!usuarioSeleccionado) return;
 
     setValue("destino", "");
-    setPerfilPrevioInfo(null);
+    setAvisoPerfil(null);
+    limpiarCamposDestino();
     cargarDatosActualesUsuario(usuarioSeleccionado);
   }, [usuarioSeleccionado, setValue]);
 
   useEffect(() => {
-    if (!usuarioSeleccionado || !perfilDestino) {
-      setPerfilPrevioInfo(null);
+    if (!perfilDestino) {
+      setAvisoPerfil(null);
       return;
     }
 
-    cargarPerfilPrevio(usuarioSeleccionado.id, perfilDestino);
-  }, [usuarioSeleccionado, perfilDestino]);
+    limpiarCamposDestino();
+    setAvisoPerfil({
+      tipo: "info",
+      mensaje:
+        "Se usarán los datos comunes cargados desde el perfil actual. Si el usuario ya tuvo el perfil destino, el backend reutilizará o reactivará ese registro al guardar.",
+    });
+  }, [perfilDestino]);
 
   async function leerRespuesta(response) {
     const text = await response.text();
@@ -147,6 +245,22 @@ export function CambiarRolUsuarioForm() {
     } catch {
       return { mensaje: text };
     }
+  }
+
+  async function fetchJson(url) {
+    const response = await fetch(url, { credentials: "include" });
+
+    if (response.status === 401) {
+      router.replace("/");
+      return [];
+    }
+
+    if (!response.ok) {
+      return [];
+    }
+
+    const data = await response.json();
+    return extraerLista(data);
   }
 
   async function cargarDatosIniciales() {
@@ -165,79 +279,40 @@ export function CambiarRolUsuarioForm() {
 
       const meData = await meRes.json();
 
-      if (!tienePermiso(meData, PERMISOS.ASIGNAR_ROL_USUARIOS)) {
+      if (
+        !tieneAlgunPermiso(meData, [
+          PERMISOS.ASIGNAR_ROL_USUARIOS,
+          PERMISO_GESTIONAR_USUARIOS,
+        ])
+      ) {
         router.replace("/inicio");
         return;
       }
 
       setUser(meData);
 
-      const [usuariosRes, tiposRes, sedesRes, asesoresRes, areasRes] =
+      const [usuariosData, rolesData, tiposData, sedesData, asesoresData, areasData] =
         await Promise.all([
-          fetch(`${API_URL_BASE}/usuarios-sistema/activos`, { credentials: "include" }),
-          fetch(`${API_URL_BASE}/tipos-documento`, { credentials: "include" }),
-          fetch(`${API_URL_BASE}/sedes`, { credentials: "include" }),
-          fetch(`${API_URL_BASE}/asesores/activos`, { credentials: "include" }),
-          fetch(`${API_URL_BASE}/areas`, { credentials: "include" }),
+          fetchJson(`${API_URL_BASE}/usuarios-sistema/activos`),
+          fetchJson(`${API_URL_BASE}/roles/activos`),
+          fetchJson(`${API_URL_BASE}/tipos-documento/activos`),
+          fetchJson(`${API_URL_BASE}/sedes`),
+          fetchJson(`${API_URL_BASE}/asesores/activos`),
+          fetchJson(`${API_URL_BASE}/areas`),
         ]);
 
-      if (usuariosRes.status === 401) {
-        router.replace("/");
-        return;
-      }
-
-      if (usuariosRes.status === 403) {
-        router.replace("/inicio");
-        return;
-      }
-
-      const usuariosData = usuariosRes.ok ? await usuariosRes.json() : [];
-      const tiposData = tiposRes.ok ? await tiposRes.json() : [];
-      const sedesData = sedesRes.ok ? await sedesRes.json() : [];
-      const asesoresData = asesoresRes.ok ? await asesoresRes.json() : [];
-      const areasData = areasRes.ok ? await areasRes.json() : [];
-
       setUsuarios(filtrarActivos(usuariosData));
-
-      setTiposDocumento(
-        Array.isArray(tiposData)
-          ? tiposData.map((tipo) => ({
-              value: tipo.id,
-              label:
-                tipo.displayName ||
-                tipo.nombre ||
-                tipo.descripcion ||
-                tipo.codigo ||
-                String(tipo.id),
-            }))
-          : []
-      );
-
-      setSedes(
-        Array.isArray(sedesData)
-          ? sedesData.map((sede) => ({
-              value: sede.id,
-              label: sede.nombre,
-            }))
-          : []
-      );
-
+      setRoles(filtrarActivos(rolesData));
+      setTiposDocumento(tiposData.map(mapOption));
+      setSedes(sedesData.map(mapOption));
+      setAreas(areasData.map(mapOption));
       setAsesores(
         filtrarActivos(asesoresData).map((asesor) => ({
           value: asesor.id,
           label: asesor.documento
             ? `${asesor.nombre} - ${asesor.documento}`
-            : asesor.nombre,
+            : asesor.nombre || String(asesor.id),
         }))
-      );
-
-      setAreas(
-        Array.isArray(areasData)
-          ? areasData.map((area) => ({
-              value: area.id,
-              label: area.nombre,
-            }))
-          : []
       );
     } catch (error) {
       console.error(error);
@@ -248,9 +323,7 @@ export function CambiarRolUsuarioForm() {
   }
 
   async function cargarDatosActualesUsuario(usuario) {
-    const perfilActual = TIPOS_PERFIL.find(
-      (perfil) => perfil.value === usuario.tipoPerfil
-    );
+    const perfilActual = buscarPerfil(usuario.tipoPerfil);
 
     if (!perfilActual || !usuario.perfilId) {
       setValue("usuario", usuario.username || "");
@@ -269,57 +342,10 @@ export function CambiarRolUsuarioForm() {
       }
 
       const datos = await res.json();
-      precargarDatosComunes(datos);
+      precargarDatosPerfil(datos);
     } catch (error) {
       console.error("Error cargando datos actuales:", error);
       setValue("usuario", usuario.username || "");
-    }
-  }
-
-  async function cargarPerfilPrevio(usuarioId, perfil) {
-    try {
-      setPerfilPrevioInfo(null);
-      limpiarCamposDestino();
-
-      const response = await fetch(
-        `${API_URL_BASE}/usuarios-sistema/${usuarioId}/perfil/${perfil.endpoint}`,
-        {
-          method: "GET",
-          credentials: "include",
-        }
-      );
-
-      if (response.status === 401) {
-        router.replace("/");
-        return;
-      }
-
-      if (response.status === 403) {
-        router.replace("/inicio");
-        return;
-      }
-
-      if (response.status === 404) {
-        setPerfilPrevioInfo({
-          existe: false,
-          activo: false,
-          tipoPerfil: perfil.value,
-          datos: null,
-        });
-        return;
-      }
-
-      if (!response.ok) return;
-
-      const data = await response.json();
-      setPerfilPrevioInfo(data);
-
-      if (data?.datos) {
-        precargarDatosPerfil(data.datos);
-      }
-    } catch (error) {
-      console.error(error);
-      limpiarCamposDestino();
     }
   }
 
@@ -350,19 +376,30 @@ export function CambiarRolUsuarioForm() {
     setValue("tipoConciliador", datos.tipoConciliador || "");
   }
 
+  function obtenerRolIdDestino() {
+    if (!perfilDestino) return null;
+
+    return rolesPorPerfil[perfilDestino.value]?.id || perfilDestino.rolIdFallback;
+  }
+
   function construirPayload(data) {
+    const rolId = obtenerRolIdDestino();
+
     const payload = {
-      rolId: perfilDestino.rolId,
-      motivo: data.motivo,
-      nombre: data.nombre,
-      telefono: data.telefono,
-      usuario: data.usuario,
-      codigo: data.codigo,
+      rolId,
+      motivo: normalizarTexto(data.motivo),
+      nombre: normalizarTexto(data.nombre),
+      telefono: normalizarTexto(data.telefono),
+      usuario: normalizarTexto(data.usuario),
+      codigo: normalizarTexto(data.codigo),
     };
 
-    if (data.tipoDocumentoId) payload.tipoDocumentoId = Number(data.tipoDocumentoId);
-    if (data.documento) payload.documento = data.documento;
-    if (data.sedeId) payload.sedeId = Number(data.sedeId);
+    const tipoDocumentoId = toNumberOrNull(data.tipoDocumentoId);
+    const sedeId = toNumberOrNull(data.sedeId);
+
+    if (tipoDocumentoId !== null) payload.tipoDocumentoId = tipoDocumentoId;
+    if (normalizarTexto(data.documento)) payload.documento = normalizarTexto(data.documento);
+    if (sedeId !== null) payload.sedeId = sedeId;
 
     if (destino === "ESTUDIANTE") {
       payload.asesorId = Number(data.asesorId);
@@ -410,6 +447,13 @@ export function CambiarRolUsuarioForm() {
       return;
     }
 
+    const rolIdDestino = obtenerRolIdDestino();
+
+    if (!rolIdDestino) {
+      toast.error("No se pudo resolver el rol destino");
+      return;
+    }
+
     try {
       setGuardando(true);
 
@@ -447,9 +491,7 @@ export function CambiarRolUsuarioForm() {
 
       setUsuarios((current) =>
         filtrarActivos(
-          current.map((usuario) =>
-            usuario.id === result.id ? result : usuario
-          )
+          current.map((usuario) => (usuario.id === result.id ? result : usuario))
         )
       );
 
@@ -458,7 +500,7 @@ export function CambiarRolUsuarioForm() {
         usuarioSistemaId: String(result.id),
       });
 
-      setPerfilPrevioInfo(null);
+      setAvisoPerfil(null);
     } catch (error) {
       console.error(error);
       toast.error(error.message || "Error cambiando perfil");
@@ -475,14 +517,14 @@ export function CambiarRolUsuarioForm() {
       usuarioSistemaId: String(usuario.id),
     });
 
-    setPerfilPrevioInfo(null);
+    setAvisoPerfil(null);
     setModalAbierto(false);
     setBusquedaModal("");
   }
 
   function limpiarSeleccion() {
     reset(VALORES_INICIALES);
-    setPerfilPrevioInfo(null);
+    setAvisoPerfil(null);
     setBusquedaModal("");
   }
 
@@ -700,11 +742,15 @@ export function CambiarRolUsuarioForm() {
             >
               <option value="">Seleccione un perfil destino</option>
 
-              {perfilesDisponibles.map((perfil) => (
-                <option key={perfil.value} value={perfil.value}>
-                  {perfil.label}
-                </option>
-              ))}
+              {perfilesDisponibles.map((perfil) => {
+                const rolAsignado = rolesPorPerfil[perfil.value];
+                return (
+                  <option key={perfil.value} value={perfil.value}>
+                    {perfil.label}
+                    {rolAsignado?.nombre ? ` - Rol: ${rolAsignado.nombre}` : ""}
+                  </option>
+                );
+              })}
             </select>
 
             {errors?.destino && (
@@ -732,18 +778,9 @@ export function CambiarRolUsuarioForm() {
           </div>
         )}
 
-        {perfilPrevioInfo && (
-          <div className="rounded-lg border bg-background p-4 text-sm">
-            {perfilPrevioInfo.existe ? (
-              <p>
-                Se encontró un perfil previo{" "}
-                {perfilPrevioInfo.activo ? "activo" : "inactivo"} para este destino. Los datos fueron precargados.
-              </p>
-            ) : (
-              <p>
-                Este usuario no tiene datos previos para el perfil destino. Se mantienen los datos del perfil actual.
-              </p>
-            )}
+        {avisoPerfil && (
+          <div className="rounded-lg border bg-background p-4 text-sm text-muted-foreground">
+            <p>{avisoPerfil.mensaje}</p>
           </div>
         )}
 

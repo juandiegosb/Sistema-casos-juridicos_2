@@ -14,6 +14,8 @@ const FORM_TAREA_INICIAL = {
   categoriaId: "",
   descripcion: "",
   fechaEntrega: "",
+  diasNotificacion: "",
+  notificarPartes: false,
   alertaDisciplinaria: false,
   notificarEstudiante: true,
 }
@@ -27,6 +29,16 @@ const FORM_DECISION_INICIAL = {
   estado: "APROBADA",
   observacionRevision: "",
 }
+
+const FORM_ESTADO_SEGUIMIENTO_INICIAL = {
+  estado: "COMPLETADO",
+}
+
+const ESTADOS_SEGUIMIENTO = [
+  { value: "PENDIENTE", label: "Pendiente" },
+  { value: "COMPLETADO", label: "Completado" },
+  { value: "CANCELADO", label: "Cancelado" },
+]
 
 const PERMISOS_LEGACY = {
   GESTIONAR_CONSULTAS: "Gestionar consultas",
@@ -275,6 +287,43 @@ function estadoBadgeClass(estado) {
   }
 }
 
+function estadoSeguimientoBadgeClass(estado) {
+  switch (normalizar(estado)) {
+    case "COMPLETADO":
+      return "border-emerald-500/30 bg-emerald-500/10 text-emerald-700"
+    case "CANCELADO":
+      return "border-destructive/30 bg-destructive/10 text-destructive"
+    case "PENDIENTE":
+      return "border-yellow-500/30 bg-yellow-500/10 text-yellow-700"
+    default:
+      return "border-muted bg-muted text-muted-foreground"
+  }
+}
+
+function textoEstadoSeguimiento(estado) {
+  const encontrado = ESTADOS_SEGUIMIENTO.find((item) => item.value === normalizar(estado))
+  return encontrado?.label || estado || "Sin estado"
+}
+
+function consultaPermiteOperaciones(consulta) {
+  const estado = normalizar(consulta?.estado)
+  return estado !== "CERRADO" && estado !== "ARCHIVADO"
+}
+
+function seguimientoPermiteOperaciones(tarea) {
+  return normalizar(tarea?.estado || "PENDIENTE") === "PENDIENTE"
+}
+
+function seguimientoEstaVencido(tarea) {
+  if (!tarea?.fechaEntrega || !seguimientoPermiteOperaciones(tarea)) return false
+
+  const hoy = new Date()
+  hoy.setHours(0, 0, 0, 0)
+
+  const fechaEntrega = new Date(`${tarea.fechaEntrega}T00:00:00`)
+  return fechaEntrega.getTime() < hoy.getTime()
+}
+
 function pathRespuesta(seguimientoId, respuestaId) {
   return `tareas-${seguimientoId}-respuestas-${respuestaId}`
 }
@@ -314,11 +363,14 @@ export function SeguimientosForm() {
   const [respuestaEditando, setRespuestaEditando] = useState(null)
   const [respuestaDecision, setRespuestaDecision] = useState(null)
   const [formDecision, setFormDecision] = useState(FORM_DECISION_INICIAL)
+  const [seguimientoEstado, setSeguimientoEstado] = useState(null)
+  const [formEstadoSeguimiento, setFormEstadoSeguimiento] = useState(FORM_ESTADO_SEGUIMIENTO_INICIAL)
   const [loading, setLoading] = useState(true)
   const [loadingTareas, setLoadingTareas] = useState(false)
   const [guardando, setGuardando] = useState(false)
   const [subiendoRespuesta, setSubiendoRespuesta] = useState(false)
   const [guardandoDecision, setGuardandoDecision] = useState(false)
+  const [guardandoEstadoSeguimiento, setGuardandoEstadoSeguimiento] = useState(false)
   const [archivosPorRespuesta, setArchivosPorRespuesta] = useState({})
   const [cargandoArchivosRespuesta, setCargandoArchivosRespuesta] = useState({})
   const [tareaAEliminar, setTareaAEliminar] = useState(null)
@@ -465,7 +517,7 @@ export function SeguimientosForm() {
           : Promise.resolve([]),
         consultasPermitidas
           ? fetchLista(
-              `${API_URL_BASE}/consultas?page=0&size=500`,
+              `${API_URL_BASE}/consultas`,
               "No tienes permiso para consultar consultas"
             )
           : Promise.resolve([]),
@@ -579,6 +631,8 @@ export function SeguimientosForm() {
     setTareaRespuesta(null)
     setRespuestaEditando(null)
     setRespuestaDecision(null)
+    setSeguimientoEstado(null)
+    setFormEstadoSeguimiento(FORM_ESTADO_SEGUIMIENTO_INICIAL)
     setTareaAEliminar(null)
     setFormTarea(FORM_TAREA_INICIAL)
     reset(FORM_RESPUESTA_INICIAL)
@@ -594,6 +648,8 @@ export function SeguimientosForm() {
     setTareaRespuesta(null)
     setRespuestaEditando(null)
     setRespuestaDecision(null)
+    setSeguimientoEstado(null)
+    setFormEstadoSeguimiento(FORM_ESTADO_SEGUIMIENTO_INICIAL)
     setTareaAEliminar(null)
     setFormTarea(FORM_TAREA_INICIAL)
     reset(FORM_RESPUESTA_INICIAL)
@@ -619,6 +675,8 @@ export function SeguimientosForm() {
       categoriaId: obtenerCategoriaIdTarea(tarea),
       descripcion: obtenerTextoTarea(tarea),
       fechaEntrega: tarea.fechaEntrega || "",
+      diasNotificacion: tarea.diasNotificacion ?? "",
+      notificarPartes: Boolean(tarea.notificarPartes),
       alertaDisciplinaria: Boolean(tarea.alertaDisciplinaria),
       notificarEstudiante: tarea.notificarEstudiante !== false,
     })
@@ -642,6 +700,11 @@ export function SeguimientosForm() {
       return
     }
 
+    if (!consultaPermiteOperaciones(consultaSeleccionada)) {
+      toast.error("No se pueden crear ni editar tareas en consultas cerradas o archivadas")
+      return
+    }
+
     if (!formTarea.categoriaId) {
       toast.error("Selecciona una categoría")
       return
@@ -652,14 +715,26 @@ export function SeguimientosForm() {
       return
     }
 
+    if (formTarea.diasNotificacion !== "" && Number(formTarea.diasNotificacion) < 0) {
+      toast.error("Los días de notificación no pueden ser negativos")
+      return
+    }
+
+    if (formTarea.diasNotificacion !== "" && !formTarea.fechaEntrega) {
+      toast.error("Para usar días de notificación debes indicar fecha de entrega")
+      return
+    }
+
     try {
       setGuardando(true)
 
       const payload = {
         consultaId: Number(consultaSeleccionada.id || consultaSeleccionada.consultaId),
         categoriaSeguimientoId: Number(formTarea.categoriaId),
-        descripcion: formTarea.descripcion,
+        descripcion: formTarea.descripcion.trim(),
         fechaEntrega: formTarea.fechaEntrega || null,
+        diasNotificacion: formTarea.diasNotificacion === "" ? null : Number(formTarea.diasNotificacion),
+        notificarPartes: Boolean(formTarea.notificarPartes),
         alertaDisciplinaria: Boolean(formTarea.alertaDisciplinaria),
         notificarEstudiante: Boolean(formTarea.notificarEstudiante),
       }
@@ -692,6 +767,16 @@ export function SeguimientosForm() {
       return
     }
 
+    if (!consultaPermiteOperaciones(consultaSeleccionada)) {
+      toast.error("No se pueden eliminar tareas en consultas cerradas o archivadas")
+      return
+    }
+
+    if (!seguimientoPermiteOperaciones(tarea)) {
+      toast.error("Solo se pueden eliminar tareas pendientes")
+      return
+    }
+
     setTareaAEliminar(tarea)
   }
 
@@ -720,6 +805,16 @@ export function SeguimientosForm() {
   }
 
   function abrirRespuesta(tarea) {
+    if (!consultaPermiteOperaciones(consultaSeleccionada)) {
+      toast.error("No se puede responder una tarea de una consulta cerrada o archivada")
+      return
+    }
+
+    if (!seguimientoPermiteOperaciones(tarea)) {
+      toast.error("Solo se pueden responder tareas pendientes")
+      return
+    }
+
     const seguimientoId = obtenerIdTarea(tarea)
     const ultima = ultimaRespuesta(respuestasPorTarea[seguimientoId] || [])
     const accion = getAccionRespuesta(ultima, puedeResponder)
@@ -853,6 +948,16 @@ export function SeguimientosForm() {
       return
     }
 
+    if (!consultaPermiteOperaciones(consultaSeleccionada)) {
+      toast.error("No se puede responder una tarea de una consulta cerrada o archivada")
+      return
+    }
+
+    if (!seguimientoPermiteOperaciones(tareaRespuesta)) {
+      toast.error("Solo se pueden responder tareas pendientes")
+      return
+    }
+
     if (!data.contenido?.trim()) {
       toast.error("Escribe la respuesta")
       return
@@ -947,6 +1052,69 @@ export function SeguimientosForm() {
       toast.error(error.message || "No se pudo guardar la decisión")
     } finally {
       setGuardandoDecision(false)
+    }
+  }
+
+
+  function abrirCambioEstadoSeguimiento(tarea) {
+    if (!puedeEditar) {
+      toast.error("No tienes permisos para cambiar el estado de tareas")
+      return
+    }
+
+    if (!consultaPermiteOperaciones(consultaSeleccionada)) {
+      toast.error("No se puede cambiar el estado de tareas en consultas cerradas o archivadas")
+      return
+    }
+
+    const estadoActual = normalizar(tarea?.estado || "PENDIENTE")
+    const estadoSugerido = estadoActual === "PENDIENTE" ? "COMPLETADO" : estadoActual
+
+    setSeguimientoEstado(tarea)
+    setFormEstadoSeguimiento({ estado: estadoSugerido })
+  }
+
+  function cerrarCambioEstadoSeguimiento() {
+    setSeguimientoEstado(null)
+    setFormEstadoSeguimiento(FORM_ESTADO_SEGUIMIENTO_INICIAL)
+  }
+
+  async function guardarCambioEstadoSeguimiento(event) {
+    event.preventDefault()
+
+    if (!seguimientoEstado) {
+      toast.error("Selecciona una tarea")
+      return
+    }
+
+    if (!formEstadoSeguimiento.estado) {
+      toast.error("Selecciona el nuevo estado")
+      return
+    }
+
+    try {
+      setGuardandoEstadoSeguimiento(true)
+
+      await apiRequest(
+        `${API_URL_BASE}/seguimientos/${obtenerIdTarea(seguimientoEstado)}/estado?estado=${encodeURIComponent(formEstadoSeguimiento.estado)}`,
+        { method: "PATCH" }
+      )
+
+      toast.success("Estado de la tarea actualizado")
+      cerrarCambioEstadoSeguimiento()
+
+      if (consultaSeleccionada?.id || consultaSeleccionada?.consultaId) {
+        await cargarTareasPorConsulta(consultaSeleccionada.id || consultaSeleccionada.consultaId)
+      }
+
+      if (puedeRevisar) {
+        await refrescarPendientesRevision()
+      }
+    } catch (error) {
+      console.error(error)
+      toast.error(error.message || "No se pudo cambiar el estado de la tarea")
+    } finally {
+      setGuardandoEstadoSeguimiento(false)
     }
   }
 
@@ -1098,6 +1266,7 @@ export function SeguimientosForm() {
                   <th className="px-4 py-3 text-left font-medium">Fecha</th>
                   <th className="px-4 py-3 text-left font-medium">Persona</th>
                   <th className="px-4 py-3 text-left font-medium">Cédula</th>
+                  <th className="px-4 py-3 text-left font-medium">Estado</th>
                   <th className="px-4 py-3 text-right font-medium">Acción</th>
                 </tr>
               </thead>
@@ -1105,7 +1274,7 @@ export function SeguimientosForm() {
               <tbody>
                 {consultasFiltradas.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="px-4 py-8 text-center text-muted-foreground">
+                    <td colSpan={7} className="px-4 py-8 text-center text-muted-foreground">
                       No hay consultas para mostrar.
                     </td>
                   </tr>
@@ -1125,6 +1294,11 @@ export function SeguimientosForm() {
                         {[consulta.nombre, consulta.apellido].filter(Boolean).join(" ") || "N/A"}
                       </td>
                       <td className="px-4 py-3">{consulta.cedula || consulta.documento || "N/A"}</td>
+                      <td className="px-4 py-3">
+                        <span className="rounded-full border bg-muted px-2.5 py-1 text-xs font-medium">
+                          {consulta.estado || "Sin estado"}
+                        </span>
+                      </td>
                       <td className="px-4 py-3 text-right">
                         <Button
                           type="button"
@@ -1156,6 +1330,12 @@ export function SeguimientosForm() {
                 <p className="text-sm text-muted-foreground">
                   {labelConsulta(consultaSeleccionada)}
                 </p>
+
+                {!consultaPermiteOperaciones(consultaSeleccionada) && (
+                  <p className="mt-2 rounded-md border border-yellow-500/30 bg-yellow-500/10 px-3 py-2 text-sm text-yellow-700">
+                    Esta consulta está {consultaSeleccionada?.estado}. Solo se permite visualización histórica; no se pueden crear, editar, responder, eliminar ni cambiar estados de tareas.
+                  </p>
+                )}
               </div>
 
               <Button type="button" variant="outline" onClick={volverAConsultas}>
@@ -1164,7 +1344,7 @@ export function SeguimientosForm() {
             </div>
           </div>
 
-          {(puedeCrear || tareaEditando) && (
+          {consultaPermiteOperaciones(consultaSeleccionada) && (puedeCrear || tareaEditando) && (
             <form onSubmit={guardarTarea} className="rounded-xl border bg-card p-5 space-y-4">
               <div>
                 <h3 className="font-semibold">
@@ -1177,7 +1357,7 @@ export function SeguimientosForm() {
                 </p>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="flex flex-col gap-1.5">
                   <label className="text-sm font-medium">Categoría</label>
                   <select
@@ -1205,6 +1385,19 @@ export function SeguimientosForm() {
                     className="w-full rounded-md border bg-background px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
                   />
                 </div>
+
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-sm font-medium">Días de notificación</label>
+                  <input
+                    type="number"
+                    min="0"
+                    name="diasNotificacion"
+                    value={formTarea.diasNotificacion}
+                    onChange={handleTareaChange}
+                    placeholder="Ej. 3"
+                    className="w-full rounded-md border bg-background px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  />
+                </div>
               </div>
 
               <div className="flex flex-col gap-1.5">
@@ -1218,6 +1411,17 @@ export function SeguimientosForm() {
                   className="w-full rounded-md border bg-background px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 />
               </div>
+
+              <label className="flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  name="notificarPartes"
+                  checked={formTarea.notificarPartes}
+                  onChange={handleTareaChange}
+                  className="h-4 w-4"
+                />
+                Notificar partes y contrapartes
+              </label>
 
               {puedeVerAlertas && (
                 <label className="flex items-center gap-2 text-sm">
@@ -1295,9 +1499,12 @@ export function SeguimientosForm() {
                   const respuestas = respuestasPorTarea[seguimientoId] || []
                   const ultima = ultimaRespuesta(respuestas)
                   const accionRespuesta = getAccionRespuesta(ultima, puedeResponder)
-                  const mostrarBotonRespuesta = ["RESPONDER", "EDITAR", "RESPONDER_NUEVAMENTE"].includes(accionRespuesta)
-                  const puedeEditarRegistro = accionPermitidaPorRegistro(tarea, "puedeEditar", puedeEditar)
-                  const puedeEliminarRegistro = accionPermitidaPorRegistro(tarea, "puedeEliminar", puedeEliminar)
+                  const mostrarBotonRespuesta = consultaPermiteOperaciones(consultaSeleccionada) && seguimientoPermiteOperaciones(tarea) && ["RESPONDER", "EDITAR", "RESPONDER_NUEVAMENTE"].includes(accionRespuesta)
+                  const puedeOperarConsulta = consultaPermiteOperaciones(consultaSeleccionada)
+                  const puedeOperarSeguimiento = seguimientoPermiteOperaciones(tarea)
+                  const puedeEditarRegistro = puedeOperarConsulta && puedeOperarSeguimiento && accionPermitidaPorRegistro(tarea, "puedeEditar", puedeEditar)
+                  const puedeEliminarRegistro = puedeOperarConsulta && puedeOperarSeguimiento && accionPermitidaPorRegistro(tarea, "puedeEliminar", puedeEliminar)
+                  const puedeCambiarEstadoRegistro = puedeOperarConsulta && accionPermitidaPorRegistro(tarea, "puedeEditar", puedeEditar)
 
                   return (
                     <div key={seguimientoId} className="rounded-lg border bg-background p-4 space-y-3">
@@ -1307,6 +1514,16 @@ export function SeguimientosForm() {
                             <span className="rounded-full border bg-muted px-2.5 py-1 text-xs font-medium">
                               {obtenerCategoriaTarea(tarea)}
                             </span>
+
+                            <span className={`rounded-full border px-2.5 py-1 text-xs font-medium ${estadoSeguimientoBadgeClass(tarea.estado || "PENDIENTE")}`}>
+                              {textoEstadoSeguimiento(tarea.estado || "PENDIENTE")}
+                            </span>
+
+                            {seguimientoEstaVencido(tarea) && (
+                              <span className="rounded-full border border-yellow-500/30 bg-yellow-500/10 px-2.5 py-1 text-xs font-medium text-yellow-700">
+                                Vencida
+                              </span>
+                            )}
 
                             {tarea.alertaDisciplinaria && puedeVerAlertas && (
                               <span className="rounded-full border border-destructive/30 bg-destructive/10 px-2.5 py-1 text-xs font-medium text-destructive">
@@ -1355,6 +1572,17 @@ export function SeguimientosForm() {
                             </Button>
                           )}
 
+                          {puedeCambiarEstadoRegistro && (
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={() => abrirCambioEstadoSeguimiento(tarea)}
+                            >
+                              Cambiar estado
+                            </Button>
+                          )}
+
                           {mostrarBotonRespuesta && (
                             <Button
                               type="button"
@@ -1367,7 +1595,7 @@ export function SeguimientosForm() {
                         </div>
                       </div>
 
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs text-muted-foreground">
+                      <div className="grid grid-cols-1 md:grid-cols-5 gap-3 text-xs text-muted-foreground">
                         <div>
                           <span className="font-medium text-foreground">Autor: </span>
                           {obtenerAutorTarea(tarea)}
@@ -1381,6 +1609,16 @@ export function SeguimientosForm() {
                         <div>
                           <span className="font-medium text-foreground">Entrega programada: </span>
                           {tarea.fechaEntrega || "Sin fecha"}
+                        </div>
+
+                        <div>
+                          <span className="font-medium text-foreground">Recordatorio: </span>
+                          {tarea.diasNotificacion ?? "Sin días"}
+                        </div>
+
+                        <div>
+                          <span className="font-medium text-foreground">Notifica partes: </span>
+                          {tarea.notificarPartes ? "Sí" : "No"}
                         </div>
                       </div>
 
@@ -1529,13 +1767,72 @@ export function SeguimientosForm() {
         </div>
       )}
 
+
+      {seguimientoEstado && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
+          <form
+            onSubmit={guardarCambioEstadoSeguimiento}
+            className="w-full max-w-md rounded-xl border bg-background p-6 shadow-xl space-y-4"
+          >
+            <div>
+              <h3 className="text-lg font-semibold">Cambiar estado de tarea</h3>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Usa este flujo para completar, cancelar o volver a pendiente una tarea según las reglas del backend.
+              </p>
+            </div>
+
+            <div className="rounded-lg border bg-muted/30 p-3 text-sm">
+              <p className="font-medium">{obtenerCategoriaTarea(seguimientoEstado)}</p>
+              <p className="mt-1 line-clamp-3 text-muted-foreground">
+                {obtenerTextoTarea(seguimientoEstado)}
+              </p>
+            </div>
+
+            <div className="flex flex-col gap-1.5">
+              <label className="text-sm font-medium">Estado</label>
+              <select
+                value={formEstadoSeguimiento.estado}
+                onChange={(event) =>
+                  setFormEstadoSeguimiento((prev) => ({
+                    ...prev,
+                    estado: event.target.value,
+                  }))
+                }
+                className="w-full rounded-md border bg-background px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                {ESTADOS_SEGUIMIENTO.map((estado) => (
+                  <option key={estado.value} value={estado.value}>
+                    {estado.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="flex justify-end gap-3">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={cerrarCambioEstadoSeguimiento}
+                disabled={guardandoEstadoSeguimiento}
+              >
+                Cancelar
+              </Button>
+
+              <Button type="submit" disabled={guardandoEstadoSeguimiento}>
+                {guardandoEstadoSeguimiento ? "Guardando..." : "Guardar estado"}
+              </Button>
+            </div>
+          </form>
+        </div>
+      )}
+
       {tareaAEliminar && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
           <div className="w-full max-w-md rounded-xl border bg-background p-6 shadow-xl space-y-4">
             <div>
               <h3 className="text-lg font-semibold">Eliminar tarea</h3>
               <p className="mt-1 text-sm text-muted-foreground">
-                Esta acción no se puede deshacer. La tarea será eliminada permanentemente.
+                La tarea será desactivada lógicamente y se cancelarán sus notificaciones pendientes.
               </p>
             </div>
 

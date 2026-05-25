@@ -50,6 +50,8 @@ const PAGINAS = [
     permisos: [
       PERMISOS.ACCEDER_CONSULTAS_JURIDICAS,
       PERMISOS.VER_CONSULTAS,
+      PERMISOS.VER_CATALOGOS,
+      PERMISOS.VER_PERSONAS,
       PERMISOS.EDITAR_CONSULTAS,
       PERMISOS.CAMBIAR_ESTADO_CONSULTAS,
       PERMISOS.ARCHIVAR_CONSULTAS,
@@ -263,6 +265,28 @@ export function RolePermissionsForm() {
   );
 
   const paginasConfigurables = useMemo(() => PAGINAS, []);
+
+  const paginaAdministracion = "/admin";
+
+  const rolSeleccionadoEsPropio = useMemo(() => {
+    if (!me || !rolId) return false;
+
+    const roleById = roles.find((rol) => String(rol.id) === String(rolId));
+    if (roleById && me?.rolId != null) {
+      return String(me.rolId) === String(roleById.id);
+    }
+
+    if (roleById && me?.rolNombre) {
+      return normalizar(nombreRol(roleById)) === normalizar(me.rolNombre);
+    }
+
+    if (me?.rolNombre) {
+      return normalizar(nombreRol({ nombre: me.rolNombre })) ===
+        normalizar(me.rolNombre);
+    }
+
+    return false;
+  }, [me, rolId, roles]);
 
   useEffect(() => {
     cargarDatosIniciales();
@@ -515,6 +539,17 @@ export function RolePermissionsForm() {
       return;
     }
 
+    if (
+      path === paginaAdministracion &&
+      paginasSeleccionadas.includes(path) &&
+      rolSeleccionadoEsPropio
+    ) {
+      setError(
+        "No puedes quitar el acceso a Administración de tu propio rol."
+      );
+      return;
+    }
+
     setError("");
     setMensaje("");
 
@@ -600,6 +635,11 @@ export function RolePermissionsForm() {
 
     if (!rolId) {
       setError("Selecciona un rol");
+      return;
+    }
+
+    if (rolSeleccionadoEsPropio && !paginasSeleccionadas.includes(paginaAdministracion)) {
+      setError("No puedes quitar el acceso a Administración de tu propio rol.");
       return;
     }
 

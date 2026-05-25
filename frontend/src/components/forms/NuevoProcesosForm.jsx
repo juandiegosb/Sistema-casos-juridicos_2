@@ -20,7 +20,6 @@ const FORM_INICIAL = {
   consultaId: "",
   organoControlId: "",
   especialidadId: "",
-  activo: true,
 };
 
 function extraerLista(data) {
@@ -129,7 +128,6 @@ function normalizarPayload(form) {
     consultaId: form.consultaId ? Number(form.consultaId) : null,
     organoControlId: form.organoControlId ? Number(form.organoControlId) : null,
     especialidadId: form.especialidadId ? Number(form.especialidadId) : null,
-    activo: Boolean(form.activo),
   };
 }
 
@@ -349,7 +347,7 @@ export function NuevoProcesoForm() {
           catalogosPermitidos ? apiGet(`${API_URL_BASE}/departamentos`) : Promise.resolve([]),
           catalogosPermitidos ? apiGet(`${API_URL_BASE}/organos-control`) : Promise.resolve([]),
           catalogosPermitidos ? apiGet(`${API_URL_BASE}/especialidades`) : Promise.resolve([]),
-          consultasPermitidas ? apiGet(`${API_URL_BASE}/consultas?page=0&size=500`) : Promise.resolve([]),
+          consultasPermitidas ? apiGet(`${API_URL_BASE}/consultas`) : Promise.resolve([]),
         ]);
 
       if (departamentosRes.status === "fulfilled") setDepartamentos(ordenarActivosPrimero(extraerLista(departamentosRes.value)));
@@ -372,12 +370,13 @@ export function NuevoProcesoForm() {
 
   function validarAntesDeGuardar() {
     const numeroRadicado = String(form.numeroRadicado || "").trim();
-    if (!form.departamentoId) { toast.error("Selecciona un departamento"); return false; }
-    if (!form.consultaId) { toast.error("Selecciona una consulta"); return false; }
-    if (numeroRadicado && numeroRadicado.length !== 23) {
+    if (!numeroRadicado) { toast.error("Ingresa el número de radicado"); return false; }
+    if (numeroRadicado.length !== 23) {
       toast.error("El número de radicado debe tener exactamente 23 caracteres");
       return false;
     }
+    if (!form.departamentoId) { toast.error("Selecciona un departamento"); return false; }
+    if (!form.consultaId) { toast.error("Selecciona una consulta"); return false; }
     if (form.especialidadId && !form.organoControlId) {
       toast.error("Selecciona primero un órgano de control");
       return false;
@@ -428,10 +427,10 @@ export function NuevoProcesoForm() {
         <form onSubmit={guardarProceso} className="space-y-5">
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <CampoTexto
-              label="Número de radicado"
+              label="Número de radicado *"
               value={form.numeroRadicado}
               onChange={(v) => actualizarCampo("numeroRadicado", v)}
-              placeholder="Opcional, exactamente 23 caracteres"
+              placeholder="Exactamente 23 caracteres"
               maxLength={23}
             />
 
@@ -479,14 +478,7 @@ export function NuevoProcesoForm() {
               ))}
             </CampoSelect>
 
-            <label className="flex items-center gap-2 rounded-lg border p-3 text-sm">
-              <input
-                type="checkbox"
-                checked={form.activo}
-                onChange={(e) => actualizarCampo("activo", e.target.checked)}
-              />
-              Proceso activo
-            </label>
+
           </div>
 
           <div className="flex justify-end gap-3">

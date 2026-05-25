@@ -21,8 +21,24 @@ const FORM_INICIAL = {
   consultaId: "",
   organoControlId: "",
   especialidadId: "",
-  activo: true,
 };
+
+const ESTADOS_PROCESO = [
+  { value: "PENDIENTE", label: "Pendiente" },
+  { value: "SENTENCIA_FAVORABLE", label: "Sentencia favorable" },
+  { value: "SENTENCIA_DESFAVORABLE", label: "Sentencia desfavorable" },
+  { value: "DESISTIMIENTO", label: "Desistimiento" },
+  { value: "RECHAZO", label: "Rechazo" },
+  { value: "PRESCRIPCION", label: "Prescripción" },
+];
+
+function labelEstadoProceso(estado) {
+  return ESTADOS_PROCESO.find((item) => item.value === estado)?.label || estado || "Sin estado";
+}
+
+function estadoProcesoEsFinal(estado) {
+  return estado && estado !== "PENDIENTE";
+}
 
 function extraerLista(data) {
   if (Array.isArray(data)) return data;
@@ -142,7 +158,6 @@ function normalizarPayload(form) {
     consultaId: form.consultaId ? Number(form.consultaId) : null,
     organoControlId: form.organoControlId ? Number(form.organoControlId) : null,
     especialidadId: form.especialidadId ? Number(form.especialidadId) : null,
-    activo: Boolean(form.activo),
   };
 }
 
@@ -154,7 +169,6 @@ function procesoAForm(proceso) {
     consultaId: proceso.consultaId || "",
     organoControlId: proceso.organoControlId || "",
     especialidadId: proceso.especialidadId || "",
-    activo: proceso.activo !== false,
   };
 }
 
@@ -223,7 +237,7 @@ function ModalBuscarConsulta({ abierto, consultas, busqueda, setBusqueda, onSele
 }
 
 // ─── Campo de consulta con botón + modal ─────────────────────────────────────
-function CampoConsulta({ label, consultaId, consultas, onSeleccionar, required }) {
+function CampoConsulta({ label, consultaId, consultas, onSeleccionar, required, disabled = false }) {
   const [modalAbierto, setModalAbierto] = useState(false);
   const [busqueda, setBusqueda] = useState("");
 
@@ -240,8 +254,13 @@ function CampoConsulta({ label, consultaId, consultas, onSeleccionar, required }
 
       <button
         type="button"
-        onClick={() => { setBusqueda(""); setModalAbierto(true); }}
-        className={`flex h-9 w-full items-center justify-between rounded-lg border bg-background px-3 text-sm text-left hover:bg-muted/50 transition-colors ${
+        onClick={() => {
+          if (disabled) return;
+          setBusqueda("");
+          setModalAbierto(true);
+        }}
+        disabled={disabled}
+        className={`flex h-9 w-full items-center justify-between rounded-lg border bg-background px-3 text-sm text-left hover:bg-muted/50 transition-colors disabled:cursor-not-allowed disabled:opacity-70 ${
           !consultaSeleccionada ? "text-muted-foreground" : ""
         }`}
       >
@@ -345,10 +364,10 @@ function ModalEdicion({
 
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           <CampoTexto
-            label="Número de radicado"
+            label="Número de radicado *"
             value={form.numeroRadicado}
             onChange={(v) => actualizarCampo("numeroRadicado", v)}
-            placeholder="Opcional, exactamente 23 caracteres"
+            placeholder="Exactamente 23 caracteres"
             maxLength={23}
           />
 
@@ -365,13 +384,19 @@ function ModalEdicion({
           </CampoSelect>
 
           {/* Consulta — modal de búsqueda en lugar de select nativo */}
-          <CampoConsulta
-            label="Consulta"
-            consultaId={form.consultaId}
-            consultas={consultas}
-            onSeleccionar={(v) => actualizarCampo("consultaId", v)}
-            required
-          />
+          <div className="space-y-1">
+            <CampoConsulta
+              label="Consulta"
+              consultaId={form.consultaId}
+              consultas={consultas}
+              onSeleccionar={(v) => actualizarCampo("consultaId", v)}
+              required
+              disabled
+            />
+            <p className="text-xs text-muted-foreground">
+              La consulta asociada no se cambia desde la edición del proceso.
+            </p>
+          </div>
 
           <CampoSelect
             label="Órgano de control"
@@ -396,14 +421,6 @@ function ModalEdicion({
             ))}
           </CampoSelect>
 
-          <label className="flex items-center gap-2 rounded-lg border p-3 text-sm">
-            <input
-              type="checkbox"
-              checked={form.activo}
-              onChange={(e) => actualizarCampo("activo", e.target.checked)}
-            />
-            Proceso activo
-          </label>
         </div>
 
         <div className="flex justify-end gap-3">
@@ -412,6 +429,62 @@ function ModalEdicion({
           </Button>
           <Button type="submit" disabled={guardando}>
             {guardando ? "Guardando..." : "Guardar cambios"}
+          </Button>
+        </div>
+      </form>
+    </div>
+  );
+}
+
+
+// ─── Modal de cambio de estado funcional ─────────────────────────────────────
+function ModalCambioEstado({ proceso, estadoSeleccionado, setEstadoSeleccionado, onCerrar, onGuardar, guardando }) {
+  if (!proceso) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+      <form
+        onSubmit={onGuardar}
+        className="w-full max-w-md rounded-xl border bg-background p-6 shadow-lg space-y-5"
+      >
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <h3 className="text-lg font-semibold">Cambiar estado del proceso #{proceso.id}</h3>
+            <p className="text-sm text-muted-foreground">
+              Usa este flujo para registrar el resultado funcional del proceso.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={onCerrar}
+            className="text-xl text-muted-foreground hover:text-foreground"
+          >
+            ×
+          </button>
+        </div>
+
+        <div className="rounded-lg border bg-muted/30 p-3 text-sm text-muted-foreground">
+          Estado actual: <strong>{labelEstadoProceso(proceso.estado)}</strong>
+        </div>
+
+        <CampoSelect
+          label="Nuevo estado"
+          value={estadoSeleccionado}
+          onChange={setEstadoSeleccionado}
+          required
+        >
+          <option value="">Seleccione un estado</option>
+          {ESTADOS_PROCESO.map((estado) => (
+            <option key={estado.value} value={estado.value}>{estado.label}</option>
+          ))}
+        </CampoSelect>
+
+        <div className="flex justify-end gap-3">
+          <Button type="button" variant="outline" onClick={onCerrar} disabled={guardando}>
+            Cancelar
+          </Button>
+          <Button type="submit" disabled={guardando}>
+            {guardando ? "Guardando..." : "Cambiar estado"}
           </Button>
         </div>
       </form>
@@ -436,6 +509,8 @@ export function ProcesosForm() {
 
   const [busqueda, setBusqueda] = useState("");
   const [editando, setEditando] = useState(false);
+  const [procesoCambioEstado, setProcesoCambioEstado] = useState(null);
+  const [estadoSeleccionado, setEstadoSeleccionado] = useState("");
   const [form, setForm] = useState(FORM_INICIAL);
 
   const puedeVer = puedeVerProcesos(user);
@@ -458,6 +533,7 @@ export function ProcesosForm() {
       const consulta = mapaConsultas.get(Number(proceso.consultaId));
       const valores = [
         proceso.id, proceso.numeroRadicado,
+        labelEstadoProceso(proceso.estado),
         nombreCatalogo(mapaDepartamentos, proceso.departamentoId),
         nombreCatalogo(mapaOrganos, proceso.organoControlId),
         nombreCatalogo(mapaEspecialidades, proceso.especialidadId),
@@ -513,7 +589,7 @@ export function ProcesosForm() {
           catalogosPermitidos ? apiGet(`${API_URL_BASE}/departamentos`) : Promise.resolve([]),
           catalogosPermitidos ? apiGet(`${API_URL_BASE}/organos-control`) : Promise.resolve([]),
           catalogosPermitidos ? apiGet(`${API_URL_BASE}/especialidades`) : Promise.resolve([]),
-          consultasPermitidas ? apiGet(`${API_URL_BASE}/consultas?page=0&size=500`) : Promise.resolve([]),
+          consultasPermitidas ? apiGet(`${API_URL_BASE}/consultas`) : Promise.resolve([]),
         ]);
 
       if (procesosRes.status === "fulfilled") setProcesos(extraerLista(procesosRes.value));
@@ -534,12 +610,13 @@ export function ProcesosForm() {
 
   function validarAntesDeGuardar() {
     const numeroRadicado = String(form.numeroRadicado || "").trim();
-    if (!form.departamentoId) { toast.error("Selecciona un departamento"); return false; }
-    if (!form.consultaId) { toast.error("Selecciona una consulta"); return false; }
-    if (numeroRadicado && numeroRadicado.length !== 23) {
+    if (!numeroRadicado) { toast.error("Ingresa el número de radicado"); return false; }
+    if (numeroRadicado.length !== 23) {
       toast.error("El número de radicado debe tener exactamente 23 caracteres");
       return false;
     }
+    if (!form.departamentoId) { toast.error("Selecciona un departamento"); return false; }
+    if (!form.consultaId) { toast.error("Selecciona una consulta"); return false; }
     if (form.especialidadId && !form.organoControlId) {
       toast.error("Selecciona primero un órgano de control");
       return false;
@@ -556,6 +633,44 @@ export function ProcesosForm() {
   function cerrarEdicion() {
     setEditando(false);
     setForm(FORM_INICIAL);
+  }
+
+  function abrirCambioEstado(proceso) {
+    if (!puedeGestionar) { toast.error("No tienes permiso para cambiar el estado del proceso"); return; }
+    setProcesoCambioEstado(proceso);
+    setEstadoSeleccionado(proceso.estado || "");
+  }
+
+  function cerrarCambioEstado() {
+    setProcesoCambioEstado(null);
+    setEstadoSeleccionado("");
+  }
+
+  async function cambiarEstadoProceso(event) {
+    event.preventDefault();
+    if (!puedeGestionar) { toast.error("No tienes permiso para cambiar el estado del proceso"); return; }
+    if (!procesoCambioEstado?.id) { toast.error("Selecciona un proceso"); return; }
+    if (!estadoSeleccionado) { toast.error("Selecciona el nuevo estado"); return; }
+    if (estadoSeleccionado === procesoCambioEstado.estado) {
+      toast.error("El proceso ya tiene ese estado");
+      return;
+    }
+
+    try {
+      setGuardando(true);
+      await apiEnviar(`${API_URL_BASE}/procesos/${procesoCambioEstado.id}/estado?estado=${encodeURIComponent(estadoSeleccionado)}`, {
+        method: "PATCH",
+      });
+      toast.success("Estado del proceso actualizado correctamente");
+      cerrarCambioEstado();
+      await cargarDatos();
+    } catch (error) {
+      console.error(error);
+      if (error.status === 401) { router.push("/"); return; }
+      toast.error(error.message || "No se pudo cambiar el estado del proceso");
+    } finally {
+      setGuardando(false);
+    }
   }
 
   async function guardarEdicion(event) {
@@ -665,8 +780,8 @@ export function ProcesosForm() {
                           {proceso.especialidadId ? nombreCatalogo(mapaEspecialidades, proceso.especialidadId) : "Sin especialidad"}
                         </td>
                         <td className="px-3 py-2">
-                          <span className="rounded-full border px-2 py-0.5 text-xs">
-                            {proceso.activo === false ? "Inactivo" : "Activo"}
+                          <span className={`rounded-full border px-2 py-0.5 text-xs ${estadoProcesoEsFinal(proceso.estado) ? "bg-green-50 text-green-700 border-green-200" : ""}`}>
+                            {labelEstadoProceso(proceso.estado)}
                           </span>
                         </td>
                         {puedeGestionar && (
@@ -674,6 +789,9 @@ export function ProcesosForm() {
                             <div className="flex flex-wrap gap-2">
                               <Button type="button" size="sm" variant="outline" onClick={() => abrirEdicion(proceso)}>
                                 Editar
+                              </Button>
+                              <Button type="button" size="sm" variant="outline" onClick={() => abrirCambioEstado(proceso)}>
+                                Cambiar estado
                               </Button>
                               <Button type="button" size="sm" variant="destructive" onClick={() => eliminarProceso(proceso)}>
                                 Eliminar
@@ -701,6 +819,17 @@ export function ProcesosForm() {
           especialidadesFiltradas={especialidadesFiltradas}
           onCerrar={cerrarEdicion}
           onGuardar={guardarEdicion}
+          guardando={guardando}
+        />
+      )}
+
+      {procesoCambioEstado && (
+        <ModalCambioEstado
+          proceso={procesoCambioEstado}
+          estadoSeleccionado={estadoSeleccionado}
+          setEstadoSeleccionado={setEstadoSeleccionado}
+          onCerrar={cerrarCambioEstado}
+          onGuardar={cambiarEstadoProceso}
           guardando={guardando}
         />
       )}

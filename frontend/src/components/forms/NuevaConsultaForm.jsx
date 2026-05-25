@@ -10,13 +10,11 @@ import ArchivosConsultaForm from "./parts/ArchivosConsultaForm";
 import { PERMISOS } from "@/lib/permission";
 import { tienePermiso } from "@/lib/authz";
 
-const ESTADOS = [
-  "Activo",
-  "En proceso",
-  "Pendiente",
-  "Urgente",
-  "Cerrado",
-  "Archivado",
+const ESTADOS_CONSULTA_CREACION = [
+  { value: "ACTIVO", label: "Activo" },
+  { value: "EN_PROCESO", label: "En proceso" },
+  { value: "PENDIENTE", label: "Pendiente" },
+  { value: "URGENTE", label: "Urgente" },
 ];
 
 const VACIOS = {
@@ -28,7 +26,7 @@ const VACIOS = {
   tramite: "",
   observaciones: "",
   tipoViolencia: "",
-  estado: "",
+  estado: "ACTIVO",
   resultado: "",
   personaId: "",
   sedeId: "",
@@ -224,6 +222,42 @@ function ModalMultiple({
       </div>
     </div>
   );
+}
+
+async function leerRespuesta(res) {
+  const text = await res.text();
+
+  if (!text) return null;
+
+  try {
+    return JSON.parse(text);
+  } catch {
+    return { mensaje: text };
+  }
+}
+
+function textOrNull(value) {
+  const text = String(value ?? "").trim();
+  return text === "" ? null : text;
+}
+
+function numberOrNull(value) {
+  if (value === null || value === undefined || value === "") {
+    return null;
+  }
+
+  const number = Number(value);
+  return Number.isNaN(number) ? null : number;
+}
+
+function numberArray(values) {
+  if (!Array.isArray(values)) {
+    return [];
+  }
+
+  return values
+    .map((value) => Number(value))
+    .filter((value) => !Number.isNaN(value));
 }
 
 export function NuevaConsultaForm() {
@@ -481,6 +515,10 @@ export function NuevaConsultaForm() {
             return [];
           }
 
+          if (!r.ok) {
+            return [];
+          }
+
           return r.json();
         })
         .then((d) => setTemas(Array.isArray(d) ? d : []))
@@ -503,6 +541,10 @@ export function NuevaConsultaForm() {
 
           if (r.status === 403) {
             router.replace("/inicio");
+            return [];
+          }
+
+          if (!r.ok) {
             return [];
           }
 
@@ -574,10 +616,23 @@ export function NuevaConsultaForm() {
   function handleChange(e) {
     const { name, value } = e.target;
 
-    setForm((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
+    setForm((prev) => {
+      const next = {
+        ...prev,
+        [name]: value,
+      };
+
+      if (name === "areaId") {
+        next.temaId = "";
+        next.tipoId = "";
+      }
+
+      if (name === "temaId") {
+        next.tipoId = "";
+      }
+
+      return next;
+    });
   }
 
   async function subirArchivosConsulta(consultaId) {
@@ -625,24 +680,35 @@ export function NuevaConsultaForm() {
     setGuardando(true);
 
     const payload = {
-      ...form,
-      personaId: Number(form.personaId),
-      sedeId: Number(form.sedeId),
-      areaId: Number(form.areaId),
-      temaId: Number(form.temaId),
-      tipoId: form.tipoId ? Number(form.tipoId) : null,
+      fecha: form.fecha,
+      descripcion: form.descripcion,
+      hechos: form.hechos,
+      pretensiones: form.pretensiones,
+      conceptoJuridico: form.conceptoJuridico,
+      tramite: form.tramite,
+      observaciones: form.observaciones || "",
+      tipoViolencia: textOrNull(form.tipoViolencia),
+      estado: form.estado || "ACTIVO",
+      resultado: textOrNull(form.resultado),
+      personaId: numberOrNull(form.personaId),
+      sedeId: numberOrNull(form.sedeId),
+      areaId: numberOrNull(form.areaId),
+      temaId: numberOrNull(form.temaId),
+      tipoId: numberOrNull(form.tipoId),
       asesorId:
         puedeAsignarResponsables && form.asesorId
-          ? Number(form.asesorId)
+          ? numberOrNull(form.asesorId)
           : null,
       monitorId:
         puedeAsignarResponsables && form.monitorId
-          ? Number(form.monitorId)
+          ? numberOrNull(form.monitorId)
           : null,
       estudianteId:
         puedeAsignarResponsables && form.estudianteId
-          ? Number(form.estudianteId)
+          ? numberOrNull(form.estudianteId)
           : null,
+      partesIds: numberArray(form.partesIds),
+      contrapartesIds: numberArray(form.contrapartesIds),
     };
 
     try {
@@ -665,20 +731,14 @@ export function NuevaConsultaForm() {
         return;
       }
 
+      const data = await leerRespuesta(res);
+
       if (!res.ok) {
-        let mensaje = "Error al crear";
-
-        try {
-          const error = await res.json();
-          mensaje = error.mensaje || error.message || mensaje;
-        } catch {}
-
-        toast.error(mensaje);
+        toast.error(data?.mensaje || data?.message || "Error al crear");
         return;
       }
 
-      const responseBody = await res.json();
-      const consultaId = responseBody?.id;
+      const consultaId = data?.id;
 
       if (!consultaId) {
         throw new Error("No se recibió el id de la consulta");
@@ -736,13 +796,11 @@ export function NuevaConsultaForm() {
               className={ic}
             >
               <option value="">Seleccione</option>
-              {ESTADOS.filter((estado) => estado !== "Archivado").map(
-                (estado) => (
-                  <option key={estado} value={estado}>
-                    {estado}
-                  </option>
-                )
-              )}
+              {ESTADOS_CONSULTA_CREACION.map((estado) => (
+                <option key={estado.value} value={estado.value}>
+                  {estado.label}
+                </option>
+              ))}
             </select>
           </C>
 
@@ -811,16 +869,17 @@ export function NuevaConsultaForm() {
             </select>
           </C>
 
-          <C label="Tipo">
+          <C label="Tipo *">
             <select
               name="tipoId"
               value={form.tipoId}
               onChange={handleChange}
+              required
               className={ic}
               disabled={!form.temaId}
             >
               <option value="">
-                {form.temaId ? "Sin tipo" : "Seleccione tema primero"}
+                {form.temaId ? "Seleccione" : "Seleccione tema primero"}
               </option>
               {tipos.map((tipo) => (
                 <option key={tipo.id} value={tipo.id}>

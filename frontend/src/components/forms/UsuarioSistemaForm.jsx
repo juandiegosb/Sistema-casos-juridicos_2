@@ -37,6 +37,11 @@ function extraerLista(data) {
   return [];
 }
 
+function normalizarTexto(value) {
+  const text = String(value || "").trim();
+  return text === "" ? null : text;
+}
+
 function puedeCrearUsuariosUsuario(usuario) {
   return tieneAlgunPermiso(usuario, [
     PERMISOS.CREAR_USUARIOS,
@@ -113,6 +118,18 @@ export function UsuarioSistemaForm() {
   useEffect(() => {
     verificarYCargar();
   }, []);
+
+  async function leerRespuesta(response) {
+    const text = await response.text();
+
+    if (!text) return null;
+
+    try {
+      return JSON.parse(text);
+    } catch {
+      return { mensaje: text };
+    }
+  }
 
   async function fetchLista(url, mensaje403) {
     const res = await fetch(url, { credentials: "include" });
@@ -220,11 +237,13 @@ export function UsuarioSistemaForm() {
       conciliacion,
       directora,
       tipoConciliador,
+      email,
       ...rest
     } = data;
 
     const payload = {
       ...rest,
+      email: normalizarTexto(email),
       activo: true,
       tipoDocumentoId: tipoDocumentoId ? Number(tipoDocumentoId) : null,
       sedeId: sedeId ? Number(sedeId) : null,
@@ -274,6 +293,8 @@ export function UsuarioSistemaForm() {
         body: JSON.stringify(normalizarPayload(data)),
       });
 
+      const result = await leerRespuesta(res);
+
       if (res.status === 401) {
         router.push("/");
         return;
@@ -285,14 +306,9 @@ export function UsuarioSistemaForm() {
       }
 
       if (!res.ok) {
-        let mensaje = "Error al crear usuario";
-
-        try {
-          const error = await res.json();
-          mensaje = error.mensaje || error.message || mensaje;
-        } catch {}
-
-        throw new Error(mensaje);
+        throw new Error(
+          result?.mensaje || result?.message || "Error al crear usuario"
+        );
       }
 
       toast.success("Usuario creado correctamente");
@@ -311,31 +327,14 @@ export function UsuarioSistemaForm() {
     }
 
     return (
-      <div className="flex flex-col gap-1.5 w-full">
-        <label className="text-sm font-medium">Tipo de Documento</label>
-        <select
-          defaultValue=""
-          {...register("tipoDocumentoId", {
-            required: REQUIRED,
-            valueAsNumber: true,
-          })}
-          className={`flex h-8 w-full rounded-lg border bg-background px-2.5 py-1 text-sm ${
-            errors?.tipoDocumentoId ? "border-red-500" : ""
-          }`}
-        >
-          <option value="">Seleccione una opción</option>
-          {tiposDocumento.map((option) => (
-            <option key={option.value} value={option.value}>
-              {option.label}
-            </option>
-          ))}
-        </select>
-        {errors?.tipoDocumentoId && (
-          <p className="text-xs text-red-500">
-            {errors.tipoDocumentoId.message}
-          </p>
-        )}
-      </div>
+      <FormSelect
+        name="tipoDocumentoId"
+        label="Tipo de Documento"
+        options={tiposDocumento}
+        register={register}
+        errors={errors}
+        rules={{ required: REQUIRED, valueAsNumber: true }}
+      />
     );
   }
 

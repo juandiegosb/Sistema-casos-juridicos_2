@@ -12,68 +12,233 @@ import { API_URL_BASE } from "@/lib/config";
 import { PERMISOS } from "@/lib/permission";
 import { tienePermiso } from "@/lib/authz";
 
-export function PersonaForm({ onSubmit, initialValues = {} }) {
-  const router = useRouter();
+const REQUIRED_MESSAGE = "El campo es obligatorio";
+const MAX_ESTRATO = 7;
+const MAX_PERSONAS_A_CARGO = 10;
 
-  const REQUIRED_MESSAGE = "El campo es obligatorio";
-  const MAX_ESTRATO = 7;
-  const MAX_PERSONAS_A_CARGO = 10;
+const OPCIONES_VACIAS = [];
 
-  const defaultFormValues = {
-    tipoUsuario: "",
-    tipoDocumento: "",
-    numeroDocumento: "",
-    fechaExpedicion: "",
-    ciudadExpedicion: "",
-    nombres: "",
-    apellidos: "",
-    nombreIdentitario: "",
-    pronombre: "",
-    sexo: "",
-    genero: "",
-    orientacionSexual: "",
-    fechaNacimiento: "",
-    telefono: "",
-    correo: "",
-    nacionalidad: "",
-    estadoCivil: "",
-    escolaridad: "",
-    grupoEtnico: "",
-    condicionActual: "",
-    sabeLeerEscribir: true,
-    discapacidad: "",
-    caracterizacionPcd: "",
-    necesitaAjustePcd: false,
-    departamento: "",
-    municipio: "",
-    barrio: "",
-    direccion: "",
-    comuna: "",
-    localidad: "",
-    estrato: "",
-    tipoVivienda: "",
-    zona: "",
-    tenencia: "",
-    numeroPersonasACargo: "",
-    ingresosAdicionales: false,
-    energiaElectrica: false,
-    acueducto: false,
-    alcantarillado: false,
-    ocupacion: "",
-    empresa: "",
-    salario: "",
-    cargo: "",
-    direccionEmpresa: "",
-    telefonoEmpresa: "",
-    nombreCompletoAcudiente: "",
-    relacionAcudiente: "",
-    telefonoAcudiente: "",
-    correoAcudiente: "",
-    direccionAcudiente: "",
-    comoSeEntero: "",
-    relacionConUniversidad: "",
-    ...initialValues,
+const FORM_DEFAULTS = {
+  tipoPersonaId: "",
+  tipoDocumento: "",
+  numeroDocumento: "",
+  fechaExpedicion: "",
+  ciudadExpedicion: "",
+  nombres: "",
+  apellidos: "",
+  nombreIdentitario: "",
+  pronombre: "",
+  sexo: "",
+  genero: "",
+  orientacionSexual: "",
+  fechaNacimiento: "",
+  telefono: "",
+  correo: "",
+  nacionalidadId: "",
+  estadoCivil: "",
+  escolaridad: "",
+  grupoEtnico: "",
+  condicionActualId: "",
+  sabeLeerEscribir: true,
+  discapacidad: "",
+  caracterizacionPcd: "",
+  necesitaAjustePcd: false,
+  departamentoId: "",
+  municipioId: "",
+  barrioId: "",
+  direccion: "",
+  comuna: "",
+  localidad: "",
+  estrato: "",
+  tipoVivienda: "",
+  zona: "",
+  tenencia: "",
+  numeroPersonasACargo: "",
+  ingresosAdicionales: false,
+  energiaElectrica: false,
+  acueducto: false,
+  alcantarillado: false,
+  ocupacionId: "",
+  empresaId: "",
+  salario: "",
+  cargo: "",
+  direccionEmpresa: "",
+  telefonoEmpresa: "",
+  nombreCompletoAcudiente: "",
+  relacionAcudiente: "",
+  telefonoAcudiente: "",
+  correoAcudiente: "",
+  direccionAcudiente: "",
+  comoSeEntero: "",
+  relacionConUniversidad: "",
+};
+
+const fallbackTipoDocumentoOptions = [
+  { value: "CC", label: "Cédula de Ciudadanía" },
+  { value: "TI", label: "Tarjeta de Identidad" },
+  { value: "CE", label: "Cédula de Extranjería" },
+  { value: "PA", label: "Pasaporte" },
+];
+
+const pronombreOptions = [
+  { value: "Él", label: "Él" },
+  { value: "Ella", label: "Ella" },
+  { value: "Elle", label: "Elle" },
+  { value: "Otro", label: "Otro" },
+];
+
+const sexoOptions = [
+  { value: "Hombre", label: "Hombre" },
+  { value: "Mujer", label: "Mujer" },
+  { value: "Intersexual", label: "Intersexual" },
+];
+
+const generoOptions = [
+  { value: "Masculino", label: "Masculino" },
+  { value: "Femenino", label: "Femenino" },
+  { value: "No binario", label: "No binario" },
+  { value: "Transgénero", label: "Transgénero" },
+  { value: "Otro", label: "Otro" },
+];
+
+const orientacionSexualOptions = [
+  { value: "Heterosexual", label: "Heterosexual" },
+  { value: "Homosexual", label: "Homosexual" },
+  { value: "Bisexual", label: "Bisexual" },
+  { value: "Pansexual", label: "Pansexual" },
+  { value: "Asexual", label: "Asexual" },
+  { value: "Otro", label: "Otro" },
+];
+
+const estadoCivilOptions = [
+  { value: "Soltero/a", label: "Soltero/a" },
+  { value: "Casado/a", label: "Casado/a" },
+  { value: "Unión libre", label: "Unión libre" },
+  { value: "Divorciado/a", label: "Divorciado/a" },
+  { value: "Viudo/a", label: "Viudo/a" },
+];
+
+const escolaridadOptions = [
+  { value: "Ninguna", label: "Ninguna" },
+  { value: "Primaria", label: "Primaria" },
+  { value: "Secundaria", label: "Secundaria" },
+  { value: "Técnico", label: "Técnico" },
+  { value: "Tecnólogo", label: "Tecnólogo" },
+  { value: "Universitario", label: "Universitario" },
+  { value: "Postgrado", label: "Postgrado" },
+];
+
+const zonaOptions = [
+  { value: "Urbana", label: "Urbana" },
+  { value: "Rural", label: "Rural" },
+];
+
+function requiredLabel(label) {
+  return (
+    <span className="inline-flex flex-wrap items-center gap-1">
+      <span>{label}</span>
+      <span className="text-red-500">*</span>
+    </span>
+  );
+}
+
+function optionalLabel(label) {
+  return <span>{label}</span>;
+}
+
+function toOption(item) {
+  return {
+    value: String(item.id),
+    label: item.nombre || item.descripcion || `Registro ${item.id}`,
   };
+}
+
+function toDocumentoOption(item) {
+  const value = item.codigo || item.abreviatura || item.nombre || item.descripcion || "";
+  const label = item.nombre || item.descripcion || item.codigo || item.abreviatura || value;
+
+  return { value, label };
+}
+
+function toFormValues(values = {}) {
+  return {
+    ...FORM_DEFAULTS,
+    ...values,
+    tipoPersonaId: values.tipoPersonaId != null ? String(values.tipoPersonaId) : "",
+    nacionalidadId: values.nacionalidadId != null ? String(values.nacionalidadId) : "",
+    condicionActualId:
+      values.condicionActualId != null ? String(values.condicionActualId) : "",
+    departamentoId: values.departamentoId != null ? String(values.departamentoId) : "",
+    municipioId: values.municipioId != null ? String(values.municipioId) : "",
+    barrioId: values.barrioId != null ? String(values.barrioId) : "",
+    ocupacionId: values.ocupacionId != null ? String(values.ocupacionId) : "",
+    empresaId: values.empresaId != null ? String(values.empresaId) : "",
+    sabeLeerEscribir: values.sabeLeerEscribir ?? true,
+    necesitaAjustePcd: Boolean(values.necesitaAjustePcd),
+    ingresosAdicionales: Boolean(values.ingresosAdicionales),
+    energiaElectrica: Boolean(values.energiaElectrica),
+    acueducto: Boolean(values.acueducto),
+    alcantarillado: Boolean(values.alcantarillado),
+    estrato: values.estrato ?? "",
+    numeroPersonasACargo: values.numeroPersonasACargo ?? "",
+    salario: values.salario ?? "",
+  };
+}
+
+function numberOrNull(value) {
+  if (value === null || value === undefined || value === "") {
+    return null;
+  }
+
+  const number = Number(value);
+  return Number.isNaN(number) ? null : number;
+}
+
+function textOrNull(value) {
+  const text = String(value ?? "").trim();
+  return text === "" ? null : text;
+}
+
+function construirPayload(data) {
+  return {
+    ...data,
+    id: data.id ?? undefined,
+    tipoPersonaId: numberOrNull(data.tipoPersonaId),
+    nacionalidadId: numberOrNull(data.nacionalidadId),
+    condicionActualId: numberOrNull(data.condicionActualId),
+    departamentoId: numberOrNull(data.departamentoId),
+    municipioId: numberOrNull(data.municipioId),
+    barrioId: numberOrNull(data.barrioId),
+    ocupacionId: numberOrNull(data.ocupacionId),
+    empresaId: numberOrNull(data.empresaId),
+    estrato: Number(data.estrato || 0),
+    numeroPersonasACargo: Number(data.numeroPersonasACargo || 0),
+    salario: Number(data.salario || 0),
+    correo: textOrNull(data.correo),
+    correoAcudiente: textOrNull(data.correoAcudiente),
+    nombreCompletoAcudiente: textOrNull(data.nombreCompletoAcudiente),
+    relacionAcudiente: textOrNull(data.relacionAcudiente),
+    telefonoAcudiente: textOrNull(data.telefonoAcudiente),
+    direccionAcudiente: textOrNull(data.direccionAcudiente),
+  };
+}
+
+async function fetchCatalogo(path) {
+  const res = await fetch(`${API_URL_BASE}${path}`, {
+    method: "GET",
+    credentials: "include",
+  });
+
+  if (!res.ok) {
+    return [];
+  }
+
+  const data = await res.json();
+  return Array.isArray(data) ? data : [];
+}
+
+export function PersonaForm({ onSubmit, initialValues }) {
+  const router = useRouter();
 
   const pasos = [
     "Identificación",
@@ -85,76 +250,22 @@ export function PersonaForm({ onSubmit, initialValues = {} }) {
     "Servicio",
   ];
 
-  const fallbackTipoDocumentoOptions = [
-    { value: "CC", label: "Cédula de Ciudadanía" },
-    { value: "TI", label: "Tarjeta de Identidad" },
-    { value: "CE", label: "Cédula de Extranjería" },
-    { value: "PA", label: "Pasaporte" },
-  ];
+  const initialValuesKey = useMemo(
+    () => JSON.stringify(initialValues ?? {}),
+    [initialValues]
+  );
 
-  const tipoUsuarioOptions = [
-    { value: "Víctima", label: "Víctima" },
-    { value: "Usuario General", label: "Usuario General" },
-  ];
-
-  const pronombreOptions = [
-    { value: "Él", label: "Él" },
-    { value: "Ella", label: "Ella" },
-    { value: "Elle", label: "Elle" },
-    { value: "Otro", label: "Otro" },
-  ];
-
-  const sexoOptions = [
-    { value: "Hombre", label: "Hombre" },
-    { value: "Mujer", label: "Mujer" },
-    { value: "Intersexual", label: "Intersexual" },
-  ];
-
-  const generoOptions = [
-    { value: "Masculino", label: "Masculino" },
-    { value: "Femenino", label: "Femenino" },
-    { value: "No binario", label: "No binario" },
-    { value: "Transgénero", label: "Transgénero" },
-    { value: "Otro", label: "Otro" },
-  ];
-
-  const orientacionSexualOptions = [
-    { value: "Heterosexual", label: "Heterosexual" },
-    { value: "Homosexual", label: "Homosexual" },
-    { value: "Bisexual", label: "Bisexual" },
-    { value: "Pansexual", label: "Pansexual" },
-    { value: "Asexual", label: "Asexual" },
-    { value: "Otro", label: "Otro" },
-  ];
-
-  const estadoCivilOptions = [
-    { value: "Soltero/a", label: "Soltero/a" },
-    { value: "Casado/a", label: "Casado/a" },
-    { value: "Unión libre", label: "Unión libre" },
-    { value: "Divorciado/a", label: "Divorciado/a" },
-    { value: "Viudo/a", label: "Viudo/a" },
-  ];
-
-  const escolaridadOptions = [
-    { value: "Ninguna", label: "Ninguna" },
-    { value: "Primaria", label: "Primaria" },
-    { value: "Secundaria", label: "Secundaria" },
-    { value: "Técnico", label: "Técnico" },
-    { value: "Tecnólogo", label: "Tecnólogo" },
-    { value: "Universitario", label: "Universitario" },
-    { value: "Postgrado", label: "Postgrado" },
-  ];
-
-  const zonaOptions = [
-    { value: "Urbana", label: "Urbana" },
-    { value: "Rural", label: "Rural" },
-  ];
+  const defaultFormValues = useMemo(
+    () => toFormValues(initialValues ?? {}),
+    [initialValuesKey]
+  );
 
   const {
     register,
     handleSubmit,
     reset,
     watch,
+    setValue,
     formState: { errors },
   } = useForm({
     defaultValues: defaultFormValues,
@@ -166,12 +277,22 @@ export function PersonaForm({ onSubmit, initialValues = {} }) {
 
   const [checking, setChecking] = useState(true);
   const [pasoActual, setPasoActual] = useState(0);
+  const [catalogoMensaje, setCatalogoMensaje] = useState("");
   const [tipoDocumentoOptions, setTipoDocumentoOptions] = useState(
     fallbackTipoDocumentoOptions
   );
-  const [catalogoMensaje, setCatalogoMensaje] = useState("");
+  const [tipoPersonaOptions, setTipoPersonaOptions] = useState(OPCIONES_VACIAS);
+  const [nacionalidadOptions, setNacionalidadOptions] = useState(OPCIONES_VACIAS);
+  const [condicionOptions, setCondicionOptions] = useState(OPCIONES_VACIAS);
+  const [ocupacionOptions, setOcupacionOptions] = useState(OPCIONES_VACIAS);
+  const [empresaOptions, setEmpresaOptions] = useState(OPCIONES_VACIAS);
+  const [departamentoOptions, setDepartamentoOptions] = useState(OPCIONES_VACIAS);
+  const [municipioOptions, setMunicipioOptions] = useState(OPCIONES_VACIAS);
+  const [barrioOptions, setBarrioOptions] = useState(OPCIONES_VACIAS);
 
   const formValues = watch();
+  const departamentoId = watch("departamentoId");
+  const municipioId = watch("municipioId");
 
   const esMenorEdad = useMemo(() => {
     if (!formValues.fechaNacimiento) return false;
@@ -190,117 +311,171 @@ export function PersonaForm({ onSubmit, initialValues = {} }) {
   }, [formValues.fechaNacimiento]);
 
   useEffect(() => {
-  async function iniciar() {
-    await verificarSesion();
-  }
+    reset(defaultFormValues);
+  }, [defaultFormValues, reset]);
 
-  iniciar();
-}, []);
+  useEffect(() => {
+    async function iniciar() {
+      await verificarSesion();
+    }
+
+    iniciar();
+  }, []);
+
+  useEffect(() => {
+    async function cargarMunicipiosPorDepartamento() {
+      if (!departamentoId) {
+        setMunicipioOptions([]);
+        setBarrioOptions([]);
+        setValue("municipioId", "");
+        setValue("barrioId", "");
+        return;
+      }
+
+      const municipios = await fetchCatalogo(
+        `/municipios/departamento/${departamentoId}`
+      );
+
+      setMunicipioOptions(municipios.map(toOption));
+
+      if (!municipios.some((municipio) => String(municipio.id) === String(municipioId))) {
+        setValue("municipioId", "");
+        setValue("barrioId", "");
+        setBarrioOptions([]);
+      }
+    }
+
+    if (!checking) {
+      cargarMunicipiosPorDepartamento();
+    }
+  }, [departamentoId]);
+
+  useEffect(() => {
+    async function cargarBarriosPorMunicipio() {
+      if (!municipioId) {
+        setBarrioOptions([]);
+        setValue("barrioId", "");
+        return;
+      }
+
+      const barrios = await fetchCatalogo(`/barrios/municipio/${municipioId}`);
+
+      setBarrioOptions(barrios.map(toOption));
+
+      if (!barrios.some((barrio) => String(barrio.id) === String(formValues.barrioId))) {
+        setValue("barrioId", "");
+      }
+    }
+
+    if (!checking) {
+      cargarBarriosPorMunicipio();
+    }
+  }, [municipioId]);
 
   async function verificarSesion() {
-  try {
-    const res = await fetch(`${API_URL_BASE}/auth/me`, {
-      method: "GET",
-      credentials: "include",
-    });
-
-    if (res.status === 401) {
-      router.replace("/");
-      return;
-    }
-
-    if (!res.ok) {
-      router.replace("/");
-      return;
-    }
-
-    const user = await res.json();
-
-    const puedeEntrarRecepcion = tienePermiso(
-      user,
-      PERMISOS.ACCEDER_RECEPCION
-    );
-
-    const puedeCrearPersonas = tienePermiso(
-      user,
-      PERMISOS.CREAR_PERSONAS
-    );
-
-    if (!puedeEntrarRecepcion || !puedeCrearPersonas) {
-      router.replace("/inicio");
-      return;
-    }
-
-    await cargarCatalogos();
-  } catch (error) {
-    console.error("Error verificando sesión", error);
-    router.replace("/");
-  } finally {
-    setChecking(false);
-  }
-}
-
-  async function cargarCatalogos() {
     try {
-      const res = await fetch(`${API_URL_BASE}/tipos-documento/activos`, {
+      const res = await fetch(`${API_URL_BASE}/auth/me`, {
         method: "GET",
         credentials: "include",
       });
 
-      if (res.status === 403) {
-        setCatalogoMensaje(
-          "No se pudieron cargar los tipos de documento desde catálogos. Se usan opciones básicas."
-        );
-        setTipoDocumentoOptions(fallbackTipoDocumentoOptions);
+      if (res.status === 401) {
+        router.replace("/");
         return;
       }
 
       if (!res.ok) {
-        setTipoDocumentoOptions(fallbackTipoDocumentoOptions);
+        router.replace("/");
         return;
       }
 
-      const data = await res.json();
+      const user = await res.json();
 
-      const opciones = Array.isArray(data)
-        ? data
-            .map((item) => ({
-              value:
-                item.codigo ||
-                item.abreviatura ||
-                item.nombre ||
-                item.descripcion ||
-                "",
-              label:
-                item.nombre ||
-                item.descripcion ||
-                item.codigo ||
-                item.abreviatura ||
-                "",
-            }))
-            .filter((item) => item.value && item.label)
-        : [];
+      const puedeEntrarRecepcion = tienePermiso(
+        user,
+        PERMISOS.ACCEDER_RECEPCION
+      );
+
+      const puedeCrearPersonas = tienePermiso(user, PERMISOS.CREAR_PERSONAS);
+
+      if (!puedeEntrarRecepcion || !puedeCrearPersonas) {
+        router.replace("/inicio");
+        return;
+      }
+
+      await cargarCatalogos();
+    } catch (error) {
+      console.error("Error verificando sesión", error);
+      router.replace("/");
+    } finally {
+      setChecking(false);
+    }
+  }
+
+  async function cargarCatalogos() {
+    try {
+      const [
+        tiposDocumento,
+        tiposPersona,
+        nacionalidades,
+        condiciones,
+        ocupaciones,
+        empresas,
+        departamentos,
+      ] = await Promise.all([
+        fetchCatalogo("/tipos-documento/activos"),
+        fetchCatalogo("/tipos-persona"),
+        fetchCatalogo("/nacionalidades"),
+        fetchCatalogo("/condiciones"),
+        fetchCatalogo("/ocupaciones"),
+        fetchCatalogo("/empresas"),
+        fetchCatalogo("/departamentos"),
+      ]);
+
+      const opcionesDocumento = tiposDocumento
+        .map(toDocumentoOption)
+        .filter((item) => item.value && item.label);
 
       setTipoDocumentoOptions(
-        opciones.length > 0 ? opciones : fallbackTipoDocumentoOptions
+        opcionesDocumento.length > 0
+          ? opcionesDocumento
+          : fallbackTipoDocumentoOptions
       );
-    } catch {
+      setTipoPersonaOptions(tiposPersona.map(toOption));
+      setNacionalidadOptions(nacionalidades.map(toOption));
+      setCondicionOptions(condiciones.map(toOption));
+      setOcupacionOptions(ocupaciones.map(toOption));
+      setEmpresaOptions(empresas.map(toOption));
+      setDepartamentoOptions(departamentos.map(toOption));
+
+      if (
+        tiposPersona.length === 0 ||
+        nacionalidades.length === 0 ||
+        condiciones.length === 0 ||
+        ocupaciones.length === 0 ||
+        empresas.length === 0 ||
+        departamentos.length === 0
+      ) {
+        setCatalogoMensaje(
+          "Algunos catálogos no se pudieron cargar. Verifica permisos o disponibilidad del backend antes de guardar."
+        );
+      }
+    } catch (error) {
+      console.error("Error cargando catálogos", error);
+      setCatalogoMensaje(
+        "No se pudieron cargar todos los catálogos necesarios para persona."
+      );
       setTipoDocumentoOptions(fallbackTipoDocumentoOptions);
     }
   }
 
   async function handleSubmitForm(data) {
-    const payload = {
-      ...data,
-      estrato: Number(data.estrato || 0),
-      numeroPersonasACargo: Number(data.numeroPersonasACargo || 0),
-      salario: Number(data.salario || 0),
-    };
+    const payload = construirPayload(data);
 
-    await submit(payload);
+    const result = await submit(payload);
 
-    if (typeof onSubmit === "function") {
-      onSubmit(payload);
+    if (result?.success && typeof onSubmit === "function") {
+      onSubmit(result.data || payload);
     }
   }
 
@@ -313,8 +488,10 @@ export function PersonaForm({ onSubmit, initialValues = {} }) {
   }
 
   function limpiarFormulario() {
-    reset(defaultFormValues);
+    reset(FORM_DEFAULTS);
     setPasoActual(0);
+    setMunicipioOptions([]);
+    setBarrioOptions([]);
   }
 
   if (checking) {
@@ -361,9 +538,9 @@ export function PersonaForm({ onSubmit, initialValues = {} }) {
               descripcion="Datos principales para reconocer a la persona."
             >
               <FormSelectField
-                name="tipoUsuario"
-                label="Tipo de Usuario"
-                options={tipoUsuarioOptions}
+                name="tipoPersonaId"
+                label={requiredLabel("Tipo de persona")}
+                options={tipoPersonaOptions}
                 register={register}
                 errors={errors}
                 rules={{ required: REQUIRED_MESSAGE }}
@@ -371,7 +548,7 @@ export function PersonaForm({ onSubmit, initialValues = {} }) {
 
               <FormSelectField
                 name="tipoDocumento"
-                label="Tipo de Documento"
+                label={requiredLabel("Tipo de documento")}
                 options={tipoDocumentoOptions}
                 register={register}
                 errors={errors}
@@ -380,7 +557,8 @@ export function PersonaForm({ onSubmit, initialValues = {} }) {
 
               <FormInput
                 name="numeroDocumento"
-                label="Número de Documento"
+                label={requiredLabel("Número de documento")}
+                placeholder="Ej: 1090123456"
                 register={register}
                 errors={errors}
                 rules={{ required: REQUIRED_MESSAGE }}
@@ -388,7 +566,8 @@ export function PersonaForm({ onSubmit, initialValues = {} }) {
 
               <FormInput
                 name="fechaExpedicion"
-                label="Fecha de Expedición"
+                label={requiredLabel("Fecha de expedición")}
+                placeholder="Ej: 2020-01-15"
                 type="date"
                 register={register}
                 errors={errors}
@@ -397,7 +576,8 @@ export function PersonaForm({ onSubmit, initialValues = {} }) {
 
               <FormInput
                 name="ciudadExpedicion"
-                label="Ciudad de Expedición"
+                label={requiredLabel("Ciudad de expedición")}
+                placeholder="Ej: Cúcuta"
                 register={register}
                 errors={errors}
                 rules={{ required: REQUIRED_MESSAGE }}
@@ -405,7 +585,8 @@ export function PersonaForm({ onSubmit, initialValues = {} }) {
 
               <FormInput
                 name="nombres"
-                label="Nombres"
+                label={requiredLabel("Nombres")}
+                placeholder="Ej: María Fernanda"
                 register={register}
                 errors={errors}
                 rules={{ required: REQUIRED_MESSAGE }}
@@ -413,7 +594,8 @@ export function PersonaForm({ onSubmit, initialValues = {} }) {
 
               <FormInput
                 name="apellidos"
-                label="Apellidos"
+                label={requiredLabel("Apellidos")}
+                placeholder="Ej: Pérez Gómez"
                 register={register}
                 errors={errors}
                 rules={{ required: REQUIRED_MESSAGE }}
@@ -421,7 +603,8 @@ export function PersonaForm({ onSubmit, initialValues = {} }) {
 
               <FormInput
                 name="fechaNacimiento"
-                label="Fecha de Nacimiento"
+                label={requiredLabel("Fecha de nacimiento")}
+                placeholder="Ej: 1998-05-20"
                 type="date"
                 register={register}
                 errors={errors}
@@ -437,7 +620,8 @@ export function PersonaForm({ onSubmit, initialValues = {} }) {
             >
               <FormInput
                 name="nombreIdentitario"
-                label="Nombre Identitario"
+                label={requiredLabel("Nombre identitario")}
+                placeholder="Ej: No informa"
                 register={register}
                 errors={errors}
                 rules={{ required: REQUIRED_MESSAGE }}
@@ -445,7 +629,7 @@ export function PersonaForm({ onSubmit, initialValues = {} }) {
 
               <FormSelectField
                 name="pronombre"
-                label="Pronombre"
+                label={requiredLabel("Pronombre")}
                 options={pronombreOptions}
                 register={register}
                 errors={errors}
@@ -454,7 +638,7 @@ export function PersonaForm({ onSubmit, initialValues = {} }) {
 
               <FormSelectField
                 name="sexo"
-                label="Sexo"
+                label={requiredLabel("Sexo")}
                 options={sexoOptions}
                 register={register}
                 errors={errors}
@@ -463,7 +647,7 @@ export function PersonaForm({ onSubmit, initialValues = {} }) {
 
               <FormSelectField
                 name="genero"
-                label="Género"
+                label={requiredLabel("Género")}
                 options={generoOptions}
                 register={register}
                 errors={errors}
@@ -472,16 +656,17 @@ export function PersonaForm({ onSubmit, initialValues = {} }) {
 
               <FormSelectField
                 name="orientacionSexual"
-                label="Orientación Sexual"
+                label={requiredLabel("Orientación sexual")}
                 options={orientacionSexualOptions}
                 register={register}
                 errors={errors}
                 rules={{ required: REQUIRED_MESSAGE }}
               />
 
-              <FormInput
-                name="nacionalidad"
-                label="Nacionalidad"
+              <FormSelectField
+                name="nacionalidadId"
+                label={requiredLabel("Nacionalidad")}
+                options={nacionalidadOptions}
                 register={register}
                 errors={errors}
                 rules={{ required: REQUIRED_MESSAGE }}
@@ -489,7 +674,7 @@ export function PersonaForm({ onSubmit, initialValues = {} }) {
 
               <FormSelectField
                 name="estadoCivil"
-                label="Estado Civil"
+                label={requiredLabel("Estado civil")}
                 options={estadoCivilOptions}
                 register={register}
                 errors={errors}
@@ -498,7 +683,7 @@ export function PersonaForm({ onSubmit, initialValues = {} }) {
 
               <FormSelectField
                 name="escolaridad"
-                label="Escolaridad"
+                label={requiredLabel("Escolaridad")}
                 options={escolaridadOptions}
                 register={register}
                 errors={errors}
@@ -507,15 +692,17 @@ export function PersonaForm({ onSubmit, initialValues = {} }) {
 
               <FormInput
                 name="grupoEtnico"
-                label="Grupo Étnico"
+                label={requiredLabel("Grupo étnico")}
+                placeholder="Ej: No informa"
                 register={register}
                 errors={errors}
                 rules={{ required: REQUIRED_MESSAGE }}
               />
 
-              <FormInput
-                name="condicionActual"
-                label="Condición Actual"
+              <FormSelectField
+                name="condicionActualId"
+                label={requiredLabel("Condición actual")}
+                options={condicionOptions}
                 register={register}
                 errors={errors}
                 rules={{ required: REQUIRED_MESSAGE }}
@@ -523,7 +710,8 @@ export function PersonaForm({ onSubmit, initialValues = {} }) {
 
               <FormInput
                 name="discapacidad"
-                label="Discapacidad"
+                label={requiredLabel("Discapacidad")}
+                placeholder="Ej: No informa"
                 register={register}
                 errors={errors}
                 rules={{ required: REQUIRED_MESSAGE }}
@@ -531,7 +719,8 @@ export function PersonaForm({ onSubmit, initialValues = {} }) {
 
               <FormInput
                 name="caracterizacionPcd"
-                label="Caracterización PCD"
+                label={requiredLabel("Caracterización PCD")}
+                placeholder="Ej: No informa"
                 register={register}
                 errors={errors}
                 rules={{ required: REQUIRED_MESSAGE }}
@@ -560,18 +749,20 @@ export function PersonaForm({ onSubmit, initialValues = {} }) {
           {pasoActual === 2 && (
             <Seccion
               titulo="Contacto"
-              descripcion="Datos de comunicación. Debe existir al menos teléfono o correo."
+              descripcion="Datos de comunicación. Si no hay correo, déjalo vacío para enviar null."
             >
               <FormInput
                 name="telefono"
-                label="Teléfono"
+                label={optionalLabel("Teléfono")}
+                placeholder="Ej: 3001234567"
                 register={register}
                 errors={errors}
               />
 
               <FormInput
                 name="correo"
-                label="Correo Electrónico"
+                label={optionalLabel("Correo electrónico")}
+                placeholder="Ej: persona@example.com"
                 type="email"
                 register={register}
                 errors={errors}
@@ -582,35 +773,41 @@ export function PersonaForm({ onSubmit, initialValues = {} }) {
           {pasoActual === 3 && (
             <Seccion
               titulo="Información de vivienda"
-              descripcion="Información de residencia y condiciones de vivienda."
+              descripcion="Selecciona departamento, municipio y barrio desde catálogos activos."
             >
-              <FormInput
-                name="departamento"
-                label="Departamento"
+              <FormSelectField
+                name="departamentoId"
+                label={requiredLabel("Departamento")}
+                options={departamentoOptions}
                 register={register}
                 errors={errors}
                 rules={{ required: REQUIRED_MESSAGE }}
               />
 
-              <FormInput
-                name="municipio"
-                label="Municipio"
+              <FormSelectField
+                name="municipioId"
+                label={requiredLabel("Municipio")}
+                options={municipioOptions}
                 register={register}
                 errors={errors}
+                disabled={!departamentoId}
                 rules={{ required: REQUIRED_MESSAGE }}
               />
 
-              <FormInput
-                name="barrio"
-                label="Barrio"
+              <FormSelectField
+                name="barrioId"
+                label={requiredLabel("Barrio")}
+                options={barrioOptions}
                 register={register}
                 errors={errors}
+                disabled={!municipioId}
                 rules={{ required: REQUIRED_MESSAGE }}
               />
 
               <FormInput
                 name="direccion"
-                label="Dirección"
+                label={requiredLabel("Dirección")}
+                placeholder="Ej: Calle 10 # 5-20"
                 register={register}
                 errors={errors}
                 rules={{ required: REQUIRED_MESSAGE }}
@@ -618,7 +815,8 @@ export function PersonaForm({ onSubmit, initialValues = {} }) {
 
               <FormInput
                 name="comuna"
-                label="Comuna"
+                label={requiredLabel("Comuna")}
+                placeholder="Ej: No informa"
                 register={register}
                 errors={errors}
                 rules={{ required: REQUIRED_MESSAGE }}
@@ -626,7 +824,8 @@ export function PersonaForm({ onSubmit, initialValues = {} }) {
 
               <FormInput
                 name="localidad"
-                label="Localidad"
+                label={requiredLabel("Localidad")}
+                placeholder="Ej: No informa"
                 register={register}
                 errors={errors}
                 rules={{ required: REQUIRED_MESSAGE }}
@@ -634,7 +833,8 @@ export function PersonaForm({ onSubmit, initialValues = {} }) {
 
               <FormInput
                 name="estrato"
-                label="Estrato"
+                label={requiredLabel("Estrato")}
+                placeholder="Ej: 2"
                 type="number"
                 max={MAX_ESTRATO}
                 min={0}
@@ -645,7 +845,8 @@ export function PersonaForm({ onSubmit, initialValues = {} }) {
 
               <FormInput
                 name="tipoVivienda"
-                label="Tipo de Vivienda"
+                label={requiredLabel("Tipo de vivienda")}
+                placeholder="Ej: Casa"
                 register={register}
                 errors={errors}
                 rules={{ required: REQUIRED_MESSAGE }}
@@ -653,7 +854,7 @@ export function PersonaForm({ onSubmit, initialValues = {} }) {
 
               <FormSelectField
                 name="zona"
-                label="Zona"
+                label={requiredLabel("Zona")}
                 options={zonaOptions}
                 register={register}
                 errors={errors}
@@ -662,7 +863,8 @@ export function PersonaForm({ onSubmit, initialValues = {} }) {
 
               <FormInput
                 name="tenencia"
-                label="Tenencia de la Vivienda"
+                label={requiredLabel("Tenencia de la vivienda")}
+                placeholder="Ej: Arriendo"
                 register={register}
                 errors={errors}
                 rules={{ required: REQUIRED_MESSAGE }}
@@ -670,7 +872,8 @@ export function PersonaForm({ onSubmit, initialValues = {} }) {
 
               <FormInput
                 name="numeroPersonasACargo"
-                label="Número de Personas a Cargo"
+                label={requiredLabel("Número de personas a cargo")}
+                placeholder="Ej: 1"
                 type="number"
                 min={0}
                 max={MAX_PERSONAS_A_CARGO}
@@ -722,17 +925,19 @@ export function PersonaForm({ onSubmit, initialValues = {} }) {
               titulo="Aspectos económicos"
               descripcion="Datos laborales y económicos de la persona."
             >
-              <FormInput
-                name="ocupacion"
-                label="Ocupación"
+              <FormSelectField
+                name="ocupacionId"
+                label={requiredLabel("Ocupación")}
+                options={ocupacionOptions}
                 register={register}
                 errors={errors}
                 rules={{ required: REQUIRED_MESSAGE }}
               />
 
-              <FormInput
-                name="empresa"
-                label="Empresa donde labora"
+              <FormSelectField
+                name="empresaId"
+                label={requiredLabel("Empresa donde labora")}
+                options={empresaOptions}
                 register={register}
                 errors={errors}
                 rules={{ required: REQUIRED_MESSAGE }}
@@ -740,7 +945,8 @@ export function PersonaForm({ onSubmit, initialValues = {} }) {
 
               <FormInput
                 name="salario"
-                label="Salario"
+                label={requiredLabel("Salario")}
+                placeholder="Ej: 0"
                 type="number"
                 step={10000}
                 min={0}
@@ -751,7 +957,8 @@ export function PersonaForm({ onSubmit, initialValues = {} }) {
 
               <FormInput
                 name="cargo"
-                label="Cargo"
+                label={requiredLabel("Cargo")}
+                placeholder="Ej: No informa"
                 register={register}
                 errors={errors}
                 rules={{ required: REQUIRED_MESSAGE }}
@@ -759,7 +966,8 @@ export function PersonaForm({ onSubmit, initialValues = {} }) {
 
               <FormInput
                 name="direccionEmpresa"
-                label="Dirección de la Empresa"
+                label={requiredLabel("Dirección de la empresa")}
+                placeholder="Ej: No informa"
                 register={register}
                 errors={errors}
                 rules={{ required: REQUIRED_MESSAGE }}
@@ -767,7 +975,8 @@ export function PersonaForm({ onSubmit, initialValues = {} }) {
 
               <FormInput
                 name="telefonoEmpresa"
-                label="Teléfono de la Empresa"
+                label={requiredLabel("Teléfono de la empresa")}
+                placeholder="Ej: No informa"
                 register={register}
                 errors={errors}
                 rules={{ required: REQUIRED_MESSAGE }}
@@ -786,28 +995,32 @@ export function PersonaForm({ onSubmit, initialValues = {} }) {
             >
               <FormInput
                 name="nombreCompletoAcudiente"
-                label="Nombre Completo"
+                label={optionalLabel("Nombre completo")}
+                placeholder="Ej: Ana Pérez"
                 register={register}
                 errors={errors}
               />
 
               <FormInput
                 name="relacionAcudiente"
-                label="Relación / Parentesco"
+                label={optionalLabel("Relación / parentesco")}
+                placeholder="Ej: Madre"
                 register={register}
                 errors={errors}
               />
 
               <FormInput
                 name="telefonoAcudiente"
-                label="Teléfono"
+                label={optionalLabel("Teléfono")}
+                placeholder="Ej: 3001234567"
                 register={register}
                 errors={errors}
               />
 
               <FormInput
                 name="correoAcudiente"
-                label="Correo Electrónico"
+                label={optionalLabel("Correo electrónico")}
+                placeholder="Ej: persona@example.com"
                 type="email"
                 register={register}
                 errors={errors}
@@ -815,7 +1028,8 @@ export function PersonaForm({ onSubmit, initialValues = {} }) {
 
               <FormInput
                 name="direccionAcudiente"
-                label="Dirección"
+                label={optionalLabel("Dirección")}
+                placeholder="Ej: Calle 10 # 5-20"
                 register={register}
                 errors={errors}
               />
@@ -829,7 +1043,8 @@ export function PersonaForm({ onSubmit, initialValues = {} }) {
             >
               <FormInput
                 name="comoSeEntero"
-                label="¿Cómo se enteró de nuestros servicios?"
+                label={requiredLabel("¿Cómo se enteró de nuestros servicios?")}
+                placeholder="Ej: Universidad"
                 register={register}
                 errors={errors}
                 rules={{ required: REQUIRED_MESSAGE }}
@@ -837,14 +1052,14 @@ export function PersonaForm({ onSubmit, initialValues = {} }) {
 
               <FormInput
                 name="relacionConUniversidad"
-                label="Relación con la Universidad"
+                label={requiredLabel("Relación con la Universidad")}
+                placeholder="Ej: No informa"
                 register={register}
                 errors={errors}
                 rules={{ required: REQUIRED_MESSAGE }}
               />
             </Seccion>
           )}
-
         </div>
 
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
@@ -907,7 +1122,15 @@ function Seccion({ titulo, descripcion, children }) {
   );
 }
 
-function FormSelectField({ name, label, options, register, errors, rules }) {
+function FormSelectField({
+  name,
+  label,
+  options,
+  register,
+  errors,
+  rules,
+  disabled = false,
+}) {
   return (
     <div className="flex flex-col gap-1.5 w-full">
       <label htmlFor={name} className="text-sm font-medium leading-none">
@@ -917,8 +1140,9 @@ function FormSelectField({ name, label, options, register, errors, rules }) {
       <select
         id={name}
         defaultValue=""
+        disabled={disabled}
         {...register(name, rules)}
-        className={`flex h-9 w-full rounded-lg border bg-background px-2.5 py-1 text-sm ${
+        className={`flex h-9 w-full rounded-lg border bg-background px-2.5 py-1 text-sm disabled:cursor-not-allowed disabled:opacity-60 ${
           errors?.[name] ? "border-red-500" : ""
         }`}
       >

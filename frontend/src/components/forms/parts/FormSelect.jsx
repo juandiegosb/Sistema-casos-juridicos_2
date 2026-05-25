@@ -1,4 +1,13 @@
-export function FormSelect({ name, label, options, register, errors, ...props }) {
+export function FormSelect({
+  name,
+  label,
+  options,
+  register,
+  errors,
+  rules,
+  placeholder = "Seleccione una opción",
+  ...props
+}) {
   return (
     <div className="flex flex-col gap-1.5 w-full">
       {label && (
@@ -10,13 +19,13 @@ export function FormSelect({ name, label, options, register, errors, ...props })
       <select
         id={name}
         defaultValue=""
-        {...register(name)}
+        {...register(name, rules)}
         {...props}
         className={`flex h-8 w-full rounded-lg border px-2.5 py-1 ${
-          errors?.[name] ? 'border-red-500' : ''
+          errors?.[name] ? "border-red-500" : ""
         }`}
       >
-        <option value="">Seleccione una opción</option>
+        <option value="">{placeholder}</option>
         {options.map((opt) => (
           <option key={opt.value} value={opt.value}>
             {opt.label}

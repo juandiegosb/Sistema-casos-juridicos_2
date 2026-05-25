@@ -9,7 +9,14 @@ import { tienePermiso } from "@/lib/authz";
 
 import { API_URL_BASE, FILE_STORAGE_API_URL_BASE } from "@/lib/config";
 
-const ESTADOS = ["Activo", "En proceso", "Pendiente", "Urgente", "Cerrado", "Archivado"];
+const ESTADOS_CONSULTA = [
+  { value: "ACTIVO", label: "Activo" },
+  { value: "EN_PROCESO", label: "En proceso" },
+  { value: "PENDIENTE", label: "Pendiente" },
+  { value: "URGENTE", label: "Urgente" },
+  { value: "CERRADO", label: "Cerrado" },
+  { value: "ARCHIVADO", label: "Archivado" },
+];
 
 const VACIOS = {
   fecha: "", descripcion: "", hechos: "", pretensiones: "",
@@ -21,18 +28,26 @@ const VACIOS = {
 };
 
 
-const CONSULTAS_PAGE_SIZE = 500;
-const MAX_CONSULTAS_PAGES = 50;
-
-function construirUrlConsultas(search = "", page = 0) {
+function construirUrlConsultas(search = "") {
   const params = new URLSearchParams();
   const texto = String(search || "").trim();
 
-  if (texto) params.set("search", texto);
-  params.set("page", String(page));
-  params.set("size", String(CONSULTAS_PAGE_SIZE));
+  if (texto) {
+    params.set("search", texto);
+  }
 
-  return `${API_URL_BASE}/consultas?${params.toString()}`;
+  const query = params.toString();
+
+  return `${API_URL_BASE}/consultas${query ? `?${query}` : ""}`;
+}
+
+function ordenarConsultasPorIdAscendente(items) {
+  return [...items].sort((a, b) => {
+    const idA = Number(a?.id ?? Number.MAX_SAFE_INTEGER);
+    const idB = Number(b?.id ?? Number.MAX_SAFE_INTEGER);
+
+    return idA - idB;
+  });
 }
 
 async function leerJsonSeguro(res) {
@@ -75,22 +90,40 @@ function obtenerArrayDesdeRespuesta(payload) {
   return [];
 }
 
-function obtenerTotalPaginas(payload) {
-  if (!payload || typeof payload !== "object" || Array.isArray(payload)) return 1;
-
-  const total = Number(
-    payload.totalPages ??
-      payload.totalPaginas ??
-      payload.pages ??
-      payload.page?.totalPages ??
-      1
-  );
-
-  return Number.isFinite(total) && total > 0 ? total : 1;
-}
-
 function valorDefinido(...valores) {
   return valores.find((valor) => valor !== undefined && valor !== null && valor !== "") ?? "";
+}
+
+function normalizarEstadoConsulta(estado) {
+  const texto = String(estado || "")
+    .trim()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toUpperCase()
+    .replace(/\s+/g, "_");
+
+  const equivalencias = {
+    ACTIVO: "ACTIVO",
+    ACTIVA: "ACTIVO",
+    EN_PROCESO: "EN_PROCESO",
+    PENDIENTE: "PENDIENTE",
+    URGENTE: "URGENTE",
+    CERRADO: "CERRADO",
+    CERRADA: "CERRADO",
+    ARCHIVADO: "ARCHIVADO",
+    ARCHIVADA: "ARCHIVADO",
+  };
+
+  return equivalencias[texto] || texto || "";
+}
+
+function labelEstadoConsulta(estado) {
+  const estadoNormalizado = normalizarEstadoConsulta(estado);
+  return (
+    ESTADOS_CONSULTA.find((item) => item.value === estadoNormalizado)?.label ||
+    estado ||
+    "Sin estado"
+  );
 }
 
 function normalizarConsultaFila(row) {
@@ -132,7 +165,7 @@ function normalizarConsultaFila(row) {
       persona?.documento,
       persona?.numeroDocumento
     ),
-    estado: valorDefinido(row?.estado, row?.estadoConsulta, "Sin estado"),
+    estado: normalizarEstadoConsulta(valorDefinido(row?.estado, row?.estadoConsulta, "")),
   };
 }
 
@@ -360,6 +393,12 @@ export function ConsultasJuridicasForm() {
   );
 
   function puedeEditarRegistro(row) {
+    const estado = normalizarEstadoConsulta(row?.estado);
+
+    if (estado === "CERRADO" || estado === "ARCHIVADO") {
+      return false;
+    }
+
     return accionPermitidaPorRegistro(
       row,
       ["puedeEditar", "puedeEditarConsulta"],
@@ -368,6 +407,12 @@ export function ConsultasJuridicasForm() {
   }
 
   function puedeArchivarRegistro(row) {
+    const estado = normalizarEstadoConsulta(row?.estado);
+
+    if (estado !== "CERRADO") {
+      return false;
+    }
+
     return accionPermitidaPorRegistro(
       row,
       ["puedeArchivar", "puedeArchivarConsulta", "puedeEliminar"],
@@ -441,63 +486,77 @@ export function ConsultasJuridicasForm() {
   }, [form.temaId]);
 
   async function cargarConsultas(search = "") {
-    setLoading(true);
+  setLoading(true);
 
-    try {
-      async function cargarPagina(page) {
-        const res = await fetch(construirUrlConsultas(search, page), {
-          credentials: "include",
-        });
+  const url = construirUrlConsultas(search);
 
-        const payload = await leerJsonSeguro(res);
+  try {
+    console.log("[CONSULTAS] Consultando:", url);
 
-        if (res.status === 401) {
-          router.replace("/");
-          return { items: [], totalPages: 1, detener: true };
-        }
+    const res = await fetch(url, {
+      method: "GET",
+      credentials: "include",
+    });
 
-        if (res.status === 403) {
-          toast.error("No tienes permisos para ver estas consultas.");
-          router.replace("/inicio");
-          return { items: [], totalPages: 1, detener: true };
-        }
+    const payload = await leerJsonSeguro(res);
 
-        if (!res.ok) {
-          throw new Error(mensajeErrorDesdeRespuesta(payload, "Error cargando consultas"));
-        }
+    console.log("[CONSULTAS] Status:", res.status);
+    console.log("[CONSULTAS] Payload:", payload);
 
-        return {
-          items: obtenerArrayDesdeRespuesta(payload).map(normalizarConsultaFila),
-          totalPages: obtenerTotalPaginas(payload),
-          detener: false,
-        };
-      }
-
-      const primeraPagina = await cargarPagina(0);
-      if (primeraPagina.detener) return;
-
-      let consultas = [...primeraPagina.items];
-      const totalPages = Math.min(primeraPagina.totalPages, MAX_CONSULTAS_PAGES);
-
-      if (totalPages > 1) {
-        const paginasRestantes = await Promise.all(
-          Array.from({ length: totalPages - 1 }, (_, i) => cargarPagina(i + 1))
-        );
-
-        consultas = consultas.concat(
-          paginasRestantes.flatMap((pagina) => pagina.items || [])
-        );
-      }
-
-      setRows(consultas);
-    } catch (error) {
-      console.error(error);
-      toast.error(error.message || "Error de conexión");
-      setRows([]);
-    } finally {
-      setLoading(false);
+    if (res.status === 401) {
+      router.replace("/");
+      return;
     }
+
+    if (res.status === 403) {
+      toast.error("No tienes permisos para ver estas consultas.");
+      router.replace("/inicio");
+      return;
+    }
+
+    if (!res.ok) {
+      const mensaje = mensajeErrorDesdeRespuesta(
+        payload,
+        "Error cargando consultas"
+      );
+
+      console.log("[CONSULTAS] Falló backend:", {
+        url,
+        status: res.status,
+        statusText: res.statusText,
+        payload,
+      });
+
+      toast.error(`Error ${res.status} cargando consultas`, {
+        description: mensaje,
+      });
+
+      setRows([]);
+      return;
+    }
+
+    const consultas = obtenerArrayDesdeRespuesta(payload)
+      .map(normalizarConsultaFila)
+      .filter(
+        (consulta) =>
+          consulta.id !== "" &&
+          consulta.id !== null &&
+          consulta.id !== undefined
+      );
+
+    setRows(ordenarConsultasPorIdAscendente(consultas));
+  } catch (error) {
+    console.log("[CONSULTAS] Error de conexión o parsing:", error);
+
+    toast.error("Error de conexión cargando consultas", {
+      description: error?.message || "No se pudo conectar con el servidor",
+    });
+
+    setRows([]);
+  } finally {
+    setLoading(false);
   }
+}
 
   async function cargarCatalogos() {
     try {
@@ -593,7 +652,7 @@ export function ConsultasJuridicasForm() {
         tramite: data.tramite ?? "",
         observaciones: data.observaciones ?? "",
         tipoViolencia: data.tipoViolencia ?? "",
-        estado: data.estado ?? "",
+        estado: normalizarEstadoConsulta(data.estado),
         resultado: data.resultado ?? "",
         personaId: data.personaId ?? data.persona?.id ?? "",
         sedeId: data.sedeId ?? data.sede?.id ?? "",
@@ -670,9 +729,6 @@ export function ConsultasJuridicasForm() {
         : [],
     };
 
-    if (puedeCambiarEstadoConsulta) {
-      payload.estado = form.estado;
-    }
 
     if (puedeAsignarResponsablesConsulta) {
       payload.asesorId = form.asesorId ? Number(form.asesorId) : null;
@@ -714,6 +770,53 @@ export function ConsultasJuridicasForm() {
       toast.error("Error de conexión");
     } finally {
       setGuardando(false);
+    }
+  }
+
+  async function handleCambiarEstado(id, estado) {
+    if (!puedeCambiarEstadoConsulta) {
+      toast.error("No tienes permisos para cambiar el estado de consultas.");
+      return;
+    }
+
+    const estadoNormalizado = normalizarEstadoConsulta(estado);
+
+    if (!estadoNormalizado || estadoNormalizado === "ARCHIVADO") {
+      toast.error("Selecciona un estado operativo válido. Para archivar usa el botón Archivar.");
+      return;
+    }
+
+    try {
+      const res = await fetch(
+        `${API_URL_BASE}/consultas/${id}/estado?estado=${encodeURIComponent(estadoNormalizado)}`,
+        {
+          method: "PATCH",
+          credentials: "include",
+        }
+      );
+
+      const payload = await leerJsonSeguro(res);
+
+      if (res.status === 401) {
+        router.push("/");
+        return;
+      }
+
+      if (res.status === 403) {
+        toast.error("No tienes permisos para cambiar el estado de esta consulta.");
+        return;
+      }
+
+      if (res.ok) {
+        toast.success("Estado de la consulta actualizado");
+        setMostrarFormEdicion(false);
+        cargarConsultas(searchText);
+      } else {
+        toast.error(mensajeErrorDesdeRespuesta(payload, "Error al cambiar el estado"));
+      }
+    } catch (error) {
+      console.error(error);
+      toast.error("Error de conexión");
     }
   }
 
@@ -776,7 +879,12 @@ export function ConsultasJuridicasForm() {
           <div className="flex-1 space-y-1">
             <label className="text-sm font-medium">Buscar consulta</label>
             <input value={searchText} onChange={e => setSearchText(e.target.value)}
-              onKeyDown={e => e.key === "Enter" && cargarConsultas(searchText)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  cargarConsultas(searchText);
+                }
+              }}
               placeholder="Nombre, apellido, cédula o descripción..."
               className="w-full rounded-md border px-3 py-2 text-sm"
             />
@@ -795,12 +903,32 @@ export function ConsultasJuridicasForm() {
                 <C label="Fecha *"><input type="date" name="fecha" value={form.fecha} onChange={handleChange} required className={ic} /></C>
                 <C label="Estado *">
                   {puedeCambiarEstadoConsulta ? (
-                    <select name="estado" value={form.estado} onChange={handleChange} required className={ic}>
-                      <option value="">Seleccione</option>
-                      {ESTADOS.filter(e => e !== "Archivado").map(e => <option key={e} value={e}>{e}</option>)}
-                    </select>
+                    <div className="flex gap-2">
+                      <select
+                        name="estado"
+                        value={form.estado}
+                        onChange={handleChange}
+                        required
+                        className={ic}
+                      >
+                        <option value="">Seleccione</option>
+                        {ESTADOS_CONSULTA.filter((estado) => estado.value !== "ARCHIVADO").map((estado) => (
+                          <option key={estado.value} value={estado.value}>
+                            {estado.label}
+                          </option>
+                        ))}
+                      </select>
+
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => handleCambiarEstado(idEditando, form.estado)}
+                      >
+                        Cambiar estado
+                      </Button>
+                    </div>
                   ) : (
-                    <input value={form.estado || "Sin estado"} disabled className={ic} />
+                    <input value={labelEstadoConsulta(form.estado)} disabled className={ic} />
                   )}
                 </C>
                 <C label="Trámite *"><input name="tramite" value={form.tramite} onChange={handleChange} required placeholder="Ej: Conciliación" className={ic} /></C>
@@ -964,13 +1092,13 @@ export function ConsultasJuridicasForm() {
                   <td className="px-4 py-3 text-sm">{row.apellido}</td>
                   <td className="px-4 py-3 text-sm">{row.cedula}</td>
                   <td className="px-4 py-3 text-sm">
-                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${row.estado === "Archivado" ? "bg-gray-100 text-gray-600" :
-                      row.estado === "Cerrado" ? "bg-red-100 text-red-600" :
-                        row.estado === "Urgente" ? "bg-orange-100 text-orange-600" :
-                          row.estado === "Activo" ? "bg-green-100 text-green-600" :
+                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${normalizarEstadoConsulta(row.estado) === "ARCHIVADO" ? "bg-gray-100 text-gray-600" :
+                      normalizarEstadoConsulta(row.estado) === "CERRADO" ? "bg-red-100 text-red-600" :
+                        normalizarEstadoConsulta(row.estado) === "URGENTE" ? "bg-orange-100 text-orange-600" :
+                          normalizarEstadoConsulta(row.estado) === "ACTIVO" ? "bg-green-100 text-green-600" :
                             "bg-blue-100 text-blue-600"
                       }`}>
-                      {row.estado ?? "Sin estado"}
+                      {labelEstadoConsulta(row.estado)}
                     </span>
                   </td>
                   <td className="px-4 py-3 text-sm">
@@ -985,7 +1113,7 @@ export function ConsultasJuridicasForm() {
                         </Button>
                       )}
 
-                      {puedeArchivarRegistro(row) && row.estado !== "Archivado" && (
+                      {puedeArchivarRegistro(row) && normalizarEstadoConsulta(row.estado) !== "ARCHIVADO" && (
                         <Button
                           size="sm"
                           variant="destructive"

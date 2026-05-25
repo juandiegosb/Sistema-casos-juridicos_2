@@ -10,7 +10,7 @@ import { PERMISOS } from "@/lib/permission";
 import { tienePermiso } from "@/lib/authz";
 
 const FORM_INICIAL = {
-  tipoUsuario: "",
+  tipoPersonaId: "",
   tipoDocumento: "",
   numeroDocumento: "",
   fechaExpedicion: "",
@@ -25,18 +25,18 @@ const FORM_INICIAL = {
   fechaNacimiento: "",
   telefono: "",
   correo: "",
-  nacionalidad: "",
+  nacionalidadId: "",
   estadoCivil: "",
   escolaridad: "",
   grupoEtnico: "",
-  condicionActual: "",
+  condicionActualId: "",
   sabeLeerEscribir: false,
   discapacidad: "",
   caracterizacionPcd: "",
   necesitaAjustePcd: false,
-  departamento: "",
-  municipio: "",
-  barrio: "",
+  departamentoId: "",
+  municipioId: "",
+  barrioId: "",
   direccion: "",
   comuna: "",
   localidad: "",
@@ -49,8 +49,8 @@ const FORM_INICIAL = {
   energiaElectrica: false,
   acueducto: false,
   alcantarillado: false,
-  ocupacion: "",
-  empresa: "",
+  ocupacionId: "",
+  empresaId: "",
   salario: 0,
   cargo: "",
   direccionEmpresa: "",
@@ -64,13 +64,67 @@ const FORM_INICIAL = {
   relacionConUniversidad: "",
 };
 
-function normalizar(value) {
-  return String(value || "").trim().toUpperCase();
-}
+const FALLBACK_TIPO_DOCUMENTO_OPTIONS = [
+  { value: "CC", label: "Cédula de Ciudadanía" },
+  { value: "TI", label: "Tarjeta de Identidad" },
+  { value: "CE", label: "Cédula de Extranjería" },
+  { value: "PA", label: "Pasaporte" },
+];
 
-function esAdministrador(user) {
-  return normalizar(user?.rolNombre) === "ADMINISTRADOR";
-}
+const PRONOMBRE_OPTIONS = [
+  { value: "Él", label: "Él" },
+  { value: "Ella", label: "Ella" },
+  { value: "Elle", label: "Elle" },
+  { value: "Otro", label: "Otro" },
+];
+
+const SEXO_OPTIONS = [
+  { value: "Hombre", label: "Hombre" },
+  { value: "Mujer", label: "Mujer" },
+  { value: "Intersexual", label: "Intersexual" },
+];
+
+const GENERO_OPTIONS = [
+  { value: "Masculino", label: "Masculino" },
+  { value: "Femenino", label: "Femenino" },
+  { value: "No binario", label: "No binario" },
+  { value: "Transgénero", label: "Transgénero" },
+  { value: "Otro", label: "Otro" },
+];
+
+const ORIENTACION_OPTIONS = [
+  { value: "Heterosexual", label: "Heterosexual" },
+  { value: "Homosexual", label: "Homosexual" },
+  { value: "Bisexual", label: "Bisexual" },
+  { value: "Pansexual", label: "Pansexual" },
+  { value: "Asexual", label: "Asexual" },
+  { value: "Otro", label: "Otro" },
+];
+
+const ESTADO_CIVIL_OPTIONS = [
+  { value: "Soltero/a", label: "Soltero/a" },
+  { value: "Casado/a", label: "Casado/a" },
+  { value: "Unión libre", label: "Unión libre" },
+  { value: "Divorciado/a", label: "Divorciado/a" },
+  { value: "Viudo/a", label: "Viudo/a" },
+];
+
+const ESCOLARIDAD_OPTIONS = [
+  { value: "Ninguna", label: "Ninguna" },
+  { value: "Primaria", label: "Primaria" },
+  { value: "Secundaria", label: "Secundaria" },
+  { value: "Técnico", label: "Técnico" },
+  { value: "Tecnólogo", label: "Tecnólogo" },
+  { value: "Universitario", label: "Universitario" },
+  { value: "Postgrado", label: "Postgrado" },
+];
+
+const ZONA_OPTIONS = [
+  { value: "Urbana", label: "Urbana" },
+  { value: "Rural", label: "Rural" },
+];
+
+const REGISTROS_POR_PAGINA_OPTIONS = [5, 10, 20, 50];
 
 async function leerRespuesta(res) {
   const text = await res.text();
@@ -84,6 +138,46 @@ async function leerRespuesta(res) {
   }
 }
 
+async function fetchCatalogo(path) {
+  const res = await fetch(`${API_URL_BASE}${path}`, {
+    method: "GET",
+    credentials: "include",
+  });
+
+  if (!res.ok) {
+    return [];
+  }
+
+  const data = await res.json();
+  return Array.isArray(data) ? data : [];
+}
+
+function toOption(item) {
+  return {
+    value: String(item.id),
+    label: item.nombre || item.descripcion || `Registro ${item.id}`,
+  };
+}
+
+function toDocumentoOption(item) {
+  const value = item.codigo || item.abreviatura || item.nombre || item.descripcion || "";
+  const label = item.nombre || item.descripcion || item.codigo || item.abreviatura || value;
+
+  return { value, label };
+}
+
+function optionsMap(options) {
+  return new Map(options.map((option) => [String(option.value), option.label]));
+}
+
+function labelFromMap(map, value, fallback = "N/A") {
+  if (value === null || value === undefined || value === "") {
+    return fallback;
+  }
+
+  return map.get(String(value)) || fallback;
+}
+
 function nombreCompleto(persona) {
   return [persona?.nombres, persona?.apellidos].filter(Boolean).join(" ");
 }
@@ -92,21 +186,56 @@ function valorTexto(value) {
   return value || "N/A";
 }
 
-function mostrarTipoPersona(tipoUsuario) {
-  const tipo = String(tipoUsuario || "").trim().toLowerCase();
+function numberOrNull(value) {
+  if (value === null || value === undefined || value === "") {
+    return null;
+  }
 
-  if (tipo === "consultante") return "Usuario general";
-  if (tipo === "victima" || tipo === "víctima") return "Víctima";
-  if (tipo === "usuario general") return "Usuario general";
+  const number = Number(value);
+  return Number.isNaN(number) ? null : number;
+}
 
-  return tipoUsuario || "N/A";
+function textOrNull(value) {
+  const text = String(value ?? "").trim();
+  return text === "" ? null : text;
+}
+
+function ordenarPorIdAscendente(items) {
+  return [...items].sort((a, b) => {
+    const idA = Number(a?.id ?? Number.MAX_SAFE_INTEGER);
+    const idB = Number(b?.id ?? Number.MAX_SAFE_INTEGER);
+
+    return idA - idB;
+  });
+}
+
+function obtenerPaginasVisibles(paginaActual, totalPaginas) {
+  const paginas = new Set([
+    1,
+    totalPaginas,
+    paginaActual - 1,
+    paginaActual,
+    paginaActual + 1,
+  ]);
+
+  return Array.from(paginas)
+    .filter((pagina) => pagina >= 1 && pagina <= totalPaginas)
+    .sort((a, b) => a - b);
 }
 
 function convertirPersonaAForm(persona) {
   return {
     ...FORM_INICIAL,
     ...persona,
-    tipoUsuario: mostrarTipoPersona(persona.tipoUsuario),
+    tipoPersonaId: persona.tipoPersonaId != null ? String(persona.tipoPersonaId) : "",
+    nacionalidadId: persona.nacionalidadId != null ? String(persona.nacionalidadId) : "",
+    condicionActualId:
+      persona.condicionActualId != null ? String(persona.condicionActualId) : "",
+    departamentoId: persona.departamentoId != null ? String(persona.departamentoId) : "",
+    municipioId: persona.municipioId != null ? String(persona.municipioId) : "",
+    barrioId: persona.barrioId != null ? String(persona.barrioId) : "",
+    ocupacionId: persona.ocupacionId != null ? String(persona.ocupacionId) : "",
+    empresaId: persona.empresaId != null ? String(persona.empresaId) : "",
     sabeLeerEscribir: Boolean(persona.sabeLeerEscribir),
     necesitaAjustePcd: Boolean(persona.necesitaAjustePcd),
     ingresosAdicionales: Boolean(persona.ingresosAdicionales),
@@ -119,10 +248,36 @@ function convertirPersonaAForm(persona) {
   };
 }
 
+function construirPayload(form, id) {
+  return {
+    ...form,
+    id,
+    tipoPersonaId: numberOrNull(form.tipoPersonaId),
+    nacionalidadId: numberOrNull(form.nacionalidadId),
+    condicionActualId: numberOrNull(form.condicionActualId),
+    departamentoId: numberOrNull(form.departamentoId),
+    municipioId: numberOrNull(form.municipioId),
+    barrioId: numberOrNull(form.barrioId),
+    ocupacionId: numberOrNull(form.ocupacionId),
+    empresaId: numberOrNull(form.empresaId),
+    estrato: Number(form.estrato || 0),
+    numeroPersonasACargo: Number(form.numeroPersonasACargo || 0),
+    salario: Number(form.salario || 0),
+    correo: textOrNull(form.correo),
+    correoAcudiente: textOrNull(form.correoAcudiente),
+    nombreCompletoAcudiente: textOrNull(form.nombreCompletoAcudiente),
+    relacionAcudiente: textOrNull(form.relacionAcudiente),
+    telefonoAcudiente: textOrNull(form.telefonoAcudiente),
+    direccionAcudiente: textOrNull(form.direccionAcudiente),
+  };
+}
+
 export function PersonasForm() {
   const [user, setUser] = useState(null);
   const [personas, setPersonas] = useState([]);
   const [busqueda, setBusqueda] = useState("");
+  const [paginaActual, setPaginaActual] = useState(1);
+  const [registrosPorPagina, setRegistrosPorPagina] = useState(10);
   const [personaEditando, setPersonaEditando] = useState(null);
   const [personaADesactivar, setPersonaADesactivar] = useState(null);
   const [form, setForm] = useState(FORM_INICIAL);
@@ -132,6 +287,20 @@ export function PersonasForm() {
   const [mensaje, setMensaje] = useState("");
   const [error, setError] = useState("");
 
+  const [tipoDocumentoOptions, setTipoDocumentoOptions] = useState(
+    FALLBACK_TIPO_DOCUMENTO_OPTIONS
+  );
+  const [tipoPersonaOptions, setTipoPersonaOptions] = useState([]);
+  const [nacionalidadOptions, setNacionalidadOptions] = useState([]);
+  const [condicionOptions, setCondicionOptions] = useState([]);
+  const [ocupacionOptions, setOcupacionOptions] = useState([]);
+  const [empresaOptions, setEmpresaOptions] = useState([]);
+  const [departamentoOptions, setDepartamentoOptions] = useState([]);
+  const [municipioOptions, setMunicipioOptions] = useState([]);
+  const [barrioOptions, setBarrioOptions] = useState([]);
+  const [municipioCatalogoOptions, setMunicipioCatalogoOptions] = useState([]);
+  const [barrioCatalogoOptions, setBarrioCatalogoOptions] = useState([]);
+
   const router = useRouter();
 
   const puedeEditar = tienePermiso(user, PERMISOS.EDITAR_PERSONAS);
@@ -140,35 +309,116 @@ export function PersonasForm() {
     PERMISOS.CAMBIAR_ESTADO_PERSONAS
   );
 
+  const tipoPersonaMap = useMemo(
+    () => optionsMap(tipoPersonaOptions),
+    [tipoPersonaOptions]
+  );
+  const municipioMap = useMemo(
+    () => optionsMap(municipioCatalogoOptions),
+    [municipioCatalogoOptions]
+  );
+  const barrioMap = useMemo(
+    () => optionsMap(barrioCatalogoOptions),
+    [barrioCatalogoOptions]
+  );
+
   const personasFiltradas = useMemo(() => {
     const q = busqueda.trim().toLowerCase();
 
-    if (!q) return personas;
+    const base = !q
+      ? personas
+      : personas.filter((persona) =>
+          [
+            persona.id,
+            persona.numeroDocumento,
+            persona.nombres,
+            persona.apellidos,
+            persona.telefono,
+            persona.correo,
+            persona.direccion,
+            labelFromMap(tipoPersonaMap, persona.tipoPersonaId, ""),
+            labelFromMap(municipioMap, persona.municipioId, ""),
+            labelFromMap(barrioMap, persona.barrioId, ""),
+          ]
+            .filter(Boolean)
+            .join(" ")
+            .toLowerCase()
+            .includes(q)
+        );
 
-    return personas.filter((persona) =>
-      [
-        persona.id,
-        persona.tipoUsuario,
-        persona.tipoDocumento,
-        persona.numeroDocumento,
-        persona.nombres,
-        persona.apellidos,
-        persona.telefono,
-        persona.correo,
-        persona.municipio,
-        persona.barrio,
-        persona.direccion,
-      ]
-        .filter(Boolean)
-        .join(" ")
-        .toLowerCase()
-        .includes(q)
-    );
-  }, [personas, busqueda]);
+    return ordenarPorIdAscendente(base);
+  }, [personas, busqueda, tipoPersonaMap, municipioMap, barrioMap]);
+
+  const totalRegistros = personasFiltradas.length;
+  const totalPaginas = Math.max(1, Math.ceil(totalRegistros / registrosPorPagina));
+  const indiceInicial = (paginaActual - 1) * registrosPorPagina;
+  const indiceFinal = Math.min(indiceInicial + registrosPorPagina, totalRegistros);
+  const paginasVisibles = obtenerPaginasVisibles(paginaActual, totalPaginas);
+
+  const personasPaginadas = useMemo(
+    () => personasFiltradas.slice(indiceInicial, indiceInicial + registrosPorPagina),
+    [personasFiltradas, indiceInicial, registrosPorPagina]
+  );
 
   useEffect(() => {
     cargarInicial();
   }, [router]);
+
+  useEffect(() => {
+    setPaginaActual(1);
+  }, [busqueda, registrosPorPagina]);
+
+  useEffect(() => {
+    if (paginaActual > totalPaginas) {
+      setPaginaActual(totalPaginas);
+    }
+  }, [paginaActual, totalPaginas]);
+
+  useEffect(() => {
+    async function cargarMunicipios() {
+      if (!form.departamentoId) {
+        setMunicipioOptions([]);
+        setBarrioOptions([]);
+        return;
+      }
+
+      const municipios = await fetchCatalogo(
+        `/municipios/departamento/${form.departamentoId}`
+      );
+
+      setMunicipioOptions(municipios.map(toOption));
+
+      if (!municipios.some((municipio) => String(municipio.id) === String(form.municipioId))) {
+        setForm((prev) => ({ ...prev, municipioId: "", barrioId: "" }));
+        setBarrioOptions([]);
+      }
+    }
+
+    if (personaEditando) {
+      cargarMunicipios();
+    }
+  }, [form.departamentoId, personaEditando]);
+
+  useEffect(() => {
+    async function cargarBarrios() {
+      if (!form.municipioId) {
+        setBarrioOptions([]);
+        return;
+      }
+
+      const barrios = await fetchCatalogo(`/barrios/municipio/${form.municipioId}`);
+
+      setBarrioOptions(barrios.map(toOption));
+
+      if (!barrios.some((barrio) => String(barrio.id) === String(form.barrioId))) {
+        setForm((prev) => ({ ...prev, barrioId: "" }));
+      }
+    }
+
+    if (personaEditando) {
+      cargarBarrios();
+    }
+  }, [form.municipioId, personaEditando]);
 
   async function cargarInicial() {
     try {
@@ -203,26 +453,8 @@ export function PersonasForm() {
 
       setUser(meData);
 
-      const personasRes = await fetch(`${API_URL_BASE}/personas/activos`, {
-        credentials: "include",
-      });
-
-      if (personasRes.status === 401) {
-        router.replace("/");
-        return;
-      }
-
-      if (personasRes.status === 403) {
-        router.replace("/inicio");
-        return;
-      }
-
-      if (!personasRes.ok) {
-        throw new Error("No se pudieron cargar las personas");
-      }
-
-      const personasData = await personasRes.json();
-      setPersonas(Array.isArray(personasData) ? personasData : []);
+      await cargarCatalogosBase();
+      await cargarPersonas();
     } catch (err) {
       console.error(err);
       setError(err.message || "Error cargando personas");
@@ -231,7 +463,76 @@ export function PersonasForm() {
     }
   }
 
-  function abrirEdicion(persona) {
+  async function cargarCatalogosBase() {
+    const [
+      tiposDocumento,
+      tiposPersona,
+      nacionalidades,
+      condiciones,
+      ocupaciones,
+      empresas,
+      departamentos,
+      municipios,
+      barrios,
+    ] = await Promise.all([
+      fetchCatalogo("/tipos-documento/activos"),
+      fetchCatalogo("/tipos-persona"),
+      fetchCatalogo("/nacionalidades"),
+      fetchCatalogo("/condiciones"),
+      fetchCatalogo("/ocupaciones"),
+      fetchCatalogo("/empresas"),
+      fetchCatalogo("/departamentos"),
+      fetchCatalogo("/municipios"),
+      fetchCatalogo("/barrios"),
+    ]);
+
+    const opcionesDocumento = tiposDocumento
+      .map(toDocumentoOption)
+      .filter((item) => item.value && item.label);
+
+    setTipoDocumentoOptions(
+      opcionesDocumento.length > 0
+        ? opcionesDocumento
+        : FALLBACK_TIPO_DOCUMENTO_OPTIONS
+    );
+    setTipoPersonaOptions(tiposPersona.map(toOption));
+    setNacionalidadOptions(nacionalidades.map(toOption));
+    setCondicionOptions(condiciones.map(toOption));
+    setOcupacionOptions(ocupaciones.map(toOption));
+    setEmpresaOptions(empresas.map(toOption));
+    setDepartamentoOptions(departamentos.map(toOption));
+    setMunicipioCatalogoOptions(municipios.map(toOption));
+    setBarrioCatalogoOptions(barrios.map(toOption));
+  }
+
+  async function cargarPersonas() {
+    const personasRes = await fetch(`${API_URL_BASE}/personas/activos`, {
+      credentials: "include",
+    });
+
+    if (personasRes.status === 401) {
+      router.replace("/");
+      return;
+    }
+
+    if (personasRes.status === 403) {
+      router.replace("/inicio");
+      return;
+    }
+
+    if (!personasRes.ok) {
+      throw new Error("No se pudieron cargar las personas");
+    }
+
+    const personasData = await personasRes.json();
+    const personasOrdenadas = ordenarPorIdAscendente(
+      Array.isArray(personasData) ? personasData : []
+    );
+
+    setPersonas(personasOrdenadas);
+  }
+
+  async function abrirEdicion(persona) {
     if (!puedeEditar) {
       setError("No tienes permisos para editar personas");
       return;
@@ -241,11 +542,29 @@ export function PersonasForm() {
     setError("");
     setPersonaEditando(persona);
     setForm(convertirPersonaAForm(persona));
+
+    if (persona.departamentoId) {
+      const municipios = await fetchCatalogo(
+        `/municipios/departamento/${persona.departamentoId}`
+      );
+      setMunicipioOptions(municipios.map(toOption));
+    } else {
+      setMunicipioOptions([]);
+    }
+
+    if (persona.municipioId) {
+      const barrios = await fetchCatalogo(`/barrios/municipio/${persona.municipioId}`);
+      setBarrioOptions(barrios.map(toOption));
+    } else {
+      setBarrioOptions([]);
+    }
   }
 
   function cerrarEdicion() {
     setPersonaEditando(null);
     setForm(FORM_INICIAL);
+    setMunicipioOptions([]);
+    setBarrioOptions([]);
     setSaving(false);
   }
 
@@ -260,13 +579,36 @@ export function PersonasForm() {
     setPersonaADesactivar(null);
   }
 
+  function handleBusquedaChange(event) {
+    setBusqueda(event.target.value);
+    setPaginaActual(1);
+  }
+
+  function handleRegistrosPorPaginaChange(event) {
+    setRegistrosPorPagina(Number(event.target.value));
+    setPaginaActual(1);
+  }
+
   function handleChange(event) {
     const { name, value, type, checked } = event.target;
 
-    setForm((prev) => ({
-      ...prev,
-      [name]: type === "checkbox" ? checked : value,
-    }));
+    setForm((prev) => {
+      const next = {
+        ...prev,
+        [name]: type === "checkbox" ? checked : value,
+      };
+
+      if (name === "departamentoId") {
+        next.municipioId = "";
+        next.barrioId = "";
+      }
+
+      if (name === "municipioId") {
+        next.barrioId = "";
+      }
+
+      return next;
+    });
   }
 
   function handleNumberChange(event) {
@@ -296,13 +638,7 @@ export function PersonasForm() {
       setError("");
       setMensaje("");
 
-      const payload = {
-        ...form,
-        id: personaEditando.id,
-        estrato: Number(form.estrato || 0),
-        numeroPersonasACargo: Number(form.numeroPersonasACargo || 0),
-        salario: Number(form.salario || 0),
-      };
+      const payload = construirPayload(form, personaEditando.id);
 
       const res = await fetch(`${API_URL_BASE}/personas/${personaEditando.id}`, {
         method: "PUT",
@@ -333,7 +669,7 @@ export function PersonasForm() {
 
       setMensaje("Persona actualizada correctamente");
       cerrarEdicion();
-      await cargarInicial();
+      await cargarPersonas();
     } catch (err) {
       console.error(err);
       setError(err.message || "Error actualizando persona");
@@ -384,16 +720,7 @@ export function PersonasForm() {
 
       setMensaje("Persona desactivada correctamente");
       setPersonaADesactivar(null);
-
-      setPersonas((prev) =>
-        prev.map((persona) =>
-          persona.id === personaADesactivar.id
-            ? { ...persona, activo: false }
-            : persona
-        )
-      );
-
-      await cargarInicial();
+      await cargarPersonas();
     } catch (err) {
       console.error(err);
       setError(err.message || "Error desactivando persona");
@@ -442,10 +769,49 @@ export function PersonasForm() {
           <Search className="absolute left-3 top-2.5 size-4 text-muted-foreground" />
           <input
             value={busqueda}
-            onChange={(event) => setBusqueda(event.target.value)}
+            onChange={handleBusquedaChange}
             placeholder="Buscar por documento, nombre, teléfono, correo o dirección..."
             className="h-10 w-full rounded-md border bg-background pl-9 pr-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
           />
+        </div>
+
+        <div className="flex flex-col gap-3 rounded-lg border border-primary/20 bg-primary/5 px-4 py-3 text-sm md:flex-row md:items-center md:justify-between">
+          <div className="text-muted-foreground">
+            {totalRegistros === 0 ? (
+              "No hay registros para mostrar."
+            ) : (
+              <>
+                Mostrando{" "}
+                <span className="font-semibold text-foreground">
+                  {indiceInicial + 1}
+                </span>{" "}
+                a{" "}
+                <span className="font-semibold text-foreground">
+                  {indiceFinal}
+                </span>{" "}
+                de{" "}
+                <span className="font-semibold text-foreground">
+                  {totalRegistros}
+                </span>{" "}
+                personas, ordenadas por ID de menor a mayor.
+              </>
+            )}
+          </div>
+
+          <label className="flex items-center gap-2">
+            <span className="text-muted-foreground">Registros por página:</span>
+            <select
+              value={registrosPorPagina}
+              onChange={handleRegistrosPorPaginaChange}
+              className="h-9 rounded-md border bg-background px-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              {REGISTROS_POR_PAGINA_OPTIONS.map((option) => (
+                <option key={option} value={option}>
+                  {option}
+                </option>
+              ))}
+            </select>
+          </label>
         </div>
 
         <div className="overflow-hidden rounded-lg border border-primary/30">
@@ -464,7 +830,7 @@ export function PersonasForm() {
               </thead>
 
               <tbody>
-                {personasFiltradas.length === 0 ? (
+                {personasPaginadas.length === 0 ? (
                   <tr>
                     <td
                       colSpan={7}
@@ -474,7 +840,7 @@ export function PersonasForm() {
                     </td>
                   </tr>
                 ) : (
-                  personasFiltradas.map((persona) => (
+                  personasPaginadas.map((persona) => (
                     <tr
                       key={persona.id}
                       className="border-t border-primary/20 transition hover:bg-primary/10"
@@ -505,7 +871,13 @@ export function PersonasForm() {
                       </td>
 
                       <td className="px-4 py-3">
-                        <div>{valorTexto(persona.municipio)}</div>
+                        <div>
+                          {labelFromMap(
+                            municipioMap,
+                            persona.municipioId,
+                            persona.municipio || "N/A"
+                          )}
+                        </div>
                         <div className="text-xs text-muted-foreground">
                           {valorTexto(persona.direccion)}
                         </div>
@@ -513,7 +885,11 @@ export function PersonasForm() {
 
                       <td className="px-4 py-3">
                         <span className="rounded-full border border-primary/30 bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary">
-                          {mostrarTipoPersona(persona.tipoUsuario)}
+                          {labelFromMap(
+                            tipoPersonaMap,
+                            persona.tipoPersonaId,
+                            persona.tipoUsuario || "N/A"
+                          )}
                         </span>
                       </td>
 
@@ -552,6 +928,71 @@ export function PersonasForm() {
             </table>
           </div>
         </div>
+
+        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+          <div className="text-sm text-muted-foreground">
+            Página{" "}
+            <span className="font-semibold text-foreground">{paginaActual}</span>{" "}
+            de{" "}
+            <span className="font-semibold text-foreground">{totalPaginas}</span>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              disabled={paginaActual === 1}
+              onClick={() => setPaginaActual(1)}
+            >
+              Primera
+            </Button>
+
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              disabled={paginaActual === 1}
+              onClick={() => setPaginaActual((prev) => Math.max(1, prev - 1))}
+            >
+              Anterior
+            </Button>
+
+            {paginasVisibles.map((pagina) => (
+              <Button
+                key={pagina}
+                type="button"
+                variant={paginaActual === pagina ? "default" : "outline"}
+                size="sm"
+                onClick={() => setPaginaActual(pagina)}
+              >
+                {pagina}
+              </Button>
+            ))}
+
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              disabled={paginaActual === totalPaginas}
+              onClick={() =>
+                setPaginaActual((prev) => Math.min(totalPaginas, prev + 1))
+              }
+            >
+              Siguiente
+            </Button>
+
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              disabled={paginaActual === totalPaginas}
+              onClick={() => setPaginaActual(totalPaginas)}
+            >
+              Última
+            </Button>
+          </div>
+        </div>
       </div>
 
       {personaEditando && (
@@ -578,50 +1019,50 @@ export function PersonasForm() {
               <div className="flex-1 overflow-auto p-6">
                 <div className="space-y-6">
                   <Seccion titulo="Información básica">
-                    <Input label="Tipo usuario" name="tipoUsuario" value={form.tipoUsuario} onChange={handleChange} />
-                    <Input label="Tipo documento" name="tipoDocumento" value={form.tipoDocumento} onChange={handleChange} />
+                    <Select label="Tipo persona" name="tipoPersonaId" value={form.tipoPersonaId} onChange={handleChange} options={tipoPersonaOptions} />
+                    <Select label="Tipo documento" name="tipoDocumento" value={form.tipoDocumento} onChange={handleChange} options={tipoDocumentoOptions} />
                     <Input label="Número documento" name="numeroDocumento" value={form.numeroDocumento} onChange={handleChange} />
                     <Input label="Fecha expedición" name="fechaExpedicion" type="date" value={form.fechaExpedicion} onChange={handleChange} />
                     <Input label="Ciudad expedición" name="ciudadExpedicion" value={form.ciudadExpedicion} onChange={handleChange} />
                     <Input label="Nombres" name="nombres" value={form.nombres} onChange={handleChange} />
                     <Input label="Apellidos" name="apellidos" value={form.apellidos} onChange={handleChange} />
                     <Input label="Nombre identitario" name="nombreIdentitario" value={form.nombreIdentitario} onChange={handleChange} />
-                    <Input label="Pronombre" name="pronombre" value={form.pronombre} onChange={handleChange} />
-                    <Input label="Sexo" name="sexo" value={form.sexo} onChange={handleChange} />
-                    <Input label="Género" name="genero" value={form.genero} onChange={handleChange} />
-                    <Input label="Orientación sexual" name="orientacionSexual" value={form.orientacionSexual} onChange={handleChange} />
+                    <Select label="Pronombre" name="pronombre" value={form.pronombre} onChange={handleChange} options={PRONOMBRE_OPTIONS} />
+                    <Select label="Sexo" name="sexo" value={form.sexo} onChange={handleChange} options={SEXO_OPTIONS} />
+                    <Select label="Género" name="genero" value={form.genero} onChange={handleChange} options={GENERO_OPTIONS} />
+                    <Select label="Orientación sexual" name="orientacionSexual" value={form.orientacionSexual} onChange={handleChange} options={ORIENTACION_OPTIONS} />
                     <Input label="Fecha nacimiento" name="fechaNacimiento" type="date" value={form.fechaNacimiento} onChange={handleChange} />
                   </Seccion>
 
-                  <Seccion titulo="Contacto">
+                  <Seccion titulo="Contacto e identidad social">
                     <Input label="Teléfono" name="telefono" value={form.telefono} onChange={handleChange} />
                     <Input label="Correo" name="correo" type="email" value={form.correo} onChange={handleChange} />
-                    <Input label="Nacionalidad" name="nacionalidad" value={form.nacionalidad} onChange={handleChange} />
-                    <Input label="Estado civil" name="estadoCivil" value={form.estadoCivil} onChange={handleChange} />
-                    <Input label="Escolaridad" name="escolaridad" value={form.escolaridad} onChange={handleChange} />
+                    <Select label="Nacionalidad" name="nacionalidadId" value={form.nacionalidadId} onChange={handleChange} options={nacionalidadOptions} />
+                    <Select label="Estado civil" name="estadoCivil" value={form.estadoCivil} onChange={handleChange} options={ESTADO_CIVIL_OPTIONS} />
+                    <Select label="Escolaridad" name="escolaridad" value={form.escolaridad} onChange={handleChange} options={ESCOLARIDAD_OPTIONS} />
                     <Input label="Grupo étnico" name="grupoEtnico" value={form.grupoEtnico} onChange={handleChange} />
-                    <Input label="Condición actual" name="condicionActual" value={form.condicionActual} onChange={handleChange} />
+                    <Select label="Condición actual" name="condicionActualId" value={form.condicionActualId} onChange={handleChange} options={condicionOptions} />
                     <Input label="Discapacidad" name="discapacidad" value={form.discapacidad} onChange={handleChange} />
                     <Input label="Caracterización PCD" name="caracterizacionPcd" value={form.caracterizacionPcd} onChange={handleChange} />
                   </Seccion>
 
                   <Seccion titulo="Ubicación y vivienda">
-                    <Input label="Departamento" name="departamento" value={form.departamento} onChange={handleChange} />
-                    <Input label="Municipio" name="municipio" value={form.municipio} onChange={handleChange} />
-                    <Input label="Barrio" name="barrio" value={form.barrio} onChange={handleChange} />
+                    <Select label="Departamento" name="departamentoId" value={form.departamentoId} onChange={handleChange} options={departamentoOptions} />
+                    <Select label="Municipio" name="municipioId" value={form.municipioId} onChange={handleChange} options={municipioOptions} disabled={!form.departamentoId} />
+                    <Select label="Barrio" name="barrioId" value={form.barrioId} onChange={handleChange} options={barrioOptions} disabled={!form.municipioId} />
                     <Input label="Dirección" name="direccion" value={form.direccion} onChange={handleChange} />
                     <Input label="Comuna" name="comuna" value={form.comuna} onChange={handleChange} />
                     <Input label="Localidad" name="localidad" value={form.localidad} onChange={handleChange} />
                     <Input label="Estrato" name="estrato" type="number" value={form.estrato} onChange={handleNumberChange} />
                     <Input label="Tipo vivienda" name="tipoVivienda" value={form.tipoVivienda} onChange={handleChange} />
-                    <Input label="Zona" name="zona" value={form.zona} onChange={handleChange} />
+                    <Select label="Zona" name="zona" value={form.zona} onChange={handleChange} options={ZONA_OPTIONS} />
                     <Input label="Tenencia" name="tenencia" value={form.tenencia} onChange={handleChange} />
                     <Input label="Personas a cargo" name="numeroPersonasACargo" type="number" value={form.numeroPersonasACargo} onChange={handleNumberChange} />
                   </Seccion>
 
                   <Seccion titulo="Economía">
-                    <Input label="Ocupación" name="ocupacion" value={form.ocupacion} onChange={handleChange} />
-                    <Input label="Empresa" name="empresa" value={form.empresa} onChange={handleChange} />
+                    <Select label="Ocupación" name="ocupacionId" value={form.ocupacionId} onChange={handleChange} options={ocupacionOptions} />
+                    <Select label="Empresa" name="empresaId" value={form.empresaId} onChange={handleChange} options={empresaOptions} />
                     <Input label="Salario" name="salario" type="number" value={form.salario} onChange={handleNumberChange} />
                     <Input label="Cargo" name="cargo" value={form.cargo} onChange={handleChange} />
                     <Input label="Dirección empresa" name="direccionEmpresa" value={form.direccionEmpresa} onChange={handleChange} />
@@ -632,7 +1073,7 @@ export function PersonasForm() {
                     <Input label="Nombre acudiente" name="nombreCompletoAcudiente" value={form.nombreCompletoAcudiente} onChange={handleChange} />
                     <Input label="Relación acudiente" name="relacionAcudiente" value={form.relacionAcudiente} onChange={handleChange} />
                     <Input label="Teléfono acudiente" name="telefonoAcudiente" value={form.telefonoAcudiente} onChange={handleChange} />
-                    <Input label="Correo acudiente" name="correoAcudiente" value={form.correoAcudiente} onChange={handleChange} />
+                    <Input label="Correo acudiente" name="correoAcudiente" type="email" value={form.correoAcudiente} onChange={handleChange} />
                     <Input label="Dirección acudiente" name="direccionAcudiente" value={form.direccionAcudiente} onChange={handleChange} />
                   </Seccion>
 
@@ -709,6 +1150,28 @@ function Input({ label, name, value, onChange, type = "text" }) {
         onChange={onChange}
         className="h-10 rounded-md border bg-background px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
       />
+    </label>
+  );
+}
+
+function Select({ label, name, value, onChange, options, disabled = false }) {
+  return (
+    <label className="flex flex-col gap-1.5 text-sm">
+      <span className="font-medium">{label}</span>
+      <select
+        name={name}
+        value={value ?? ""}
+        onChange={onChange}
+        disabled={disabled}
+        className="h-10 rounded-md border bg-background px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-60"
+      >
+        <option value="">Seleccione una opción</option>
+        {options.map((option) => (
+          <option key={option.value} value={option.value}>
+            {option.label}
+          </option>
+        ))}
+      </select>
     </label>
   );
 }

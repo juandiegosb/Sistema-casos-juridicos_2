@@ -105,7 +105,7 @@ export function AreaForm() {
       setConfirmLoading(true)
 
       const res = await fetch(
-        `${API_URL_BASE}/areas/${confirmDialog.id}/desactivar`,
+        `${API_URL_BASE}/areas/${confirmDialog.id}/activo?activo=false`,
         {
           method: "PATCH",
           credentials: "include",

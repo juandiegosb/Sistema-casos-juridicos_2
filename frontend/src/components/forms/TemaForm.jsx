@@ -156,7 +156,7 @@ export function TemaForm() {
       setDesactivando(true);
 
       const res = await fetch(
-        `${API_URL_BASE}/temas/${temaADesactivar.id}/desactivar`,
+        `${API_URL_BASE}/temas/${temaADesactivar.id}/activo?activo=false`,
         {
           method: "PATCH",
           credentials: "include",

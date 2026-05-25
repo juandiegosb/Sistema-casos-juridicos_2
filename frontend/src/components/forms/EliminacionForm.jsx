@@ -3,6 +3,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { ConfirmActionDialog } from "@/components/ui/ConfirmActionDialog";
 import { API_URL_BASE } from "@/lib/config";
 import { RotateCcw, RefreshCw } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -77,11 +78,9 @@ function estaInactivo(item) {
 }
 
 function estaArchivadaConsulta(item) {
-  return (
-    normalizar(item?.estado) === "ARCHIVADO" ||
-    normalizar(item?.estado) === "ARCHIVADA" ||
-    item?.activo === false
-  );
+  const estado = normalizar(item?.estado);
+
+  return estado === "ARCHIVADO" || estado === "ARCHIVADA";
 }
 
 function nombrePersona(item) {
@@ -143,6 +142,8 @@ export function EliminacionForm() {
   const [loading, setLoading] = useState(true);
   const [reactivando, setReactivando] = useState("");
   const [busqueda, setBusqueda] = useState("");
+  const [confirmDialogAbierto, setConfirmDialogAbierto] = useState(false);
+  const [itemAReactivar, setItemAReactivar] = useState(null);
   const router = useRouter();
 
   const seccion = useMemo(() => {
@@ -270,31 +271,40 @@ export function EliminacionForm() {
     }
   }
 
-  async function reactivarItem(item) {
-    if (!seccion) return;
+  function abrirConfirmReactivar(item) {
+    setItemAReactivar(item);
+    setConfirmDialogAbierto(true);
+  }
 
-    const confirmar = window.confirm(
-      `¿Seguro que deseas reactivar "${nombrePersona(item)}"?`
-    );
+  function cerrarConfirmDialog() {
+    setConfirmDialogAbierto(false);
+    setItemAReactivar(null);
+  }
 
-    if (!confirmar) return;
+  async function confirmarReactivarItem() {
+    if (!seccion || !itemAReactivar) return;
 
     try {
-      setReactivando(`${seccion.id}-${item.id}`);
+      setReactivando(`${seccion.id}-${itemAReactivar.id}`);
 
       if (seccion.reactivar === "consulta") {
-        await reactivarConsulta(item);
+        await reactivarConsulta(itemAReactivar);
       } else {
-        await reactivarActivo(seccion.endpoint, item.id);
+        await reactivarActivo(seccion.endpoint, itemAReactivar.id);
       }
 
-      toast.success("Registro reactivado correctamente");
+      toast.success(
+        seccion.reactivar === "consulta"
+          ? "Consulta desarchivada correctamente"
+          : "Registro reactivado correctamente"
+      );
       await cargarTodo();
     } catch (error) {
       console.error(error);
       toast.error(error.message || "No se pudo reactivar el registro");
     } finally {
       setReactivando("");
+      cerrarConfirmDialog();
     }
   }
 
@@ -318,49 +328,16 @@ export function EliminacionForm() {
   }
 
   async function reactivarConsulta(item) {
-    const detalleRes = await fetch(`${API_URL_BASE}/consultas/${item.id}`, {
+    const res = await fetch(`${API_URL_BASE}/consultas/${item.id}/desarchivar`, {
+      method: "PATCH",
       credentials: "include",
-    });
-
-    const detalle = await leerRespuesta(detalleRes);
-
-    if (!detalleRes.ok) {
-      throw new Error(
-        detalle?.mensaje || detalle?.message || "No se pudo cargar la consulta"
-      );
-    }
-
-    const payload = {
-      ...detalle,
-      estado: "Activo",
-      personaId: detalle.personaId ? Number(detalle.personaId) : null,
-      sedeId: detalle.sedeId ? Number(detalle.sedeId) : null,
-      areaId: detalle.areaId ? Number(detalle.areaId) : null,
-      temaId: detalle.temaId ? Number(detalle.temaId) : null,
-      tipoId: detalle.tipoId ? Number(detalle.tipoId) : null,
-      asesorId: detalle.asesorId ? Number(detalle.asesorId) : null,
-      monitorId: detalle.monitorId ? Number(detalle.monitorId) : null,
-      estudianteId: detalle.estudianteId ? Number(detalle.estudianteId) : null,
-      partesIds: Array.isArray(detalle.partesIds) ? detalle.partesIds : [],
-      contrapartesIds: Array.isArray(detalle.contrapartesIds)
-        ? detalle.contrapartesIds
-        : [],
-    };
-
-    const res = await fetch(`${API_URL_BASE}/consultas/${item.id}`, {
-      method: "PUT",
-      credentials: "include",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(payload),
     });
 
     const data = await leerRespuesta(res);
 
     if (!res.ok) {
       throw new Error(
-        data?.mensaje || data?.message || "No se pudo reactivar la consulta"
+        data?.mensaje || data?.message || "No se pudo desarchivar la consulta"
       );
     }
   }
@@ -505,7 +482,7 @@ export function EliminacionForm() {
                             <Button
                               type="button"
                               size="sm"
-                              onClick={() => reactivarItem(item)}
+                              onClick={() => abrirConfirmReactivar(item)}
                               disabled={isLoading}
                             >
                               <RotateCcw className="mr-1 size-4" />
@@ -522,6 +499,18 @@ export function EliminacionForm() {
           </div>
         </div>
       </div>
+
+      <ConfirmActionDialog
+        open={confirmDialogAbierto}
+        title="Reactivar registro"
+        description={`¿Seguro que deseas reactivar "${itemAReactivar ? nombrePersona(itemAReactivar) : ""}"?`}
+        confirmText="Reactivar"
+        cancelText="Cancelar"
+        loading={Boolean(reactivando)}
+        variant="default"
+        onConfirm={confirmarReactivarItem}
+        onClose={cerrarConfirmDialog}
+      />
     </div>
   );
 }
