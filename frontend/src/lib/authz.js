@@ -6,29 +6,47 @@ export function normalizar(value) {
     .toUpperCase();
 }
 
+export function nombrePermiso(permiso) {
+  if (typeof permiso === "string") return permiso;
+
+  return (
+    permiso?.nombre ||
+    permiso?.nombrePermiso ||
+    permiso?.descripcion ||
+    permiso?.permiso ||
+    ""
+  );
+}
+
 export function obtenerPermisos(user) {
   return Array.isArray(user?.permisos) ? user.permisos : [];
 }
 
+export function obtenerNombresPermisos(user) {
+  return obtenerPermisos(user)
+    .map(nombrePermiso)
+    .filter(Boolean);
+}
+
 export function tienePermiso(user, permiso) {
-  const permisos = obtenerPermisos(user).map(normalizar);
+  const permisos = obtenerNombresPermisos(user).map(normalizar);
   return permisos.includes(normalizar(permiso));
 }
 
 export function tieneAlgunPermiso(user, permisosRequeridos = []) {
-  const permisos = obtenerPermisos(user).map(normalizar);
+  const permisos = obtenerNombresPermisos(user).map(normalizar);
 
-  return permisosRequeridos.some((permiso) =>
-    permisos.includes(normalizar(permiso))
-  );
+  return permisosRequeridos
+    .filter(Boolean)
+    .some((permiso) => permisos.includes(normalizar(permiso)));
 }
 
 export function tieneTodosLosPermisos(user, permisosRequeridos = []) {
-  const permisos = obtenerPermisos(user).map(normalizar);
+  const permisos = obtenerNombresPermisos(user).map(normalizar);
 
-  return permisosRequeridos.every((permiso) =>
-    permisos.includes(normalizar(permiso))
-  );
+  return permisosRequeridos
+    .filter(Boolean)
+    .every((permiso) => permisos.includes(normalizar(permiso)));
 }
 
 export function tienePerfil(user, perfil) {
@@ -36,7 +54,7 @@ export function tienePerfil(user, perfil) {
 }
 
 export function tieneRol(user, rol) {
-  return normalizar(user?.rolNombre) === normalizar(rol);
+  return normalizar(user?.rolNombre || user?.rol?.nombre) === normalizar(rol);
 }
 
 export function esAdministrativo(user) {

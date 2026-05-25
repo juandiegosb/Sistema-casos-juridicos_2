@@ -11,22 +11,26 @@ const PAGINAS = [
   {
     title: "Inicio",
     path: "/inicio",
-    permisos: [PERMISOS.ACCEDER_INICIO],
+    permisosVista: [PERMISOS.ACCEDER_INICIO],
+    permisosAsignar: [PERMISOS.ACCEDER_INICIO],
   },
   {
     title: "Recepción",
     path: "/recepcion",
-    permisos: [
+    permisosVista: [PERMISOS.VER_PERSONAS],
+    permisosAsignar: [
       PERMISOS.ACCEDER_RECEPCION,
       PERMISOS.VER_PERSONAS,
       PERMISOS.CREAR_PERSONAS,
       PERMISOS.VER_CATALOGOS,
+      PERMISOS.VER_PERFILES_AUXILIARES,
     ],
   },
   {
     title: "Personas",
     path: "/personas",
-    permisos: [
+    permisosVista: [PERMISOS.VER_PERSONAS],
+    permisosAsignar: [
       PERMISOS.ACCEDER_PERSONAS,
       PERMISOS.VER_PERSONAS,
       PERMISOS.CREAR_PERSONAS,
@@ -36,32 +40,37 @@ const PAGINAS = [
   {
     title: "Nueva consulta",
     path: "/nuevaconsulta",
-    permisos: [
+    permisosVista: [PERMISOS.CREAR_CONSULTAS],
+    permisosAsignar: [
       PERMISOS.ACCEDER_NUEVA_CONSULTA,
-      PERMISOS.VER_CATALOGOS,
-      PERMISOS.VER_PERSONAS,
-      PERMISOS.VER_CONSULTAS,
       PERMISOS.CREAR_CONSULTAS,
+      PERMISOS.VER_CONSULTAS,
+      PERMISOS.VER_PERSONAS,
+      PERMISOS.VER_CATALOGOS,
+      PERMISOS.VER_PERFILES_AUXILIARES,
     ],
   },
   {
     title: "Consultas jurídicas",
     path: "/consultasjuridicas",
-    permisos: [
+    permisosVista: [PERMISOS.VER_CONSULTAS],
+    permisosAsignar: [
       PERMISOS.ACCEDER_CONSULTAS_JURIDICAS,
       PERMISOS.VER_CONSULTAS,
-      PERMISOS.VER_CATALOGOS,
-      PERMISOS.VER_PERSONAS,
       PERMISOS.EDITAR_CONSULTAS,
       PERMISOS.CAMBIAR_ESTADO_CONSULTAS,
       PERMISOS.ARCHIVAR_CONSULTAS,
       PERMISOS.ASIGNAR_RESPONSABLES_CONSULTA,
+      PERMISOS.VER_CATALOGOS,
+      PERMISOS.VER_PERSONAS,
+      PERMISOS.VER_PERFILES_AUXILIARES,
     ],
   },
   {
     title: "Tareas",
     path: "/tareas",
-    permisos: [
+    permisosVista: [PERMISOS.VER_SEGUIMIENTOS],
+    permisosAsignar: [
       PERMISOS.ACCEDER_TAREAS,
       PERMISOS.VER_SEGUIMIENTOS,
       PERMISOS.CREAR_SEGUIMIENTOS,
@@ -70,23 +79,26 @@ const PAGINAS = [
       PERMISOS.RESPONDER_SEGUIMIENTOS,
       PERMISOS.APROBAR_RESPUESTAS_SEGUIMIENTO,
       PERMISOS.VER_ALERTAS_DISCIPLINARIAS,
-    ],
-  },
-  {
-    title: "Nuevo proceso",
-    path: "/nuevoproceso",
-    permisos: [
-      PERMISOS.ACCEDER_PROCESOS,
-      PERMISOS.VER_PROCESOS,
-      PERMISOS.GESTIONAR_PROCESOS,
+      PERMISOS.GESTIONAR_CATEGORIAS_SEGUIMIENTO,
       PERMISOS.VER_CONSULTAS,
-      PERMISOS.VER_CATALOGOS,
     ],
   },
   {
     title: "Procesos",
     path: "/procesos",
-    permisos: [
+    permisosVista: [PERMISOS.VER_PROCESOS],
+    permisosAsignar: [
+      PERMISOS.ACCEDER_PROCESOS,
+      PERMISOS.VER_PROCESOS,
+      PERMISOS.VER_CONSULTAS,
+      PERMISOS.VER_CATALOGOS,
+    ],
+  },
+  {
+    title: "Nuevo proceso",
+    path: "/nuevoproceso",
+    permisosVista: [PERMISOS.GESTIONAR_PROCESOS],
+    permisosAsignar: [
       PERMISOS.ACCEDER_PROCESOS,
       PERMISOS.VER_PROCESOS,
       PERMISOS.GESTIONAR_PROCESOS,
@@ -95,23 +107,48 @@ const PAGINAS = [
     ],
   },
   {
-    title: "Administración",
-    path: "/admin",
-    permisos: [
-      PERMISOS.ACCEDER_ADMINISTRACION,
-      PERMISOS.VER_CATALOGOS,
-      PERMISOS.GESTIONAR_CATALOGOS,
-      PERMISOS.VER_USUARIOS,
-      PERMISOS.CREAR_USUARIOS,
-      PERMISOS.EDITAR_USUARIOS,
-      PERMISOS.CAMBIAR_ESTADO_USUARIOS,
-      PERMISOS.ASIGNAR_ROL_USUARIOS,
+    title: "Conciliaciones",
+    path: "/conciliaciones",
+    permisosVista: [PERMISOS.VER_CONCILIACIONES],
+    permisosAsignar: [
+      PERMISOS.ACCEDER_CONCILIACIONES,
+      PERMISOS.VER_CONCILIACIONES,
+      PERMISOS.GESTIONAR_CONCILIACIONES,
+      PERMISOS.PROGRAMAR_REUNIONES_CONCILIACION,
+      PERMISOS.REPROGRAMAR_REUNIONES_CONCILIACION,
+      PERMISOS.CONCLUIR_CONCILIACIONES,
+      PERMISOS.VER_CONSULTAS,
+      PERMISOS.VER_PERSONAS,
+    ],
+  },
+  {
+    title: "Estudiantes",
+    path: "/estudiantes",
+    permisosVista: [PERMISOS.VER_ESTUDIANTES],
+    permisosAsignar: [
+      PERMISOS.ACCEDER_ESTUDIANTES,
+      PERMISOS.VER_ESTUDIANTES,
+      PERMISOS.CAMBIAR_ESTADO_ESTUDIANTES,
+      PERMISOS.VER_PERSONAS,
+      PERMISOS.VER_PERFILES_AUXILIARES,
+    ],
+  },
+  {
+    title: "Asesores y monitores",
+    path: "/asesoresymonitores",
+    permisosVista: [PERMISOS.VER_ASESORES_MONITORES],
+    permisosAsignar: [
+      PERMISOS.ACCEDER_ASESORES_MONITORES,
+      PERMISOS.VER_ASESORES_MONITORES,
+      PERMISOS.GESTIONAR_ASESORES_MONITORES,
+      PERMISOS.VER_PERFILES_AUXILIARES,
     ],
   },
   {
     title: "Roles",
     path: "/roles",
-    permisos: [
+    permisosVista: [PERMISOS.VER_ROLES],
+    permisosAsignar: [
       PERMISOS.ACCEDER_ROLES,
       PERMISOS.VER_ROLES,
       PERMISOS.CREAR_ROLES,
@@ -120,27 +157,29 @@ const PAGINAS = [
     ],
   },
   {
-    title: "Estudiantes",
-    path: "/estudiantes",
-    permisos: [
-      PERMISOS.ACCEDER_ESTUDIANTES,
-      PERMISOS.VER_ESTUDIANTES,
-      PERMISOS.CAMBIAR_ESTADO_ESTUDIANTES,
-    ],
-  },
-  {
-    title: "Asesores y monitores",
-    path: "/asesoresymonitores",
-    permisos: [
-      PERMISOS.ACCEDER_ASESORES_MONITORES,
-      PERMISOS.VER_ASESORES_MONITORES,
-      PERMISOS.GESTIONAR_ASESORES_MONITORES,
+    title: "Administración",
+    path: "/admin",
+    permisosVista: [PERMISOS.VER_USUARIOS],
+    permisosAsignar: [
+      PERMISOS.ACCEDER_ADMINISTRACION,
+      PERMISOS.VER_CATALOGOS,
+      PERMISOS.GESTIONAR_CATALOGOS,
+      PERMISOS.VER_USUARIOS,
+      PERMISOS.CREAR_USUARIOS,
+      PERMISOS.EDITAR_USUARIOS,
+      PERMISOS.CAMBIAR_ESTADO_USUARIOS,
+      PERMISOS.ASIGNAR_ROL_USUARIOS,
+      PERMISOS.VER_ADMINISTRADORES,
+      PERMISOS.GESTIONAR_ADMINISTRADORES,
+      PERMISOS.VER_CONCILIADORES,
+      PERMISOS.GESTIONAR_CONCILIADORES,
     ],
   },
   {
     title: "Eliminación",
     path: "/eliminacion",
-    permisos: [
+    permisosVista: [PERMISOS.ACCEDER_ELIMINACION],
+    permisosAsignar: [
       PERMISOS.ACCEDER_ELIMINACION,
       PERMISOS.CAMBIAR_ESTADO_PERSONAS,
       PERMISOS.CAMBIAR_ESTADO_USUARIOS,
@@ -190,9 +229,13 @@ function paginaMarcada(page, permisosRol) {
     normalizar(nombrePermiso(permiso))
   );
 
-  const permisosPagina = page.permisos.filter(Boolean);
+  const permisosVista = Array.isArray(page.permisosVista)
+    ? page.permisosVista.filter(Boolean)
+    : [];
 
-  return permisosPagina.every((permiso) =>
+  if (permisosVista.length === 0) return false;
+
+  return permisosVista.some((permiso) =>
     permisosRolNormalizados.includes(normalizar(permiso))
   );
 }
@@ -561,32 +604,39 @@ export function RolePermissionsForm() {
   }
 
   function nombresPermisosObjetivo() {
-    const paths = new Set(paginasSeleccionadas);
-    const nombres = new Set();
+  const paths = new Set(paginasSeleccionadas);
+  const nombres = new Set();
 
-    paginasConfigurables.forEach((page) => {
-      if (!paths.has(page.path)) return;
+  paginasConfigurables.forEach((page) => {
+    if (!paths.has(page.path)) return;
 
-      page.permisos.filter(Boolean).forEach((permiso) => {
-        nombres.add(permiso);
-      });
+    const permisosAsignar = Array.isArray(page.permisosAsignar)
+      ? page.permisosAsignar
+      : [];
+
+    permisosAsignar.filter(Boolean).forEach((permiso) => {
+      nombres.add(permiso);
     });
+  });
 
-    return [...nombres];
-  }
+  return [...nombres];
+}
 
   function nombresPermisosGestionados() {
-    const nombres = new Set();
+  const nombres = new Set();
 
-    paginasConfigurables.forEach((page) => {
-      page.permisos.filter(Boolean).forEach((permiso) => {
-        nombres.add(permiso);
-      });
+  paginasConfigurables.forEach((page) => {
+    const permisosAsignar = Array.isArray(page.permisosAsignar)
+      ? page.permisosAsignar
+      : [];
+
+    permisosAsignar.filter(Boolean).forEach((permiso) => {
+      nombres.add(permiso);
     });
+  });
 
-    return [...nombres];
-  }
-
+  return [...nombres];
+}
   function idsDesdeNombres(listaPermisos, nombres) {
     return nombres
       .filter(Boolean)
@@ -628,68 +678,63 @@ export function RolePermissionsForm() {
   }
 
   async function guardar() {
-    if (!puedeAsignarPermisos) {
-      router.replace("/inicio");
-      return;
-    }
-
-    if (!rolId) {
-      setError("Selecciona un rol");
-      return;
-    }
-
-    if (rolSeleccionadoEsPropio && !paginasSeleccionadas.includes(paginaAdministracion)) {
-      setError("No puedes quitar el acceso a Administración de tu propio rol.");
-      return;
-    }
-
-    try {
-      setSaving(true);
-      setError("");
-      setMensaje("");
-
-      const nombresObjetivo = nombresPermisosObjetivo();
-      const nombresGestionados = nombresPermisosGestionados();
-
-      const permisosActualizados = await asegurarPermisos(nombresObjetivo);
-
-      const actuales = new Set(
-        permisosActualesRol
-          .map(idPermiso)
-          .filter((id) => id !== null && id !== undefined)
-      );
-
-      const objetivo = new Set(
-        idsDesdeNombres(permisosActualizados, nombresObjetivo)
-      );
-
-      const gestionados = new Set(
-        idsDesdeNombres(permisosActualizados, nombresGestionados)
-      );
-
-      const agregar = [...objetivo].filter((id) => !actuales.has(id));
-
-      const quitar = [...actuales].filter(
-        (id) => gestionados.has(id) && !objetivo.has(id)
-      );
-
-      for (const permisoId of agregar) {
-        await cambiarPermisoRol(permisoId, "PATCH");
-      }
-
-      for (const permisoId of quitar) {
-        await cambiarPermisoRol(permisoId, "DELETE");
-      }
-
-      setMensaje("Permisos actualizados correctamente");
-      await cargarRol(rolId);
-    } catch (err) {
-      console.error(err);
-      setError(err.message || "Error guardando permisos");
-    } finally {
-      setSaving(false);
-    }
+  if (!puedeAsignarPermisos) {
+    router.replace("/inicio");
+    return;
   }
+
+  if (!rolId) {
+    setError("Selecciona un rol");
+    return;
+  }
+
+  try {
+    setSaving(true);
+    setError("");
+    setMensaje("");
+
+    const nombresObjetivo = nombresPermisosObjetivo();
+    const nombresGestionados = nombresPermisosGestionados();
+
+    const permisosActualizados = await asegurarPermisos(nombresObjetivo);
+
+    const actuales = new Set(
+      permisosActualesRol
+        .map(idPermiso)
+        .filter((id) => id !== null && id !== undefined)
+    );
+
+    const objetivo = new Set(
+      idsDesdeNombres(permisosActualizados, nombresObjetivo)
+    );
+
+    const gestionados = new Set(
+      idsDesdeNombres(permisosActualizados, nombresGestionados)
+    );
+
+    const agregar = [...objetivo].filter((id) => !actuales.has(id));
+
+    const quitar = [...actuales].filter(
+      (id) => gestionados.has(id) && !objetivo.has(id)
+    );
+
+    for (const permisoId of agregar) {
+      await cambiarPermisoRol(permisoId, "PATCH");
+    }
+
+    for (const permisoId of quitar) {
+      await cambiarPermisoRol(permisoId, "DELETE");
+    }
+
+    setMensaje("Permisos actualizados correctamente");
+    await cargarRol(rolId);
+  } catch (err) {
+    console.error(err);
+    setError(err.message || "Error guardando permisos");
+  } finally {
+    setSaving(false);
+  }
+}
 
   if (loading) {
     return <div className="py-10 text-center">Cargando permisos...</div>;

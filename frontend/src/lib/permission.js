@@ -1,10 +1,10 @@
 export const PERMISOS = {
   ACCEDER_INICIO: "Acceder inicio",
-  ACCEDER_RECEPCION: "Acceder recepcion",
+  ACCEDER_RECEPCION: "Acceder recepción",
   ACCEDER_TAREAS: "Acceder tareas",
   ACCEDER_NUEVA_CONSULTA: "Acceder nueva consulta",
-  ACCEDER_CONSULTAS_JURIDICAS: "Acceder consultas juridicas",
-  ACCEDER_ADMINISTRACION: "Acceder administracion",
+  ACCEDER_CONSULTAS_JURIDICAS: "Acceder consultas jurídicas",
+  ACCEDER_ADMINISTRACION: "Acceder administración",
   ACCEDER_ROLES: "Acceder roles",
   ACCEDER_ESTUDIANTES: "Acceder estudiantes",
   ACCEDER_ASESORES_MONITORES: "Acceder asesores y monitores",
@@ -13,8 +13,8 @@ export const PERMISOS = {
   ACCEDER_CONCILIACIONES: "Acceder conciliaciones",
   ACCEDER_PROCESOS: "Acceder procesos",
 
-  VER_CATALOGOS: "Ver catalogos",
-  GESTIONAR_CATALOGOS: "Gestionar catalogos",
+  VER_CATALOGOS: "Ver catálogos",
+  GESTIONAR_CATALOGOS: "Gestionar catálogos",
 
   VER_PERSONAS: "Ver personas",
   CREAR_PERSONAS: "Crear personas",
@@ -36,7 +36,7 @@ export const PERMISOS = {
   RESPONDER_SEGUIMIENTOS: "Responder seguimientos",
   APROBAR_RESPUESTAS_SEGUIMIENTO: "Aprobar respuestas de seguimiento",
   VER_ALERTAS_DISCIPLINARIAS: "Ver alertas disciplinarias",
-  GESTIONAR_CATEGORIAS_SEGUIMIENTO: "Gestionar categorias de seguimiento",
+  GESTIONAR_CATEGORIAS_SEGUIMIENTO: "Gestionar categorías de seguimiento",
 
   VER_USUARIOS: "Ver usuarios",
   CREAR_USUARIOS: "Crear usuarios",
@@ -57,6 +57,19 @@ export const PERMISOS = {
 
   VER_ADMINISTRADORES: "Ver administradores",
   GESTIONAR_ADMINISTRADORES: "Gestionar administradores",
+
+  VER_PERFILES_AUXILIARES: "Ver perfiles auxiliares",
+
+  VER_CONCILIACIONES: "Ver conciliaciones",
+  GESTIONAR_CONCILIACIONES: "Gestionar conciliaciones",
+  PROGRAMAR_REUNIONES_CONCILIACION: "Programar reuniones de conciliación",
+  REPROGRAMAR_REUNIONES_CONCILIACION: "Reprogramar reuniones de conciliación",
+  CONCLUIR_CONCILIACIONES: "Concluir conciliaciones",
+
+  VER_CONCILIADORES: "Ver conciliadores",
+  GESTIONAR_CONCILIADORES: "Gestionar conciliadores",
+
+  VER_REPORTES: "Ver reportes",
 
   VER_PROCESOS: "Ver procesos",
   GESTIONAR_PROCESOS: "Gestionar procesos",

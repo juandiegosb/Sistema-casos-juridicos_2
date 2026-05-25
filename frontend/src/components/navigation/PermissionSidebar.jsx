@@ -10,109 +10,145 @@ import {
   tieneTodosLosPermisos,
 } from "@/lib/authz";
 
-const PERMISO_VER_PROCESOS = PERMISOS.VER_PROCESOS || "Ver procesos";
-const PERMISO_GESTIONAR_PROCESOS =
-  PERMISOS.GESTIONAR_PROCESOS || "Gestionar procesos";
-
 const SIDEBAR_PAGES = [
   {
     title: "Inicio",
     tooltip: "Inicio",
     path: "/inicio",
     requiredPermissions: [PERMISOS.ACCEDER_INICIO],
+    match: "any",
   },
   {
     title: "Recepción",
     tooltip: "Recepción de personas",
     path: "/recepcion",
-    requiredPermissions: [PERMISOS.ACCEDER_RECEPCION],
+    requiredPermissions: [
+      PERMISOS.ACCEDER_RECEPCION,
+      PERMISOS.VER_PERSONAS,
+    ],
+    match: "any",
   },
   {
     title: "Personas",
     tooltip: "Personas",
     path: "/personas",
-    requiredPermissions: [PERMISOS.ACCEDER_PERSONAS],
+    requiredPermissions: [
+      PERMISOS.ACCEDER_PERSONAS,
+      PERMISOS.VER_PERSONAS,
+    ],
+    match: "any",
   },
   {
     title: "Nueva consulta",
     tooltip: "Nueva consulta",
     path: "/nuevaconsulta",
-    requiredPermissions: [PERMISOS.ACCEDER_NUEVA_CONSULTA],
+    requiredPermissions: [
+      PERMISOS.ACCEDER_NUEVA_CONSULTA,
+      PERMISOS.CREAR_CONSULTAS,
+    ],
+    match: "any",
   },
   {
     title: "Consultas jurídicas",
     tooltip: "Consultas jurídicas",
     path: "/consultasjuridicas",
-    requiredPermissions: [PERMISOS.ACCEDER_CONSULTAS_JURIDICAS],
+    requiredPermissions: [
+      PERMISOS.ACCEDER_CONSULTAS_JURIDICAS,
+      PERMISOS.VER_CONSULTAS,
+    ],
+    match: "any",
   },
   {
     title: "Tareas",
     tooltip: "Tareas y seguimientos",
     path: "/tareas",
-    requiredPermissions: [PERMISOS.ACCEDER_TAREAS],
+    requiredPermissions: [
+      PERMISOS.ACCEDER_TAREAS,
+      PERMISOS.VER_SEGUIMIENTOS,
+    ],
+    match: "any",
   },
   {
     title: "Nuevo proceso",
     tooltip: "Registrar nuevo proceso",
     path: "/nuevoproceso",
     requiredPermissions: [
-      PERMISOS.ACCEDER_PROCESOS,
-      PERMISO_GESTIONAR_PROCESOS,
+      PERMISOS.GESTIONAR_PROCESOS,
     ],
-    match: "all",
+    match: "any",
   },
   {
     title: "Procesos",
     tooltip: "Procesos",
     path: "/procesos",
     requiredPermissions: [
-      PERMISOS.ACCEDER_PROCESOS,
-      PERMISO_VER_PROCESOS,
+      PERMISOS.VER_PROCESOS,
     ],
-    match: "all",
+    match: "any",
   },
   {
     title: "Conciliaciones",
     tooltip: "Conciliaciones",
     path: "/conciliaciones",
-    requiredPermissions: [PERMISOS.ACCEDER_CONCILIACIONES],
+    requiredPermissions: [
+      PERMISOS.ACCEDER_CONCILIACIONES,
+      PERMISOS.VER_CONCILIACIONES,
+      PERMISOS.GESTIONAR_CONCILIACIONES,
+    ],
+    match: "any",
   },
   {
     title: "Estudiantes",
     tooltip: "Estudiantes",
     path: "/estudiantes",
-    requiredPermissions: [PERMISOS.ACCEDER_ESTUDIANTES],
+    requiredPermissions: [
+      PERMISOS.ACCEDER_ESTUDIANTES,
+      PERMISOS.VER_ESTUDIANTES,
+    ],
+    match: "any",
   },
   {
     title: "Asesores y monitores",
     tooltip: "Asesores y monitores",
     path: "/asesoresymonitores",
-    requiredPermissions: [PERMISOS.ACCEDER_ASESORES_MONITORES],
+    requiredPermissions: [
+      PERMISOS.ACCEDER_ASESORES_MONITORES,
+      PERMISOS.VER_ASESORES_MONITORES,
+    ],
+    match: "any",
   },
   {
     title: "Roles",
     tooltip: "Roles / Usuarios",
     path: "/roles",
-    requiredPermissions: [PERMISOS.ACCEDER_ROLES],
+    requiredPermissions: [
+      PERMISOS.ACCEDER_ROLES,
+      PERMISOS.VER_ROLES,
+    ],
+    match: "any",
   },
   {
     title: "Administración",
     tooltip: "Administración",
     path: "/admin",
-    requiredPermissions: [PERMISOS.ACCEDER_ADMINISTRACION],
+    requiredPermissions: [
+      PERMISOS.ACCEDER_ADMINISTRACION,
+    ],
+    match: "all",
   },
   {
     title: "Eliminación",
     tooltip: "Registros desactivados",
     path: "/eliminacion",
     requiredPermissions: [
+      PERMISOS.ACCEDER_ELIMINACION,
       PERMISOS.CAMBIAR_ESTADO_PERSONAS,
       PERMISOS.CAMBIAR_ESTADO_USUARIOS,
       PERMISOS.CAMBIAR_ESTADO_ESTUDIANTES,
       PERMISOS.CAMBIAR_ESTADO_CONSULTAS,
       PERMISOS.ARCHIVAR_CONSULTAS,
     ],
-    match: "all",
+    match: "any",
   },
 ];
 
