@@ -1,12 +1,16 @@
 package co.edu.ufps.legal_cases.business.service.consulta.consulta;
 
+import java.util.List;
+
 import org.springframework.stereotype.Service;
 
+import co.edu.ufps.legal_cases.business.model.conciliacion.EstadoConciliacionCodigo;
 import co.edu.ufps.legal_cases.business.model.consulta.Consulta;
 import co.edu.ufps.legal_cases.business.model.consulta.EstadoConsulta;
 import co.edu.ufps.legal_cases.business.model.proceso.EstadoProceso;
 import co.edu.ufps.legal_cases.business.model.seguimiento.EstadoSeguimiento;
 import co.edu.ufps.legal_cases.business.model.seguimiento.respuesta.EstadoRespuestaSeguimiento;
+import co.edu.ufps.legal_cases.business.repository.conciliacion.ConciliacionRepository;
 import co.edu.ufps.legal_cases.business.repository.proceso.ProcesoRepository;
 import co.edu.ufps.legal_cases.business.repository.seguimiento.SeguimientoRepository;
 import co.edu.ufps.legal_cases.business.repository.seguimiento.notificacion.SeguimientoNotificacionRepository;
@@ -20,16 +24,19 @@ public class ConsultaEstadoService {
     private final SeguimientoRepository seguimientoRepository;
     private final SeguimientoRespuestaRepository seguimientoRespuestaRepository;
     private final SeguimientoNotificacionRepository seguimientoNotificacionRepository;
+    private final ConciliacionRepository conciliacionRepository;
 
     public ConsultaEstadoService(
             ProcesoRepository procesoRepository,
             SeguimientoRepository seguimientoRepository,
             SeguimientoRespuestaRepository seguimientoRespuestaRepository,
-            SeguimientoNotificacionRepository seguimientoNotificacionRepository) {
+            SeguimientoNotificacionRepository seguimientoNotificacionRepository,
+            ConciliacionRepository conciliacionRepository) {
         this.procesoRepository = procesoRepository;
         this.seguimientoRepository = seguimientoRepository;
         this.seguimientoRespuestaRepository = seguimientoRespuestaRepository;
         this.seguimientoNotificacionRepository = seguimientoNotificacionRepository;
+        this.conciliacionRepository = conciliacionRepository;
     }
 
     public void validarCambioEstado(Consulta consulta, EstadoConsulta estadoNuevo) {
@@ -124,6 +131,19 @@ public class ConsultaEstadoService {
                         consultaId)) {
             throw new BusinessException("No se puede cerrar la consulta porque tiene notificaciones pendientes");
         }
+
+        if (conciliacionRepository.existsByConsulta_IdAndActivoTrueAndEstado_CodigoIn(
+                consultaId,
+                codigosEstadosConciliacionNoFinalizados())) {
+            throw new BusinessException("No se puede cerrar la consulta porque tiene conciliaciones pendientes");
+        }
+    }
+
+    private List<String> codigosEstadosConciliacionNoFinalizados() {
+        return List.of(
+                EstadoConciliacionCodigo.EN_ESPERA,
+                EstadoConciliacionCodigo.ESPERANDO_REUNION,
+                EstadoConciliacionCodigo.REUNION_PROGRAMADA);
     }
 
     private void validarConsultaObligatoria(Consulta consulta) {
