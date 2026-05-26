@@ -30,8 +30,6 @@
 		<java.version>21</java.version>
 	</properties>
 	<dependencies>
-		<!-- TODO: luego cuando hagamos setup de postgre habilitamos el jpa
-		primero hagamos el crud básico, no nos molestamos con la conexión por ahora-->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-webmvc</artifactId>
@@ -70,7 +68,13 @@
     		<artifactId>spring-boot-starter-security</artifactId>
 		</dependency>
 
-		<!--Para gestionar tokens de jwt-->
+		<dependency>
+    		<groupId>org.springframework.boot</groupId>
+    		<artifactId>spring-boot-starter-aop</artifactId>
+			<version>4.0.0-M2</version>
+		</dependency>
+
+	<!--Para gestionar tokens de jwt-->
 		<dependency>
     		<groupId>io.jsonwebtoken</groupId>
     		<artifactId>jjwt-api</artifactId>
