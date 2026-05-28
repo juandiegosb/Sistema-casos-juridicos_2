@@ -2,6 +2,8 @@ package co.edu.ufps.legal_cases.business.service.acceso.conciliacion;
 
 import static co.edu.ufps.legal_cases.security.constant.PermisoNombre.CONCLUIR_CONCILIACIONES;
 import static co.edu.ufps.legal_cases.security.constant.PermisoNombre.GESTIONAR_CONCILIACIONES;
+import static co.edu.ufps.legal_cases.security.constant.PermisoNombre.PROGRAMAR_REUNIONES_CONCILIACION;
+import static co.edu.ufps.legal_cases.security.constant.PermisoNombre.REPROGRAMAR_REUNIONES_CONCILIACION;
 import static co.edu.ufps.legal_cases.security.constant.PermisoNombre.VER_CONCILIACIONES;
 
 import org.springframework.security.access.AccessDeniedException;
@@ -59,6 +61,28 @@ public class ConciliacionAccessService {
 
         if (!conciliacionAlcanceService.puedeCrearConciliacion(consulta)) {
             throw new AccessDeniedException("No tiene permisos para crear una conciliación en esta consulta");
+        }
+    }
+
+    @Transactional(readOnly = true)
+    public void validarPuedeProgramarReunion(Long conciliacionId) {
+        validarTienePermiso(PROGRAMAR_REUNIONES_CONCILIACION);
+
+        Conciliacion conciliacion = obtenerConciliacionActiva(conciliacionId);
+
+        if (!conciliacionAlcanceService.puedeProgramarReunion(conciliacion)) {
+            throw new AccessDeniedException("No tiene permisos para programar la reunión de esta conciliación");
+        }
+    }
+
+    @Transactional(readOnly = true)
+    public void validarPuedeReprogramarReunion(Long conciliacionId) {
+        validarTienePermiso(REPROGRAMAR_REUNIONES_CONCILIACION);
+
+        Conciliacion conciliacion = obtenerConciliacionActiva(conciliacionId);
+
+        if (!conciliacionAlcanceService.puedeReprogramarReunion(conciliacion)) {
+            throw new AccessDeniedException("No tiene permisos para reprogramar la reunión de esta conciliación");
         }
     }
 

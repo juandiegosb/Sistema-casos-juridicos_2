@@ -88,8 +88,8 @@ public class ConciliacionCommandService {
 
         conciliacion.setEstudiante(estudiante);
 
-        // Si ya tiene conciliador, pasa a ESPERANDO_REUNION.
-        // Si aún falta conciliador, se mantiene EN_ESPERA.
+        // Si ya existe reunión programada, se conserva REUNION_PROGRAMADA.
+        // Si no existe reunión, el estado depende de los responsables asignados.
         aplicarEstadoSegunAsignacion(conciliacion);
 
         return conciliacionMapper.convertirAResponseDTO(
@@ -109,8 +109,8 @@ public class ConciliacionCommandService {
 
         conciliacion.setConciliador(conciliador);
 
-        // Si ya tiene estudiante, pasa a ESPERANDO_REUNION.
-        // Si aún falta estudiante, se mantiene EN_ESPERA.
+        // Si ya existe reunión programada, se conserva REUNION_PROGRAMADA.
+        // Si no existe reunión, el estado depende de los responsables asignados.
         aplicarEstadoSegunAsignacion(conciliacion);
 
         return conciliacionMapper.convertirAResponseDTO(

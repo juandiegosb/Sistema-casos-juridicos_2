@@ -11,9 +11,11 @@ import co.edu.ufps.legal_cases.business.model.conciliacion.Conciliacion;
 import co.edu.ufps.legal_cases.business.model.consulta.Consulta;
 import co.edu.ufps.legal_cases.business.model.consulta.EstadoConsulta;
 import co.edu.ufps.legal_cases.business.repository.conciliacion.ConciliacionRepository;
+import co.edu.ufps.legal_cases.business.repository.conciliacion.reunion.ReunionConciliacionRepository;
 import co.edu.ufps.legal_cases.business.repository.consulta.ConsultaRepository;
 import co.edu.ufps.legal_cases.business.service.acceso.conciliacion.ConciliacionAccessService;
 import co.edu.ufps.legal_cases.business.service.acceso.conciliacion.ConciliacionAlcanceService;
+import co.edu.ufps.legal_cases.business.service.conciliacion.reunion.ReunionConciliacionMapper;
 import co.edu.ufps.legal_cases.common.exception.BusinessException;
 import lombok.AllArgsConstructor;
 
@@ -25,9 +27,11 @@ public class ConciliacionQueryService {
 
     private final ConciliacionRepository conciliacionRepository;
     private final ConsultaRepository consultaRepository;
+    private final ReunionConciliacionRepository reunionConciliacionRepository;
     private final ConciliacionAccessService conciliacionAccessService;
     private final ConciliacionAlcanceService conciliacionAlcanceService;
     private final ConciliacionMapper conciliacionMapper;
+    private final ReunionConciliacionMapper reunionConciliacionMapper;
 
     @Transactional(readOnly = true)
     public List<ConciliacionResponseDTO> listar() {
@@ -68,7 +72,13 @@ public class ConciliacionQueryService {
 
         cargarConsultaConPersonas(conciliacion);
 
-        return conciliacionMapper.convertirADetalleResponseDTO(conciliacion);
+        ConciliacionDetalleResponseDTO detalle = conciliacionMapper.convertirADetalleResponseDTO(conciliacion);
+
+        reunionConciliacionRepository.findByConciliacion_Id(conciliacion.getId())
+                .map(reunionConciliacionMapper::convertirAResponseDTO)
+                .ifPresent(detalle::setReunion);
+
+        return detalle;
     }
 
     private void cargarConsultaConPersonas(Conciliacion conciliacion) {
