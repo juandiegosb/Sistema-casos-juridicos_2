@@ -3,6 +3,8 @@ package co.edu.ufps.legal_cases.business.service.proceso.proceso;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import co.edu.ufps.legal_cases.audit.aop.log.Auditable;
+
 import co.edu.ufps.legal_cases.business.dto.proceso.ProcesoDTO;
 import co.edu.ufps.legal_cases.business.model.catalogo.Departamento;
 import co.edu.ufps.legal_cases.business.model.consulta.Consulta;
@@ -38,6 +40,7 @@ public class ProcesoCommandService {
     // El alcance se valida con la consulta porque Proceso no tiene un alcance
     // independiente.
     @Transactional
+    @Auditable(action = "CREAR_PROCESO", entityName = "Proceso")
     public ProcesoDTO crear(ProcesoDTO dto) {
         procesoValidator.validarCreacion(dto);
 
@@ -63,6 +66,7 @@ public class ProcesoCommandService {
     // La consulta define el alcance, por eso mover un proceso a otra consulta sería
     // otro flujo de negocio.
     @Transactional
+    @Auditable(action = "ACTUALIZAR_PROCESO", entityName = "Proceso")
     public ProcesoDTO actualizar(Long id, ProcesoDTO dto) {
         procesoAccessService.validarPuedeActualizarProceso(id);
         procesoValidator.validarActualizacion(id, dto);
@@ -88,6 +92,7 @@ public class ProcesoCommandService {
     }
 
     @Transactional
+    @Auditable(action = "ACTUALIZAR_FASE_PROCESO", entityName = "Proceso")
     public ProcesoDTO cambiarEstadoProceso(Long id, EstadoProceso estado) {
         procesoAccessService.validarPuedeCambiarEstadoProceso(id);
 
@@ -103,6 +108,7 @@ public class ProcesoCommandService {
     }
 
     @Transactional
+    @Auditable(action = "ELIMINAR_PROCESO", entityName = "Proceso")
     public void eliminar(Long id) {
         procesoAccessService.validarPuedeDesactivarProceso(id);
 
@@ -117,6 +123,7 @@ public class ProcesoCommandService {
     }
 
     @Transactional
+    @Auditable(action = "DESACTIVAR/REACTIVAR_PROCESO", entityName = "Proceso")
     public ProcesoDTO cambiarEstado(Long id, Boolean activo) {
         procesoAccessService.validarPuedeCambiarEstadoProceso(id);
 

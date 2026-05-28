@@ -10,6 +10,8 @@ import static co.edu.ufps.legal_cases.common.util.NormalizacionUtils.normalizarU
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import co.edu.ufps.legal_cases.audit.aop.log.Auditable;
+
 import co.edu.ufps.legal_cases.business.dto.perfil.ConciliadorDTO;
 import co.edu.ufps.legal_cases.business.model.catalogo.Sede;
 import co.edu.ufps.legal_cases.business.model.catalogo.TipoDocumento;
@@ -51,6 +53,7 @@ public class ConciliadorCommandService {
     }
 
     @Transactional
+    @Auditable(action = "CREAR_PERFIL", entityName = "Conciliador")
     public ConciliadorDTO crear(ConciliadorDTO dto) {
         conciliadorAccessService.validarPuedeGestionarConciliadores();
         conciliadorValidator.validarIdNoEnviadoEnCreacion(dto.getId());
@@ -81,6 +84,7 @@ public class ConciliadorCommandService {
     }
 
     @Transactional
+    @Auditable(action = "ACTUALIZAR_PERFIL", entityName = "Conciliador")
     public ConciliadorDTO actualizar(Long id, ConciliadorDTO dto) {
         conciliadorAccessService.validarPuedeGestionarConciliadores();
 
@@ -109,6 +113,7 @@ public class ConciliadorCommandService {
     }
 
     @Transactional
+    @Auditable(action = "DESACTIVAR/REACTIVAR_PERFIL", entityName = "Conciliador")
     public ConciliadorDTO cambiarEstado(Long id, Boolean activo) {
         conciliadorAccessService.validarPuedeGestionarConciliadores();
 
@@ -122,6 +127,7 @@ public class ConciliadorCommandService {
     }
 
     @Transactional
+    @Auditable(action = "ELIMINAR_PERFIL", entityName = "Conciliador")
     public void eliminar(Long id) {
         conciliadorAccessService.validarPuedeGestionarConciliadores();
 

@@ -10,6 +10,8 @@ import static co.edu.ufps.legal_cases.common.util.NormalizacionUtils.normalizarU
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import co.edu.ufps.legal_cases.audit.aop.log.Auditable;
+
 import co.edu.ufps.legal_cases.business.dto.perfil.MonitorDTO;
 import co.edu.ufps.legal_cases.business.model.catalogo.Sede;
 import co.edu.ufps.legal_cases.business.model.catalogo.TipoDocumento;
@@ -51,6 +53,7 @@ public class MonitorCommandService {
     }
 
     @Transactional
+    @Auditable(action = "CREAR_PERFIL", entityName = "Monitor")
     public MonitorDTO crear(MonitorDTO dto) {
         asesorMonitorAccessService.validarPuedeGestionarAsesoresYMonitores();
         monitorValidator.validarIdNoEnviadoEnCreacion(dto.getId());
@@ -80,6 +83,7 @@ public class MonitorCommandService {
     }
 
     @Transactional
+    @Auditable(action = "ACTUALIZAR_PERFIL", entityName = "Monitor")
     public MonitorDTO actualizar(Long id, MonitorDTO dto) {
         asesorMonitorAccessService.validarPuedeGestionarAsesoresYMonitores();
 
@@ -107,6 +111,7 @@ public class MonitorCommandService {
     }
 
     @Transactional
+    @Auditable(action = "DESACTIVAR/REACTIVAR_PERFIL", entityName = "Monitor")
     public MonitorDTO cambiarEstado(Long id, Boolean activo) {
         asesorMonitorAccessService.validarPuedeGestionarAsesoresYMonitores();
 
@@ -120,6 +125,7 @@ public class MonitorCommandService {
     }
 
     @Transactional
+    @Auditable(action = "ELIMINAR_PERFIL", entityName = "Monitor")
     public void eliminar(Long id) {
         asesorMonitorAccessService.validarPuedeGestionarAsesoresYMonitores();
 

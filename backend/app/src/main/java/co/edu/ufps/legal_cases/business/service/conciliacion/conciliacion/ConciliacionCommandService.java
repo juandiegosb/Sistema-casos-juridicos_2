@@ -6,6 +6,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
+import co.edu.ufps.legal_cases.audit.aop.log.Auditable;
+
 import co.edu.ufps.legal_cases.business.dto.conciliacion.ConciliacionResponseDTO;
 import co.edu.ufps.legal_cases.business.model.conciliacion.Conciliacion;
 import co.edu.ufps.legal_cases.business.model.conciliacion.EstadoConciliacion;
@@ -34,6 +36,7 @@ public class ConciliacionCommandService {
     private final ConciliacionMapper conciliacionMapper;
 
     @Transactional
+    @Auditable(action = "CREAR_CONCILIACION", entityName = "Conciliacion")
     public ConciliacionResponseDTO crearDesdeConsulta(Long consultaId, MultipartFile solicitud) {
         conciliacionAccessService.validarPuedeCrearConciliacion(consultaId);
 
@@ -76,6 +79,7 @@ public class ConciliacionCommandService {
     }
 
     @Transactional
+    @Auditable(action = "ASIGNAR_ESTUDIANTE", entityName = "Conciliacion")
     public ConciliacionResponseDTO asignarEstudiante(Long id, Long estudianteId) {
         conciliacionAccessService.validarPuedeAsignarEstudiante(id);
 
@@ -97,6 +101,7 @@ public class ConciliacionCommandService {
     }
 
     @Transactional
+    @Auditable(action = "ASIGNAR_CONCILIADOR", entityName = "Conciliacion")
     public ConciliacionResponseDTO asignarConciliador(Long id, Long conciliadorId) {
         conciliacionAccessService.validarPuedeAsignarConciliador(id);
 
@@ -118,6 +123,7 @@ public class ConciliacionCommandService {
     }
 
     @Transactional
+    @Auditable(action = "CAMBIAR_ESTADO_CONCILIACION", entityName = "Conciliacion")
     public ConciliacionResponseDTO cambiarEstado(Long id, String estadoCodigo) {
         conciliacionAccessService.validarPuedeCambiarEstado(id, estadoCodigo);
 
@@ -133,6 +139,7 @@ public class ConciliacionCommandService {
     }
 
     @Transactional
+    @Auditable(action = "FINALIZAR_CONCILIACION", entityName = "Conciliacion")
     public ConciliacionResponseDTO finalizar(Long id, String estadoCodigo, MultipartFile acta) {
         conciliacionAccessService.validarPuedeFinalizar(id);
 
@@ -154,6 +161,7 @@ public class ConciliacionCommandService {
     }
 
     @Transactional
+    @Auditable(action = "ACTUALIZAR_SOLICITUD", entityName = "Conciliacion")
     public ConciliacionResponseDTO reemplazarSolicitud(Long id, MultipartFile solicitud) {
         conciliacionAccessService.validarPuedeReemplazarSolicitud(id);
 
@@ -169,6 +177,7 @@ public class ConciliacionCommandService {
     }
 
     @Transactional
+    @Auditable(action = "DESACTIVAR_CONCILIACION", entityName = "Conciliacion")
     public void desactivar(Long id) {
         conciliacionAccessService.validarPuedeDesactivarConciliacion(id);
 

@@ -5,6 +5,8 @@ import java.time.LocalDateTime;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import co.edu.ufps.legal_cases.audit.aop.log.Auditable;
+
 import co.edu.ufps.legal_cases.business.dto.conciliacion.reunion.ReunionConciliacionRequestDTO;
 import co.edu.ufps.legal_cases.business.dto.conciliacion.reunion.ReunionConciliacionResponseDTO;
 import co.edu.ufps.legal_cases.business.model.catalogo.Sede;
@@ -32,6 +34,7 @@ public class ReunionConciliacionCommandService {
     private final ReunionConciliacionNotificacionService reunionConciliacionNotificacionService;
 
     @Transactional
+    @Auditable(action = "PROGRAMAR_REUNION", entityName = "ReunionConciliacion")
     public ReunionConciliacionResponseDTO programar(Long conciliacionId, ReunionConciliacionRequestDTO dto) {
         conciliacionAccessService.validarPuedeProgramarReunion(conciliacionId);
 
@@ -61,6 +64,7 @@ public class ReunionConciliacionCommandService {
     }
 
     @Transactional
+    @Auditable(action = "REPROGRAMAR_REUNION", entityName = "ReunionConciliacion")
     public ReunionConciliacionResponseDTO reprogramar(Long conciliacionId, ReunionConciliacionRequestDTO dto) {
         conciliacionAccessService.validarPuedeReprogramarReunion(conciliacionId);
 

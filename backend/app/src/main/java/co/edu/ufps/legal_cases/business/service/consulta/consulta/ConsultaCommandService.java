@@ -3,6 +3,8 @@ package co.edu.ufps.legal_cases.business.service.consulta.consulta;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import co.edu.ufps.legal_cases.audit.aop.log.Auditable;
+
 import co.edu.ufps.legal_cases.business.dto.consulta.ConsultaDTO;
 import co.edu.ufps.legal_cases.business.model.consulta.Consulta;
 import co.edu.ufps.legal_cases.business.model.consulta.EstadoConsulta;
@@ -27,6 +29,7 @@ public class ConsultaCommandService {
     private final ConsultaConstruccionService consultaConstruccionService;
 
     @Transactional
+    @Auditable(action = "CREAR_CONSULTA", entityName = "Consulta")
     public ConsultaDTO crear(ConsultaDTO dto) {
         consultaAccessService.validarPuedeCrearConsulta();
         consultaValidator.validarIdNoEnviadoEnCreacion(dto.getId());
@@ -54,6 +57,7 @@ public class ConsultaCommandService {
     }
 
     @Transactional
+    @Auditable(action = "ACTUALIZAR_CONSULTA", entityName = "Consulta")
     public ConsultaDTO actualizar(Long id, ConsultaDTO dto) {
         consultaAccessService.validarPuedeEditarConsulta(id);
 
@@ -90,6 +94,7 @@ public class ConsultaCommandService {
     }
 
     @Transactional
+    @Auditable(action = "CAMBIAR_ESTADO_CONSULTA", entityName = "Consulta")
     public ConsultaDTO cambiarEstado(Long id, EstadoConsulta estado) {
         Consulta consulta = consultaRepository.findById(id)
                 .orElseThrow(() -> new BusinessException("Consulta no encontrada con id: " + id));
@@ -107,6 +112,7 @@ public class ConsultaCommandService {
     // Se conserva el nombre eliminar por compatibilidad con el endpoint antiguo.
     // Para evitar pérdida de información, funciona como archivado lógico.
     @Transactional
+    @Auditable(action = "ELIMINAR_CONSULTA", entityName = "Consulta")
     public void eliminar(Long id) {
         consultaAccessService.validarPuedeArchivarConsulta(id);
 
@@ -121,6 +127,7 @@ public class ConsultaCommandService {
     }
 
     @Transactional
+    @Auditable(action = "ARCHIVAR_CONSULTA", entityName = "Consulta")
     public ConsultaDTO archivar(Long id) {
         consultaAccessService.validarPuedeArchivarConsulta(id);
 
@@ -136,6 +143,7 @@ public class ConsultaCommandService {
     }
 
     @Transactional
+    @Auditable(action = "DESARCHIVAR_CONSULTA", entityName = "Consulta")
     public ConsultaDTO desarchivar(Long id) {
         consultaAccessService.validarPuedeDesarchivarConsulta(id);
 

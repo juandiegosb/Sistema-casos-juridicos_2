@@ -3,6 +3,8 @@ package co.edu.ufps.legal_cases.business.service.persona.persona;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import co.edu.ufps.legal_cases.audit.aop.log.Auditable;
+
 import co.edu.ufps.legal_cases.business.dto.persona.PersonaDTO;
 import co.edu.ufps.legal_cases.business.model.catalogo.Barrio;
 import co.edu.ufps.legal_cases.business.model.catalogo.Municipio;
@@ -67,6 +69,7 @@ public class PersonaCommandService {
     }
 
     @Transactional
+    @Auditable(action = "REGISTRAR_PERSONA", entityName = "Persona")
     public PersonaDTO crear(PersonaDTO dto) {
         personaAccessService.validarPuedeCrearPersonas();
         personaValidator.validarCreacion(dto);
@@ -83,6 +86,7 @@ public class PersonaCommandService {
     }
 
     @Transactional
+    @Auditable(action = "ACTUALIZAR_PERSONA", entityName = "Persona")
     public PersonaDTO actualizar(Long id, PersonaDTO dto) {
         personaAccessService.validarPuedeEditarPersonas();
         personaValidator.validarActualizacion(id, dto);
@@ -101,6 +105,7 @@ public class PersonaCommandService {
     }
 
     @Transactional
+    @Auditable(action = "DESACTIVAR_PERSONA", entityName = "Persona")
     public void desactivar(Long id) {
         personaAccessService.validarPuedeCambiarEstadoPersonas();
 
@@ -110,6 +115,7 @@ public class PersonaCommandService {
     }
 
     @Transactional
+    @Auditable(action = "REACTIVAR_PERSONA", entityName = "Persona")
     public void reactivar(Long id) {
         personaAccessService.validarPuedeCambiarEstadoPersonas();
 

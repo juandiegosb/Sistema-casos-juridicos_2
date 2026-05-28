@@ -7,6 +7,8 @@ import java.time.LocalDateTime;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import co.edu.ufps.legal_cases.audit.aop.log.Auditable;
+
 import co.edu.ufps.legal_cases.business.dto.seguimiento.respuesta.SeguimientoRespuestaDecisionDTO;
 import co.edu.ufps.legal_cases.business.dto.seguimiento.respuesta.SeguimientoRespuestaRequestDTO;
 import co.edu.ufps.legal_cases.business.dto.seguimiento.respuesta.SeguimientoRespuestaResponseDTO;
@@ -55,6 +57,7 @@ public class SeguimientoRespuestaCommandService {
     }
 
     @Transactional
+    @Auditable(action = "CREAR_RESPUESTA_SEGUIMIENTO", entityName = "SeguimientoRespuesta")
     public SeguimientoRespuestaResponseDTO crear(Long seguimientoId, SeguimientoRespuestaRequestDTO dto) {
         seguimientoRespuestaAccessService.validarPuedeResponderSeguimiento(seguimientoId);
         seguimientoRespuestaValidator.validarCreacion(dto);
@@ -83,6 +86,7 @@ public class SeguimientoRespuestaCommandService {
     }
 
     @Transactional
+    @Auditable(action = "ACTUALIZAR_RESPUESTA_SEGUIMIENTO", entityName = "SeguimientoRespuesta")
     public SeguimientoRespuestaResponseDTO actualizar(Long id, SeguimientoRespuestaRequestDTO dto) {
         seguimientoRespuestaAccessService.validarPuedeEditarRespuesta(id);
         seguimientoRespuestaValidator.validarActualizacion(id, dto);
@@ -108,6 +112,7 @@ public class SeguimientoRespuestaCommandService {
     }
 
     @Transactional
+    @Auditable(action = "APROBAR/RECHAZAR_RESPUESTA", entityName = "SeguimientoRespuesta")
     public SeguimientoRespuestaResponseDTO decidir(Long id, SeguimientoRespuestaDecisionDTO dto) {
         seguimientoRespuestaAccessService.validarPuedeRevisarRespuesta(id);
         seguimientoRespuestaValidator.validarDecision(dto);

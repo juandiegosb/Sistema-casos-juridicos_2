@@ -3,6 +3,8 @@ package co.edu.ufps.legal_cases.business.service.seguimiento.seguimiento;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import co.edu.ufps.legal_cases.audit.aop.log.Auditable;
+
 import co.edu.ufps.legal_cases.business.dto.seguimiento.SeguimientoRequestDTO;
 import co.edu.ufps.legal_cases.business.dto.seguimiento.SeguimientoResponseDTO;
 import co.edu.ufps.legal_cases.business.model.consulta.Consulta;
@@ -36,6 +38,7 @@ public class SeguimientoCommandService {
     private final ConsultaEstadoService consultaEstadoService;
 
     @Transactional
+    @Auditable(action = "CREAR_SEGUIMIENTO", entityName = "Seguimiento")
     public SeguimientoResponseDTO crear(SeguimientoRequestDTO dto) {
         seguimientoValidator.validarCreacion(dto);
         seguimientoAccessService.validarPuedeCrearSeguimiento(dto.getConsultaId());
@@ -62,6 +65,7 @@ public class SeguimientoCommandService {
     }
 
     @Transactional
+    @Auditable(action = "ACTUALIZAR_SEGUIMIENTO", entityName = "Seguimiento")
     public SeguimientoResponseDTO actualizar(Long id, SeguimientoRequestDTO dto) {
         seguimientoAccessService.validarPuedeEditarSeguimiento(id);
 
@@ -88,6 +92,7 @@ public class SeguimientoCommandService {
     }
 
     @Transactional
+    @Auditable(action = "CAMBIAR_ESTADO_SEGUIMIENTO", entityName = "Seguimiento")
     public SeguimientoResponseDTO cambiarEstadoSeguimiento(Long id, EstadoSeguimiento estado) {
         seguimientoAccessService.validarPuedeEditarSeguimiento(id);
 
@@ -97,6 +102,7 @@ public class SeguimientoCommandService {
     }
 
     @Transactional
+    @Auditable(action = "ELIMINAR_SEGUIMIENTO", entityName = "Seguimiento")
     public void eliminar(Long id) {
         seguimientoAccessService.validarPuedeEliminarSeguimiento(id);
 

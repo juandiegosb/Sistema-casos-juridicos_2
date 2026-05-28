@@ -10,6 +10,8 @@ import static co.edu.ufps.legal_cases.common.util.NormalizacionUtils.normalizarU
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import co.edu.ufps.legal_cases.audit.aop.log.Auditable;
+
 import co.edu.ufps.legal_cases.business.dto.perfil.EstudianteDTO;
 import co.edu.ufps.legal_cases.business.model.catalogo.Sede;
 import co.edu.ufps.legal_cases.business.model.catalogo.TipoDocumento;
@@ -56,6 +58,7 @@ public class EstudianteCommandService {
     }
 
     @Transactional
+    @Auditable(action = "CREAR_PERFIL", entityName = "Estudiante")
     public EstudianteDTO crear(EstudianteDTO dto) {
         estudianteAccessService.validarPuedeGestionarEstudiantes();
         estudianteValidator.validarIdNoEnviadoEnCreacion(dto.getId());
@@ -84,6 +87,7 @@ public class EstudianteCommandService {
     }
 
     @Transactional
+    @Auditable(action = "ACTUALIZAR_PERFIL", entityName = "Estudiante")
     public EstudianteDTO actualizar(Long id, EstudianteDTO dto) {
         estudianteAccessService.validarPuedeGestionarEstudiantes();
 
@@ -114,6 +118,7 @@ public class EstudianteCommandService {
     }
 
     @Transactional
+    @Auditable(action = "DESACTIVAR/REACTIVAR_PERFIL", entityName = "Estudiante")
     public EstudianteDTO cambiarEstado(Long id, Boolean activo) {
         estudianteAccessService.validarPuedeCambiarEstadoEstudiante();
 
@@ -127,6 +132,7 @@ public class EstudianteCommandService {
     }
 
     @Transactional
+    @Auditable(action = "HABILITAR_CONCILIACION", entityName = "Estudiante")
     public EstudianteDTO cambiarConciliacion(Long id, Boolean conciliacion) {
         estudianteAccessService.validarPuedeGestionarEstudiantes();
 
@@ -140,6 +146,7 @@ public class EstudianteCommandService {
     }
 
     @Transactional
+    @Auditable(action = "ELIMINAR_PERFIL", entityName = "Estudiante")
     public void eliminar(Long id) {
         estudianteAccessService.validarPuedeGestionarEstudiantes();
 
