@@ -7,8 +7,11 @@ import org.springframework.web.multipart.MultipartFile;
 
 import co.edu.ufps.legal_cases.business.dto.conciliacion.ConciliacionDetalleResponseDTO;
 import co.edu.ufps.legal_cases.business.dto.conciliacion.ConciliacionResponseDTO;
+import co.edu.ufps.legal_cases.business.dto.conciliacion.reunion.ReunionConciliacionRequestDTO;
+import co.edu.ufps.legal_cases.business.dto.conciliacion.reunion.ReunionConciliacionResponseDTO;
 import co.edu.ufps.legal_cases.business.service.conciliacion.conciliacion.ConciliacionCommandService;
 import co.edu.ufps.legal_cases.business.service.conciliacion.conciliacion.ConciliacionQueryService;
+import co.edu.ufps.legal_cases.business.service.conciliacion.reunion.ReunionConciliacionService;
 import lombok.AllArgsConstructor;
 
 // Fachada del módulo de conciliación.
@@ -19,6 +22,7 @@ public class ConciliacionService {
 
     private final ConciliacionCommandService conciliacionCommandService;
     private final ConciliacionQueryService conciliacionQueryService;
+    private final ReunionConciliacionService reunionConciliacionService;
 
     public List<ConciliacionResponseDTO> listar() {
         return conciliacionQueryService.listar();
@@ -34,6 +38,14 @@ public class ConciliacionService {
 
     public ConciliacionResponseDTO crearDesdeConsulta(Long consultaId, MultipartFile solicitud) {
         return conciliacionCommandService.crearDesdeConsulta(consultaId, solicitud);
+    }
+
+    public ReunionConciliacionResponseDTO programarReunion(Long conciliacionId, ReunionConciliacionRequestDTO dto) {
+        return reunionConciliacionService.programar(conciliacionId, dto);
+    }
+
+    public ReunionConciliacionResponseDTO reprogramarReunion(Long conciliacionId, ReunionConciliacionRequestDTO dto) {
+        return reunionConciliacionService.reprogramar(conciliacionId, dto);
     }
 
     public ConciliacionResponseDTO asignarEstudiante(Long id, Long estudianteId) {
