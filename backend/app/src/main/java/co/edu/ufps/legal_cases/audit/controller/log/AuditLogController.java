@@ -1,5 +1,7 @@
 package co.edu.ufps.legal_cases.audit.controller.log;
 
+import static co.edu.ufps.legal_cases.security.constant.PermisoNombre.ACCEDER_ADMINISTRACION;
+
 import co.edu.ufps.legal_cases.audit.dto.log.AuditLogDTO;
 import co.edu.ufps.legal_cases.audit.service.log.AuditLogService;
 import lombok.RequiredArgsConstructor;
@@ -28,13 +30,16 @@ public class AuditLogController {
     private final AuditLogService auditLogService;
 
     @GetMapping
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAuthority('" + ACCEDER_ADMINISTRACION + "')")
     public ResponseEntity<Page<AuditLogDTO>> getAuditLogs(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size,
-            @RequestParam(required = false) String username) {
+            @RequestParam(required = false) String username,
+            @RequestParam(defaultValue = "timestamp") String sortBy,
+            @RequestParam(defaultValue = "desc") String sortDir) {
         
-        Pageable pageable = PageRequest.of(page, size, Sort.by("timestamp").descending());
+        Sort.Direction direction = sortDir.equalsIgnoreCase("asc") ? Sort.Direction.ASC : Sort.Direction.DESC;
+        Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortBy));
         Page<AuditLogDTO> auditLogs;
         
         if (username != null && !username.isBlank()) {
