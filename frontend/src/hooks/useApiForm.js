@@ -1,7 +1,12 @@
 import { useState } from "react";
 import { toast } from "sonner";
+import {
+  getApiErrorDescription,
+  getApiErrorTitle,
+  readResponseBody,
+} from "@/lib/api";
 
-export function useApiForm({ endpoint }) {
+export function useApiForm({ endpoint, method = "POST", successMessage = "Registro exitoso" }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const submit = async (data) => {
@@ -9,7 +14,7 @@ export function useApiForm({ endpoint }) {
 
     try {
       const response = await fetch(endpoint, {
-        method: "POST",
+        method,
         credentials: "include",
         headers: {
           "Content-Type": "application/json",
@@ -17,14 +22,15 @@ export function useApiForm({ endpoint }) {
         body: JSON.stringify(data),
       });
 
-      // Manejo de sesión
+      const payload = await readResponseBody(response);
+
       if (response.status === 401) {
         toast.error("Sesión expirada", {
           description: "Debe iniciar sesión nuevamente",
         });
 
-        window.location.href = "/login";
-        return { success: false };
+        window.location.href = "/";
+        return { success: false, error: payload };
       }
 
       if (response.status === 403) {
@@ -32,30 +38,19 @@ export function useApiForm({ endpoint }) {
           description: "No tiene permisos para esta acción",
         });
 
-        return { success: false };
+        return { success: false, error: payload };
       }
 
       if (response.ok) {
-        const result = await response.json();
-
-        toast.success("Registro exitoso");
-
-        return { success: true, data: result };
-      } else {
-        const errorData = await response.json();
-
-        let errorMessage = "";
-
-        for (const key in errorData) {
-          errorMessage += `${key}: ${errorData[key]}\n`;
-        }
-
-        toast.error("Error en la operación", {
-          description: errorMessage,
-        });
-
-        return { success: false, error: errorData };
+        toast.success(successMessage);
+        return { success: true, data: payload };
       }
+
+      toast.error(getApiErrorTitle(payload, "Error en la operación"), {
+        description: getApiErrorDescription(payload),
+      });
+
+      return { success: false, error: payload };
     } catch (error) {
       console.error("Error de red:", error);
 

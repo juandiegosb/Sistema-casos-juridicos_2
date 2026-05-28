@@ -1,4 +1,6 @@
-import React, { useState, useEffect } from "react";
+"use client";
+
+import React, { useState, useEffect, useMemo } from "react";
 import { useApiForm } from "@/hooks/useApiForm";
 import { useForm } from "react-hook-form";
 import { FormInput } from "../parts/FormInput";
@@ -10,6 +12,10 @@ import { toast } from "sonner";
 import { ConfirmActionDialog } from "@/components/ui/ConfirmActionDialog";
 import { PERMISOS } from "@/lib/permission";
 import { tieneAlgunPermiso, tienePermiso } from "@/lib/authz";
+import { getApiErrorDescription, getApiErrorTitle, readResponseBody } from "@/lib/api";
+import { requiredSelectRule } from "@/lib/form-validation";
+import Pagination from "@/components/ui/Pagination";
+import { DEFAULT_PAGE_SIZE_OPTIONS, getTotalPages, paginateItems, sortByIdAsc } from "@/lib/list-utils";
 
 export function TemaForm() {
   const router = useRouter();
@@ -21,13 +27,17 @@ export function TemaForm() {
   const [temaADesactivar, setTemaADesactivar] = useState(null);
   const [desactivando, setDesactivando] = useState(false);
   const [puedeGestionarCatalogos, setPuedeGestionarCatalogos] = useState(false);
+  const [paginaActual, setPaginaActual] = useState(1);
+  const [registrosPorPagina, setRegistrosPorPagina] = useState(10);
 
   const {
     register,
     handleSubmit,
     reset,
     formState: { errors },
-  } = useForm();
+  } = useForm({
+    defaultValues: { nombre: "", areaId: "" },
+  });
 
   const { submit, isSubmitting } = useApiForm({
     endpoint: `${API_URL_BASE}/temas`,
@@ -83,7 +93,7 @@ export function TemaForm() {
         const areasData = await response.json();
 
         setAreas(
-          areasData.map((area) => ({
+          sortByIdAsc(areasData).map((area) => ({
             value: area.id.toString(),
             label: area.nombre,
           }))
@@ -108,7 +118,7 @@ export function TemaForm() {
     });
 
     const data = await res.json();
-    setTemas(Array.isArray(data) ? data : []);
+    setTemas(sortByIdAsc(Array.isArray(data) ? data : []));
   }
 
   function abrirEditar(tema) {
@@ -168,7 +178,10 @@ export function TemaForm() {
         setTemaADesactivar(null);
         cargarTemas();
       } else {
-        toast.error("Error al desactivar");
+        const payload = await readResponseBody(res);
+        toast.error(getApiErrorTitle(payload, "Error al desactivar"), {
+          description: getApiErrorDescription(payload),
+        });
       }
     } catch (error) {
       console.error(error);
@@ -192,20 +205,44 @@ export function TemaForm() {
         body: JSON.stringify(data),
       });
 
+      const payload = await readResponseBody(res);
+
       if (res.ok) {
         toast.success("Tema actualizado");
         setEditandoId(null);
         reset({ nombre: "", areaId: "" });
         cargarTemas();
       } else {
-        toast.error("Error al actualizar");
+        toast.error(getApiErrorTitle(payload, "Error al actualizar"), {
+          description: getApiErrorDescription(payload),
+        });
       }
     } else {
-      await submit(data);
-      reset({ nombre: "", areaId: "" });
-      cargarTemas();
+      const result = await submit(data);
+
+      if (result?.success) {
+        reset({ nombre: "", areaId: "" });
+        cargarTemas();
+      }
     }
   };
+
+  const temasOrdenados = useMemo(() => sortByIdAsc(temas), [temas]);
+  const totalPaginas = getTotalPages(temasOrdenados.length, registrosPorPagina);
+  const temasPaginados = useMemo(
+    () => paginateItems(temasOrdenados, paginaActual, registrosPorPagina),
+    [temasOrdenados, paginaActual, registrosPorPagina]
+  );
+
+  useEffect(() => {
+    setPaginaActual(1);
+  }, [registrosPorPagina]);
+
+  useEffect(() => {
+    if (paginaActual > totalPaginas) {
+      setPaginaActual(totalPaginas);
+    }
+  }, [paginaActual, totalPaginas]);
 
   if (checking) {
     return <div className="text-center mt-10">Cargando...</div>;
@@ -228,6 +265,7 @@ export function TemaForm() {
           options={areas}
           register={register}
           errors={errors}
+          rules={requiredSelectRule("Debe seleccionar un área")}
         />
 
         <div className="flex gap-3 mt-2">
@@ -266,7 +304,7 @@ export function TemaForm() {
           </thead>
 
           <tbody>
-            {temas.length === 0 ? (
+            {temasOrdenados.length === 0 ? (
               <tr>
                 <td
                   colSpan={5}
@@ -276,7 +314,7 @@ export function TemaForm() {
                 </td>
               </tr>
             ) : (
-              temas.map((tema) => (
+              temasPaginados.map((tema) => (
                 <tr key={tema.id} className="border-t hover:bg-muted/50">
                   <td className="px-4 py-3 text-sm">{tema.id}</td>
 
@@ -326,6 +364,19 @@ export function TemaForm() {
           </tbody>
         </table>
       </div>
+
+      <Pagination
+        currentPage={paginaActual}
+        totalPages={totalPaginas}
+        onPageChange={setPaginaActual}
+        pageSize={registrosPorPagina}
+        onPageSizeChange={(value) => {
+          setRegistrosPorPagina(value);
+          setPaginaActual(1);
+        }}
+        pageSizeOptions={DEFAULT_PAGE_SIZE_OPTIONS}
+        totalItems={temasOrdenados.length}
+      />
 
       <ConfirmActionDialog
         open={Boolean(temaADesactivar)}

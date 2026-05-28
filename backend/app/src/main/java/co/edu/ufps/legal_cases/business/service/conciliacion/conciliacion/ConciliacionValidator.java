@@ -14,6 +14,7 @@ import co.edu.ufps.legal_cases.business.model.consulta.EstadoConsulta;
 import co.edu.ufps.legal_cases.business.model.perfil.Conciliador;
 import co.edu.ufps.legal_cases.business.model.perfil.Estudiante;
 import co.edu.ufps.legal_cases.business.repository.conciliacion.ConciliacionRepository;
+import co.edu.ufps.legal_cases.business.repository.conciliacion.reunion.ReunionConciliacionRepository;
 import co.edu.ufps.legal_cases.common.exception.BusinessException;
 
 // Valida reglas de negocio propias del módulo de conciliación.
@@ -22,9 +23,13 @@ import co.edu.ufps.legal_cases.common.exception.BusinessException;
 public class ConciliacionValidator {
 
     private final ConciliacionRepository conciliacionRepository;
+    private final ReunionConciliacionRepository reunionConciliacionRepository;
 
-    public ConciliacionValidator(ConciliacionRepository conciliacionRepository) {
+    public ConciliacionValidator(
+            ConciliacionRepository conciliacionRepository,
+            ReunionConciliacionRepository reunionConciliacionRepository) {
         this.conciliacionRepository = conciliacionRepository;
+        this.reunionConciliacionRepository = reunionConciliacionRepository;
     }
 
     public List<String> codigosEstadosFinalizados() {
@@ -151,7 +156,7 @@ public class ConciliacionValidator {
 
         if (EstadoConciliacionCodigo.REUNION_PROGRAMADA.equals(estadoNuevo.getCodigo())) {
             validarTieneResponsablesMinimos(conciliacion);
-            validarTieneFechaProgramada(conciliacion);
+            validarTieneReunionProgramada(conciliacion);
         }
     }
 
@@ -200,6 +205,12 @@ public class ConciliacionValidator {
 
     public String calcularCodigoEstadoDespuesDeAsignacion(Conciliacion conciliacion) {
         if (conciliacion != null
+                && conciliacion.getId() != null
+                && reunionConciliacionRepository.existsByConciliacion_Id(conciliacion.getId())) {
+            return EstadoConciliacionCodigo.REUNION_PROGRAMADA;
+        }
+
+        if (conciliacion != null
                 && conciliacion.getEstudiante() != null
                 && conciliacion.getConciliador() != null) {
             return EstadoConciliacionCodigo.ESPERANDO_REUNION;
@@ -208,9 +219,10 @@ public class ConciliacionValidator {
         return EstadoConciliacionCodigo.EN_ESPERA;
     }
 
-    private void validarTieneFechaProgramada(Conciliacion conciliacion) {
-        if (conciliacion.getFechaConciliacion() == null) {
-            throw new BusinessException("No se puede marcar como reunión programada sin fecha de conciliación");
+    private void validarTieneReunionProgramada(Conciliacion conciliacion) {
+        if (conciliacion.getId() == null
+                || !reunionConciliacionRepository.existsByConciliacion_Id(conciliacion.getId())) {
+            throw new BusinessException("No se puede marcar como reunión programada sin reunión de conciliación registrada");
         }
     }
 

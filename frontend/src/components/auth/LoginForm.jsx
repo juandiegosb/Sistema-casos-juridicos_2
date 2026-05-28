@@ -7,11 +7,14 @@ import { FormInput } from "../forms/parts/FormInput"
 import { Button } from "@/components/ui/button"
 import { Scale } from "lucide-react"
 import { API_URL_BASE } from "@/lib/config"
+import { getApiErrorTitle, readResponseBody } from "@/lib/api"
+import { requiredEmailRule } from "@/lib/form-validation"
 
 export function LoginForm() {
   const router = useRouter()
   const [errorMessage, setErrorMessage] = useState("")
   const [checkingSession, setCheckingSession] = useState(true)
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
   const {
     register,
@@ -51,6 +54,7 @@ export function LoginForm() {
   // Login
   const handleSubmitForm = async (data) => {
     setErrorMessage("")
+    setIsSubmitting(true)
 
     try {
       const response = await fetch(`${API_URL_BASE}/auth/login`, {
@@ -65,15 +69,10 @@ export function LoginForm() {
         })
       })
 
-      const result = await response.json()
+      const result = await readResponseBody(response)
 
       if (!response.ok) {
-        const errorMsg =
-          result?.mensaje ||
-          result?.message ||
-          "Usuario o contraseña incorrectos"
-
-        throw new Error(errorMsg)
+        throw new Error(getApiErrorTitle(result, "Usuario o contraseña incorrectos"))
       }
 
 
@@ -81,6 +80,8 @@ export function LoginForm() {
 
     } catch (error) {
       setErrorMessage(error.message || "Error al iniciar sesión")
+    } finally {
+      setIsSubmitting(false)
     }
   }
 
@@ -111,7 +112,7 @@ export function LoginForm() {
             label="Correo electrónico"
             register={register}
             errors={errors}
-            rules={{ required: REQUIRED }}
+            rules={requiredEmailRule()}
           />
 
           <FormInput
@@ -132,9 +133,9 @@ export function LoginForm() {
           <Button
             type="submit"
             className="w-full"
-            disabled={false}
+            disabled={isSubmitting}
           >
-            Acceder
+            {isSubmitting ? "Ingresando..." : "Acceder"}
           </Button>
 
           {/* Recuperar contraseña */}

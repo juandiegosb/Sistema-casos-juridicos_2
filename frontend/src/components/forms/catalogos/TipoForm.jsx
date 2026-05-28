@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useApiForm } from "@/hooks/useApiForm";
 import { useForm } from "react-hook-form";
 import { FormInput } from "../parts/FormInput";
@@ -12,6 +12,10 @@ import { toast } from "sonner";
 import { ConfirmActionDialog } from "@/components/ui/ConfirmActionDialog";
 import { PERMISOS } from "@/lib/permission";
 import { tienePermiso } from "@/lib/authz";
+import { getApiErrorDescription, getApiErrorTitle, readResponseBody } from "@/lib/api";
+import { requiredSelectRule } from "@/lib/form-validation";
+import Pagination from "@/components/ui/Pagination";
+import { DEFAULT_PAGE_SIZE_OPTIONS, getTotalPages, paginateItems, sortByIdAsc } from "@/lib/list-utils";
 
 export function TipoForm() {
   const router = useRouter();
@@ -22,6 +26,8 @@ export function TipoForm() {
 
   const [tipoADesactivar, setTipoADesactivar] = useState(null);
   const [desactivando, setDesactivando] = useState(false);
+  const [paginaActual, setPaginaActual] = useState(1);
+  const [registrosPorPagina, setRegistrosPorPagina] = useState(10);
 
   const {
     register,
@@ -80,7 +86,7 @@ export function TipoForm() {
 
           setTemas(
             Array.isArray(temasData)
-              ? temasData.map((tema) => ({
+              ? sortByIdAsc(temasData).map((tema) => ({
                   value: tema.id,
                   label: tema.nombre,
                 }))
@@ -106,7 +112,7 @@ export function TipoForm() {
     });
 
     const data = await res.json();
-    setTipos(Array.isArray(data) ? data : []);
+    setTipos(sortByIdAsc(Array.isArray(data) ? data : []));
   }
 
   function abrirEditar(tipo) {
@@ -150,7 +156,10 @@ export function TipoForm() {
         setTipoADesactivar(null);
         cargarTipos();
       } else {
-        toast.error("Error al desactivar");
+        const payload = await readResponseBody(res);
+        toast.error(getApiErrorTitle(payload, "Error al desactivar"), {
+          description: getApiErrorDescription(payload),
+        });
       }
     } catch (error) {
       console.error(error);
@@ -169,20 +178,44 @@ export function TipoForm() {
         body: JSON.stringify({ ...data, temaId: Number(data.temaId) }),
       });
 
+      const payload = await readResponseBody(res);
+
       if (res.ok) {
         toast.success("Tipo actualizado");
         setEditandoId(null);
         reset({ nombre: "", temaId: "" });
         cargarTipos();
       } else {
-        toast.error("Error al actualizar");
+        toast.error(getApiErrorTitle(payload, "Error al actualizar"), {
+          description: getApiErrorDescription(payload),
+        });
       }
     } else {
-      await submit({ ...data, temaId: Number(data.temaId) });
-      reset({ nombre: "", temaId: "" });
-      cargarTipos();
+      const result = await submit({ ...data, temaId: Number(data.temaId) });
+
+      if (result?.success) {
+        reset({ nombre: "", temaId: "" });
+        cargarTipos();
+      }
     }
   };
+
+  const tiposOrdenados = useMemo(() => sortByIdAsc(tipos), [tipos]);
+  const totalPaginas = getTotalPages(tiposOrdenados.length, registrosPorPagina);
+  const tiposPaginados = useMemo(
+    () => paginateItems(tiposOrdenados, paginaActual, registrosPorPagina),
+    [tiposOrdenados, paginaActual, registrosPorPagina]
+  );
+
+  useEffect(() => {
+    setPaginaActual(1);
+  }, [registrosPorPagina]);
+
+  useEffect(() => {
+    if (paginaActual > totalPaginas) {
+      setPaginaActual(totalPaginas);
+    }
+  }, [paginaActual, totalPaginas]);
 
   if (checking) {
     return <div className="text-center mt-10">Cargando...</div>;
@@ -214,6 +247,7 @@ export function TipoForm() {
           options={temas}
           register={register}
           errors={errors}
+          rules={requiredSelectRule("Debe seleccionar un tema")}
         />
 
         <div className="flex gap-3">
@@ -249,7 +283,7 @@ export function TipoForm() {
           </thead>
 
           <tbody>
-            {tipos.length === 0 ? (
+            {tiposOrdenados.length === 0 ? (
               <tr>
                 <td
                   colSpan={5}
@@ -259,7 +293,7 @@ export function TipoForm() {
                 </td>
               </tr>
             ) : (
-              tipos.map((tipo) => (
+              tiposPaginados.map((tipo) => (
                 <tr key={tipo.id} className="border-t hover:bg-muted/50">
                   <td className="px-4 py-3 text-sm">{tipo.id}</td>
 
@@ -309,6 +343,19 @@ export function TipoForm() {
           </tbody>
         </table>
       </div>
+
+      <Pagination
+        currentPage={paginaActual}
+        totalPages={totalPaginas}
+        onPageChange={setPaginaActual}
+        pageSize={registrosPorPagina}
+        onPageSizeChange={(value) => {
+          setRegistrosPorPagina(value);
+          setPaginaActual(1);
+        }}
+        pageSizeOptions={DEFAULT_PAGE_SIZE_OPTIONS}
+        totalItems={tiposOrdenados.length}
+      />
 
       <ConfirmActionDialog
         open={Boolean(tipoADesactivar)}

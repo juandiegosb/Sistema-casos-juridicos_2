@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useEffect, useState } from "react"
+import React, { useEffect, useMemo, useState } from "react"
 import { useForm } from "react-hook-form"
 import { FormInput } from "../parts/FormInput"
 import { Button } from "@/components/ui/button"
@@ -10,6 +10,9 @@ import { toast } from "sonner"
 import { ConfirmActionDialog } from "@/components/ui/ConfirmActionDialog"
 import { PERMISOS } from "@/lib/permission"
 import { tienePermiso } from "@/lib/authz"
+import { getApiErrorDescription, getApiErrorTitle, readResponseBody } from "@/lib/api"
+import Pagination from "@/components/ui/Pagination"
+import { DEFAULT_PAGE_SIZE_OPTIONS, getTotalPages, paginateItems, sortByIdAsc } from "@/lib/list-utils"
 
 export function AreaForm() {
   const router = useRouter()
@@ -19,6 +22,8 @@ export function AreaForm() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [confirmDialog, setConfirmDialog] = useState(null)
   const [confirmLoading, setConfirmLoading] = useState(false)
+  const [paginaActual, setPaginaActual] = useState(1)
+  const [registrosPorPagina, setRegistrosPorPagina] = useState(10)
 
   const {
     register,
@@ -81,7 +86,7 @@ export function AreaForm() {
     }
 
     const data = await res.json()
-    setAreas(Array.isArray(data) ? data : [])
+    setAreas(sortByIdAsc(Array.isArray(data) ? data : []))
   }
 
   function abrirEditar(area) {
@@ -117,7 +122,10 @@ export function AreaForm() {
         setConfirmDialog(null)
         cargarAreas()
       } else {
-        toast.error("Error al desactivar")
+        const payload = await readResponseBody(res)
+        toast.error(getApiErrorTitle(payload, "Error al desactivar"), {
+          description: getApiErrorDescription(payload),
+        })
       }
     } catch (error) {
       console.error(error)
@@ -154,19 +162,39 @@ export function AreaForm() {
         return
       }
 
+      const payload = await readResponseBody(res)
+
       if (res.ok) {
         toast.success(editandoId ? "Área actualizada" : "Área creada")
         setEditandoId(null)
         reset({ nombre: "" })
         cargarAreas()
       } else {
-        const err = await res.json()
-        toast.error(err.message ?? "Error al guardar")
+        toast.error(getApiErrorTitle(payload, "Error al guardar"), {
+          description: getApiErrorDescription(payload),
+        })
       }
     } finally {
       setIsSubmitting(false)
     }
   }
+
+  const areasOrdenadas = useMemo(() => sortByIdAsc(areas), [areas])
+  const totalPaginas = getTotalPages(areasOrdenadas.length, registrosPorPagina)
+  const areasPaginadas = useMemo(
+    () => paginateItems(areasOrdenadas, paginaActual, registrosPorPagina),
+    [areasOrdenadas, paginaActual, registrosPorPagina]
+  )
+
+  useEffect(() => {
+    setPaginaActual(1)
+  }, [registrosPorPagina])
+
+  useEffect(() => {
+    if (paginaActual > totalPaginas) {
+      setPaginaActual(totalPaginas)
+    }
+  }, [paginaActual, totalPaginas])
 
   if (checking) return <div className="text-center mt-10">Cargando...</div>
 
@@ -220,7 +248,7 @@ export function AreaForm() {
           </thead>
 
           <tbody>
-            {areas.length === 0 ? (
+            {areasOrdenadas.length === 0 ? (
               <tr>
                 <td
                   colSpan={4}
@@ -230,7 +258,7 @@ export function AreaForm() {
                 </td>
               </tr>
             ) : (
-              areas.map((area) => (
+              areasPaginadas.map((area) => (
                 <tr key={area.id} className="border-t hover:bg-muted/50">
                   <td className="px-4 py-3 text-sm">{area.id}</td>
                   <td className="px-4 py-3 text-sm">{area.nombre}</td>
@@ -271,6 +299,19 @@ export function AreaForm() {
           </tbody>
         </table>
       </div>
+
+      <Pagination
+        currentPage={paginaActual}
+        totalPages={totalPaginas}
+        onPageChange={setPaginaActual}
+        pageSize={registrosPorPagina}
+        onPageSizeChange={(value) => {
+          setRegistrosPorPagina(value)
+          setPaginaActual(1)
+        }}
+        pageSizeOptions={DEFAULT_PAGE_SIZE_OPTIONS}
+        totalItems={areasOrdenadas.length}
+      />
 
       <ConfirmActionDialog
         open={Boolean(confirmDialog)}

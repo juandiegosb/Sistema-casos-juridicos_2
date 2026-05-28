@@ -9,6 +9,7 @@ import { ConfirmActionDialog } from "@/components/ui/ConfirmActionDialog";
 import Pagination from "@/components/ui/Pagination";
 import { PERMISOS } from "@/lib/permission";
 import { tienePermiso } from "@/lib/authz";
+import { getTotalPages, paginateItems, sortByIdAsc } from "@/lib/list-utils";
 
 export function EstudiantesForm() {
   const router = useRouter();
@@ -87,11 +88,11 @@ export function EstudiantesForm() {
         const data = await estudiantesRes.json();
 
         if (Array.isArray(data)) {
-          setEstudiantes(data);
+          setEstudiantes(sortByIdAsc(data));
         } else if (Array.isArray(data.content)) {
-          setEstudiantes(data.content);
+          setEstudiantes(sortByIdAsc(data.content));
         } else if (Array.isArray(data.data)) {
-          setEstudiantes(data.data);
+          setEstudiantes(sortByIdAsc(data.data));
         } else {
           setEstudiantes([]);
           toast.error("La API no devolvió una lista");
@@ -149,8 +150,10 @@ export function EstudiantesForm() {
         toast.success("Estudiante desactivado");
 
         setEstudiantes((prev) =>
-          prev.map((e) =>
-            e.id === confirmDialog.id ? { ...e, activo: false } : e
+          sortByIdAsc(
+            prev.map((e) =>
+              e.id === confirmDialog.id ? { ...e, activo: false } : e
+            )
           )
         );
 
@@ -166,15 +169,29 @@ export function EstudiantesForm() {
     }
   }
 
+  const filtrados = sortByIdAsc(
+    estudiantes.filter((e) =>
+      `${e.nombre} ${e.documento} ${e.email} ${e.codigo}`
+        .toLowerCase()
+        .includes(busqueda.toLowerCase())
+    )
+  );
+  const totalPaginas = getTotalPages(filtrados.length, registrosPorPagina);
+  const estudiantesPaginados = paginateItems(filtrados, paginaActual, registrosPorPagina);
+
+  useEffect(() => {
+    setPaginaActual(1);
+  }, [busqueda]);
+
+  useEffect(() => {
+    if (paginaActual > totalPaginas) {
+      setPaginaActual(totalPaginas);
+    }
+  }, [paginaActual, totalPaginas]);
+
   if (cargando) {
     return <div className="text-center mt-10">Cargando...</div>;
   }
-
-  const filtrados = estudiantes.filter((e) =>
-    `${e.nombre} ${e.documento} ${e.email} ${e.codigo}`
-      .toLowerCase()
-      .includes(busqueda.toLowerCase())
-  );
 
   return (
     <div className="space-y-6">
@@ -188,6 +205,7 @@ export function EstudiantesForm() {
         <table className="w-full text-sm">
           <thead className="bg-muted/50">
             <tr className="text-left">
+              <th className="p-3">ID</th>
               <th className="p-3">Nombre</th>
               <th className="p-3">Documento</th>
               <th className="p-3">Email</th>
@@ -200,11 +218,12 @@ export function EstudiantesForm() {
           </thead>
 
           <tbody>
-            {filtrados.slice((paginaActual - 1) * registrosPorPagina, (paginaActual - 1) * registrosPorPagina + registrosPorPagina).map((e) => (
+            {estudiantesPaginados.map((e) => (
               <tr
                 key={e.id}
                 className="border-t hover:bg-muted/30 transition"
               >
+                <td className="p-3">{e.id}</td>
                 <td className="p-3 font-medium">{e.nombre}</td>
                 <td className="p-3">{e.documento}</td>
                 <td className="p-3">{e.email}</td>
@@ -261,7 +280,7 @@ export function EstudiantesForm() {
 
       <Pagination
         currentPage={paginaActual}
-        totalPages={Math.max(1, Math.ceil(filtrados.length / registrosPorPagina))}
+        totalPages={totalPaginas}
         onPageChange={(p) => setPaginaActual(p)}
         pageSize={registrosPorPagina}
         onPageSizeChange={(v) => { setRegistrosPorPagina(v); setPaginaActual(1); }}

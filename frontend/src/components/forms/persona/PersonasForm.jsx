@@ -9,6 +9,8 @@ import Pagination from "@/components/ui/Pagination";
 import { useRouter } from "next/navigation";
 import { PERMISOS } from "@/lib/permission";
 import { tienePermiso } from "@/lib/authz";
+import { getApiErrorDescription, getApiErrorTitle } from "@/lib/api";
+import { EMAIL_PATTERN } from "@/lib/form-validation";
 
 const FORM_INICIAL = {
   tipoPersonaId: "",
@@ -201,6 +203,23 @@ function textOrNull(value) {
   return text === "" ? null : text;
 }
 
+function calcularEsMenorEdad(fechaNacimiento) {
+  if (!fechaNacimiento) return false;
+
+  const nacimiento = new Date(fechaNacimiento);
+  if (Number.isNaN(nacimiento.getTime())) return false;
+
+  const hoy = new Date();
+  let edad = hoy.getFullYear() - nacimiento.getFullYear();
+  const mes = hoy.getMonth() - nacimiento.getMonth();
+
+  if (mes < 0 || (mes === 0 && hoy.getDate() < nacimiento.getDate())) {
+    edad -= 1;
+  }
+
+  return edad < 18;
+}
+
 function ordenarPorIdAscendente(items) {
   return [...items].sort((a, b) => {
     const idA = Number(a?.id ?? Number.MAX_SAFE_INTEGER);
@@ -250,6 +269,8 @@ function convertirPersonaAForm(persona) {
 }
 
 function construirPayload(form, id) {
+  const esMenorEdad = calcularEsMenorEdad(form.fechaNacimiento);
+
   return {
     ...form,
     id,
@@ -265,11 +286,11 @@ function construirPayload(form, id) {
     numeroPersonasACargo: Number(form.numeroPersonasACargo || 0),
     salario: Number(form.salario || 0),
     correo: textOrNull(form.correo),
-    correoAcudiente: textOrNull(form.correoAcudiente),
-    nombreCompletoAcudiente: textOrNull(form.nombreCompletoAcudiente),
-    relacionAcudiente: textOrNull(form.relacionAcudiente),
-    telefonoAcudiente: textOrNull(form.telefonoAcudiente),
-    direccionAcudiente: textOrNull(form.direccionAcudiente),
+    correoAcudiente: esMenorEdad ? textOrNull(form.correoAcudiente) : null,
+    nombreCompletoAcudiente: esMenorEdad ? textOrNull(form.nombreCompletoAcudiente) : null,
+    relacionAcudiente: esMenorEdad ? textOrNull(form.relacionAcudiente) : null,
+    telefonoAcudiente: esMenorEdad ? textOrNull(form.telefonoAcudiente) : null,
+    direccionAcudiente: esMenorEdad ? textOrNull(form.direccionAcudiente) : null,
   };
 }
 
@@ -303,6 +324,11 @@ export function PersonasForm() {
   const [barrioCatalogoOptions, setBarrioCatalogoOptions] = useState([]);
 
   const router = useRouter();
+
+  const esMenorEdadFormulario = useMemo(
+    () => calcularEsMenorEdad(form.fechaNacimiento),
+    [form.fechaNacimiento]
+  );
 
   const puedeEditar = tienePermiso(user, PERMISOS.EDITAR_PERSONAS);
   const puedeDesactivar = tienePermiso(
@@ -614,11 +640,44 @@ export function PersonasForm() {
 
   function handleNumberChange(event) {
     const { name, value } = event.target;
+    const numericValue = value === "" ? "" : Math.max(0, Number(value));
 
     setForm((prev) => ({
       ...prev,
-      [name]: value === "" ? 0 : Number(value),
+      [name]: Number.isNaN(numericValue) ? "" : numericValue,
     }));
+  }
+
+  function validarEdicionPersona() {
+    const telefono = String(form.telefono || "").trim();
+    const correo = String(form.correo || "").trim();
+    const correoAcudiente = String(form.correoAcudiente || "").trim();
+
+    if (!telefono && !correo) {
+      return "Debe registrar al menos un teléfono o un correo electrónico.";
+    }
+
+    if (correo && !EMAIL_PATTERN.test(correo)) {
+      return "Ingrese un correo electrónico válido.";
+    }
+
+    if (correoAcudiente && !EMAIL_PATTERN.test(correoAcudiente)) {
+      return "Ingrese un correo electrónico válido para el acudiente.";
+    }
+
+    const camposNumericos = [
+      ["estrato", "estrato"],
+      ["numeroPersonasACargo", "personas a cargo"],
+      ["salario", "salario"],
+    ];
+
+    const campoNegativo = camposNumericos.find(([name]) => Number(form[name]) < 0);
+
+    if (campoNegativo) {
+      return `El campo ${campoNegativo[1]} no puede ser negativo.`;
+    }
+
+    return "";
   }
 
   async function guardarEdicion(event) {
@@ -631,6 +690,13 @@ export function PersonasForm() {
 
     if (!puedeEditar) {
       setError("No tienes permisos para editar personas");
+      return;
+    }
+
+    const errorValidacion = validarEdicionPersona();
+
+    if (errorValidacion) {
+      setError(errorValidacion);
       return;
     }
 
@@ -664,7 +730,10 @@ export function PersonasForm() {
 
       if (!res.ok) {
         throw new Error(
-          data?.mensaje || data?.message || "No se pudo actualizar la persona"
+          getApiErrorDescription(
+            data,
+            getApiErrorTitle(data, "No se pudo actualizar la persona")
+          )
         );
       }
 
@@ -715,7 +784,10 @@ export function PersonasForm() {
 
       if (!res.ok) {
         throw new Error(
-          data?.mensaje || data?.message || "No se pudo desactivar la persona"
+          getApiErrorDescription(
+            data,
+            getApiErrorTitle(data, "No se pudo desactivar la persona")
+          )
         );
       }
 
@@ -999,29 +1071,31 @@ export function PersonasForm() {
                     <Input label="Dirección" name="direccion" value={form.direccion} onChange={handleChange} />
                     <Input label="Comuna" name="comuna" value={form.comuna} onChange={handleChange} />
                     <Input label="Localidad" name="localidad" value={form.localidad} onChange={handleChange} />
-                    <Input label="Estrato" name="estrato" type="number" value={form.estrato} onChange={handleNumberChange} />
+                    <Input label="Estrato" name="estrato" type="number" min={0} value={form.estrato} onChange={handleNumberChange} />
                     <Input label="Tipo vivienda" name="tipoVivienda" value={form.tipoVivienda} onChange={handleChange} />
                     <Select label="Zona" name="zona" value={form.zona} onChange={handleChange} options={ZONA_OPTIONS} />
                     <Input label="Tenencia" name="tenencia" value={form.tenencia} onChange={handleChange} />
-                    <Input label="Personas a cargo" name="numeroPersonasACargo" type="number" value={form.numeroPersonasACargo} onChange={handleNumberChange} />
+                    <Input label="Personas a cargo" name="numeroPersonasACargo" type="number" min={0} value={form.numeroPersonasACargo} onChange={handleNumberChange} />
                   </Seccion>
 
                   <Seccion titulo="Economía">
                     <Select label="Ocupación" name="ocupacionId" value={form.ocupacionId} onChange={handleChange} options={ocupacionOptions} />
                     <Select label="Empresa" name="empresaId" value={form.empresaId} onChange={handleChange} options={empresaOptions} />
-                    <Input label="Salario" name="salario" type="number" value={form.salario} onChange={handleNumberChange} />
+                    <Input label="Salario" name="salario" type="number" min={0} value={form.salario} onChange={handleNumberChange} />
                     <Input label="Cargo" name="cargo" value={form.cargo} onChange={handleChange} />
                     <Input label="Dirección empresa" name="direccionEmpresa" value={form.direccionEmpresa} onChange={handleChange} />
                     <Input label="Teléfono empresa" name="telefonoEmpresa" value={form.telefonoEmpresa} onChange={handleChange} />
                   </Seccion>
 
-                  <Seccion titulo="Acudiente">
-                    <Input label="Nombre acudiente" name="nombreCompletoAcudiente" value={form.nombreCompletoAcudiente} onChange={handleChange} />
-                    <Input label="Relación acudiente" name="relacionAcudiente" value={form.relacionAcudiente} onChange={handleChange} />
-                    <Input label="Teléfono acudiente" name="telefonoAcudiente" value={form.telefonoAcudiente} onChange={handleChange} />
-                    <Input label="Correo acudiente" name="correoAcudiente" type="email" value={form.correoAcudiente} onChange={handleChange} />
-                    <Input label="Dirección acudiente" name="direccionAcudiente" value={form.direccionAcudiente} onChange={handleChange} />
-                  </Seccion>
+                  {esMenorEdadFormulario && (
+                    <Seccion titulo="Acudiente">
+                      <Input label="Nombre acudiente" name="nombreCompletoAcudiente" value={form.nombreCompletoAcudiente} onChange={handleChange} />
+                      <Input label="Relación acudiente" name="relacionAcudiente" value={form.relacionAcudiente} onChange={handleChange} />
+                      <Input label="Teléfono acudiente" name="telefonoAcudiente" value={form.telefonoAcudiente} onChange={handleChange} />
+                      <Input label="Correo acudiente" name="correoAcudiente" type="email" value={form.correoAcudiente} onChange={handleChange} />
+                      <Input label="Dirección acudiente" name="direccionAcudiente" value={form.direccionAcudiente} onChange={handleChange} />
+                    </Seccion>
+                  )}
 
                   <Seccion titulo="Servicio">
                     <Input label="Cómo se enteró" name="comoSeEntero" value={form.comoSeEntero} onChange={handleChange} />
@@ -1085,7 +1159,7 @@ function Seccion({ titulo, children }) {
   );
 }
 
-function Input({ label, name, value, onChange, type = "text" }) {
+function Input({ label, name, value, onChange, type = "text", min }) {
   return (
     <label className="flex flex-col gap-1.5 text-sm">
       <span className="font-medium">{label}</span>
@@ -1093,6 +1167,7 @@ function Input({ label, name, value, onChange, type = "text" }) {
         type={type}
         name={name}
         value={value ?? ""}
+        min={min}
         onChange={onChange}
         className="h-10 rounded-md border bg-background px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
       />

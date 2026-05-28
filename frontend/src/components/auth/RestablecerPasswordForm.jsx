@@ -4,6 +4,7 @@ import { useForm } from "react-hook-form"
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { API_URL_BASE } from "@/lib/config"
+import { getApiErrorTitle, readResponseBody } from "@/lib/api"
 import { useRouter } from "next/navigation" 
 import { useEffect } from "react"
 
@@ -11,6 +12,7 @@ export function RestablecerPasswordForm({ token }) {
   const {
     register,
     handleSubmit,
+    watch,
     formState: { errors },
   } = useForm()
 
@@ -37,10 +39,10 @@ export function RestablecerPasswordForm({ token }) {
         }),
       })
 
-      const result = await res.json()
+      const result = await readResponseBody(res)
 
       if (!res.ok) {
-        throw new Error(result?.mensaje || "Error al restablecer contraseña")
+        throw new Error(getApiErrorTitle(result, "Error al restablecer contraseña"))
       }
 
       setSuccess("La contraseña se restableció correctamente")
@@ -91,6 +93,8 @@ export function RestablecerPasswordForm({ token }) {
         placeholder="Confirmar contraseña"
         {...register("confirmarPassword", {
           required: "Debe confirmar la contraseña",
+          validate: (value) =>
+            value === watch("passwordNueva") || "Las contraseñas no coinciden",
         })}
         className="w-full border rounded-lg p-2"
       />

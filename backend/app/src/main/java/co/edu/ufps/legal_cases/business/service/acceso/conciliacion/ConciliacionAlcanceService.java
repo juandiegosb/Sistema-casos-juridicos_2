@@ -95,6 +95,25 @@ public class ConciliacionAlcanceService {
     }
 
     @Transactional(readOnly = true)
+    public boolean puedeProgramarReunion(Conciliacion conciliacion) {
+        if (!conciliacionActiva(conciliacion)) {
+            return false;
+        }
+
+        if (usuarioActualService.esRolAdministrador()) {
+            return true;
+        }
+
+        return usuarioActualService.esConciliador()
+                && esConciliadorAsignado(conciliacion);
+    }
+
+    @Transactional(readOnly = true)
+    public boolean puedeReprogramarReunion(Conciliacion conciliacion) {
+        return puedeProgramarReunion(conciliacion);
+    }
+
+    @Transactional(readOnly = true)
     public boolean puedeAsignarConciliador(Conciliacion conciliacion) {
         return conciliacionActiva(conciliacion)
                 && usuarioActualService.esRolAdministrador();

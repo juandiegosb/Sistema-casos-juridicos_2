@@ -4,6 +4,7 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
+import co.edu.ufps.legal_cases.business.dto.conciliacion.reunion.ReunionConciliacionResponseDTO;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -31,6 +32,8 @@ public class ConciliacionDetalleResponseDTO {
     private String estadoNombre;
 
     private LocalDateTime fechaConciliacion;
+
+    private ReunionConciliacionResponseDTO reunion;
 
     private ConciliacionPersonaDTO consultante;
 
