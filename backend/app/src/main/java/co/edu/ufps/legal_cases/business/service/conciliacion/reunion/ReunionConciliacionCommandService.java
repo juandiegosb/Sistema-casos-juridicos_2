@@ -14,6 +14,7 @@ import co.edu.ufps.legal_cases.business.model.conciliacion.reunion.ReunionConcil
 import co.edu.ufps.legal_cases.business.repository.conciliacion.ConciliacionRepository;
 import co.edu.ufps.legal_cases.business.repository.conciliacion.reunion.ReunionConciliacionRepository;
 import co.edu.ufps.legal_cases.business.service.acceso.conciliacion.ConciliacionAccessService;
+import co.edu.ufps.legal_cases.business.service.conciliacion.reunion.notificacion.ReunionConciliacionNotificacionService;
 import co.edu.ufps.legal_cases.security.model.account.UsuarioSistema;
 import lombok.AllArgsConstructor;
 
@@ -28,6 +29,7 @@ public class ReunionConciliacionCommandService {
     private final ReunionConciliacionValidator reunionConciliacionValidator;
     private final ReunionConciliacionMapper reunionConciliacionMapper;
     private final ReunionConciliacionHistorialService reunionConciliacionHistorialService;
+    private final ReunionConciliacionNotificacionService reunionConciliacionNotificacionService;
 
     @Transactional
     public ReunionConciliacionResponseDTO programar(Long conciliacionId, ReunionConciliacionRequestDTO dto) {
@@ -51,6 +53,9 @@ public class ReunionConciliacionCommandService {
         UsuarioSistema usuario = reunionConciliacionRelacionService.obtenerUsuario(
                 conciliacionAccessService.obtenerUsuarioActualId());
         reunionConciliacionHistorialService.registrarProgramacion(reunionGuardada, usuario);
+
+        // El envío de correos registra errores, pero no revierte la programación.
+        reunionConciliacionNotificacionService.registrarProgramacion(reunionGuardada);
 
         return reunionConciliacionMapper.convertirAResponseDTO(reunionGuardada);
     }
@@ -85,6 +90,9 @@ public class ReunionConciliacionCommandService {
                 sedeAnterior,
                 observacionesAnteriores,
                 usuario);
+
+        // Al reprogramar se cancelan pendientes anteriores y se crean nuevos recordatorios.
+        reunionConciliacionNotificacionService.registrarReprogramacion(reunionGuardada);
 
         return reunionConciliacionMapper.convertirAResponseDTO(reunionGuardada);
     }
