@@ -23,6 +23,12 @@ public class SecurityConfig {
             "/api/auth/restablecer-password"
     };
 
+    private static final String[] PUBLIC_GET_ENDPOINTS = {
+            "/v3/api-docs/**",
+            "/swagger-ui/**",
+            "/swagger-ui.html"
+    };
+
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
     private final SecurityExceptionHandler securityExceptionHandler;
 
@@ -65,6 +71,9 @@ public class SecurityConfig {
 
                         // Endpoints públicos de autenticación.
                         .requestMatchers(HttpMethod.POST, PUBLIC_POST_ENDPOINTS).permitAll()
+
+                        // Endpoints públicos GET (Swagger / OpenAPI).
+                        .requestMatchers(HttpMethod.GET, PUBLIC_GET_ENDPOINTS).permitAll()
 
                         // Endpoints de usuario autenticado.
                         .requestMatchers(HttpMethod.GET, "/api/auth/me").authenticated()

@@ -107,6 +107,13 @@
             <optional>true</optional>
         </dependency>
 
+        <!-- OpenAPI / Swagger UI -->
+        <dependency>
+            <groupId>org.springdoc</groupId>
+            <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+            <version>3.0.3</version>
+        </dependency>
+
         <!-- Dependencias de prueba -->
         <dependency>
             <groupId>org.mockito</groupId>
