@@ -17,7 +17,7 @@ const PAGINAS = [
   {
     title: "Recepción",
     path: "/recepcion",
-    permisosVista: [PERMISOS.VER_PERSONAS],
+    permisosVista: [PERMISOS.ACCEDER_RECEPCION],
     permisosAsignar: [
       PERMISOS.ACCEDER_RECEPCION,
       PERMISOS.VER_PERSONAS,
@@ -29,7 +29,7 @@ const PAGINAS = [
   {
     title: "Personas",
     path: "/personas",
-    permisosVista: [PERMISOS.VER_PERSONAS],
+    permisosVista: [PERMISOS.ACCEDER_PERSONAS],
     permisosAsignar: [
       PERMISOS.ACCEDER_PERSONAS,
       PERMISOS.VER_PERSONAS,
@@ -40,7 +40,7 @@ const PAGINAS = [
   {
     title: "Nueva consulta",
     path: "/nuevaconsulta",
-    permisosVista: [PERMISOS.CREAR_CONSULTAS],
+    permisosVista: [PERMISOS.ACCEDER_NUEVA_CONSULTA],
     permisosAsignar: [
       PERMISOS.ACCEDER_NUEVA_CONSULTA,
       PERMISOS.CREAR_CONSULTAS,
@@ -53,7 +53,7 @@ const PAGINAS = [
   {
     title: "Consultas jurídicas",
     path: "/consultasjuridicas",
-    permisosVista: [PERMISOS.VER_CONSULTAS],
+    permisosVista: [PERMISOS.ACCEDER_CONSULTAS_JURIDICAS],
     permisosAsignar: [
       PERMISOS.ACCEDER_CONSULTAS_JURIDICAS,
       PERMISOS.VER_CONSULTAS,
@@ -65,11 +65,18 @@ const PAGINAS = [
       PERMISOS.VER_PERSONAS,
       PERMISOS.VER_PERFILES_AUXILIARES,
     ],
+    permisosAsignarPorRol: {
+      ESTUDIANTE: [
+        PERMISOS.ACCEDER_CONSULTAS_JURIDICAS,
+        PERMISOS.VER_CONSULTAS,
+        PERMISOS.VER_PERSONAS,
+      ],
+    },
   },
   {
     title: "Tareas",
     path: "/tareas",
-    permisosVista: [PERMISOS.VER_SEGUIMIENTOS],
+    permisosVista: [PERMISOS.ACCEDER_TAREAS],
     permisosAsignar: [
       PERMISOS.ACCEDER_TAREAS,
       PERMISOS.VER_SEGUIMIENTOS,
@@ -82,11 +89,19 @@ const PAGINAS = [
       PERMISOS.GESTIONAR_CATEGORIAS_SEGUIMIENTO,
       PERMISOS.VER_CONSULTAS,
     ],
+    permisosAsignarPorRol: {
+      ESTUDIANTE: [
+        PERMISOS.ACCEDER_TAREAS,
+        PERMISOS.VER_SEGUIMIENTOS,
+        PERMISOS.RESPONDER_SEGUIMIENTOS,
+        PERMISOS.VER_CONSULTAS,
+      ],
+    },
   },
   {
     title: "Procesos",
     path: "/procesos",
-    permisosVista: [PERMISOS.VER_PROCESOS],
+    permisosVista: [PERMISOS.ACCEDER_PROCESOS],
     permisosAsignar: [
       PERMISOS.ACCEDER_PROCESOS,
       PERMISOS.VER_PROCESOS,
@@ -109,7 +124,7 @@ const PAGINAS = [
   {
     title: "Conciliaciones",
     path: "/conciliaciones",
-    permisosVista: [PERMISOS.VER_CONCILIACIONES],
+    permisosVista: [PERMISOS.ACCEDER_CONCILIACIONES],
     permisosAsignar: [
       PERMISOS.ACCEDER_CONCILIACIONES,
       PERMISOS.VER_CONCILIACIONES,
@@ -120,11 +135,42 @@ const PAGINAS = [
       PERMISOS.VER_CONSULTAS,
       PERMISOS.VER_PERSONAS,
     ],
+    permisosAsignarPorRol: {
+      ESTUDIANTE: [
+        PERMISOS.ACCEDER_CONCILIACIONES,
+        PERMISOS.VER_CONCILIACIONES,
+        PERMISOS.VER_CONSULTAS,
+        PERMISOS.VER_PERSONAS,
+      ],
+      CONCILIADOR: [
+        PERMISOS.ACCEDER_CONCILIACIONES,
+        PERMISOS.VER_CONCILIACIONES,
+        PERMISOS.CONCLUIR_CONCILIACIONES,
+        PERMISOS.PROGRAMAR_REUNIONES_CONCILIACION,
+        PERMISOS.REPROGRAMAR_REUNIONES_CONCILIACION,
+        PERMISOS.VER_CONSULTAS,
+        PERMISOS.VER_PERSONAS,
+      ],
+      ASESOR: [
+        PERMISOS.ACCEDER_CONCILIACIONES,
+        PERMISOS.VER_CONCILIACIONES,
+        PERMISOS.GESTIONAR_CONCILIACIONES,
+        PERMISOS.VER_CONSULTAS,
+        PERMISOS.VER_PERSONAS,
+      ],
+      MONITOR: [
+        PERMISOS.ACCEDER_CONCILIACIONES,
+        PERMISOS.VER_CONCILIACIONES,
+        PERMISOS.GESTIONAR_CONCILIACIONES,
+        PERMISOS.VER_CONSULTAS,
+        PERMISOS.VER_PERSONAS,
+      ],
+    },
   },
   {
     title: "Estudiantes",
     path: "/estudiantes",
-    permisosVista: [PERMISOS.VER_ESTUDIANTES],
+    permisosVista: [PERMISOS.ACCEDER_ESTUDIANTES],
     permisosAsignar: [
       PERMISOS.ACCEDER_ESTUDIANTES,
       PERMISOS.VER_ESTUDIANTES,
@@ -136,7 +182,7 @@ const PAGINAS = [
   {
     title: "Asesores y monitores",
     path: "/asesoresymonitores",
-    permisosVista: [PERMISOS.VER_ASESORES_MONITORES],
+    permisosVista: [PERMISOS.ACCEDER_ASESORES_MONITORES],
     permisosAsignar: [
       PERMISOS.ACCEDER_ASESORES_MONITORES,
       PERMISOS.VER_ASESORES_MONITORES,
@@ -147,7 +193,7 @@ const PAGINAS = [
   {
     title: "Roles",
     path: "/roles",
-    permisosVista: [PERMISOS.VER_ROLES],
+    permisosVista: [PERMISOS.ACCEDER_ROLES],
     permisosAsignar: [
       PERMISOS.ACCEDER_ROLES,
       PERMISOS.VER_ROLES,
@@ -159,7 +205,7 @@ const PAGINAS = [
   {
     title: "Administración",
     path: "/admin",
-    permisosVista: [PERMISOS.VER_USUARIOS],
+    permisosVista: [PERMISOS.ACCEDER_ADMINISTRACION],
     permisosAsignar: [
       PERMISOS.ACCEDER_ADMINISTRACION,
       PERMISOS.VER_CATALOGOS,
@@ -216,6 +262,47 @@ function idPermiso(permiso) {
 
 function nombreRol(rol) {
   return rol?.nombre || rol?.rolNombre || rol?.name || "";
+}
+
+function claveRol(rol) {
+  const nombre = normalizar(nombreRol(rol));
+
+  if (!nombre) return "";
+  if (nombre.includes("ESTUDIANTE")) return "ESTUDIANTE";
+  if (nombre.includes("CONCILIADOR")) return "CONCILIADOR";
+  if (nombre.includes("ASESOR")) return "ASESOR";
+  if (nombre.includes("MONITOR")) return "MONITOR";
+  if (nombre.includes("ADMIN") || nombre.includes("DIRECTOR")) return "ADMINISTRADOR";
+
+  return nombre;
+}
+
+function permisosAsignarPagina(page, rol) {
+  const permisosPorRol = page?.permisosAsignarPorRol || {};
+  const clave = claveRol(rol);
+
+  if (clave && Array.isArray(permisosPorRol[clave])) {
+    return permisosPorRol[clave];
+  }
+
+  if (Array.isArray(permisosPorRol.DEFAULT)) {
+    return permisosPorRol.DEFAULT;
+  }
+
+  return Array.isArray(page?.permisosAsignar) ? page.permisosAsignar : [];
+}
+
+function permisosGestionadosPagina(page) {
+  const nombres = new Set();
+  const agregar = (lista) => {
+    if (!Array.isArray(lista)) return;
+    lista.filter(Boolean).forEach((permiso) => nombres.add(permiso));
+  };
+
+  agregar(page?.permisosAsignar);
+  Object.values(page?.permisosAsignarPorRol || {}).forEach(agregar);
+
+  return [...nombres];
 }
 
 function buscarPermiso(permisos, nombre) {
@@ -311,10 +398,15 @@ export function RolePermissionsForm() {
 
   const paginaAdministracion = "/admin";
 
+  const rolSeleccionado = useMemo(
+    () => roles.find((rol) => String(rol.id) === String(rolId)) || null,
+    [roles, rolId]
+  );
+
   const rolSeleccionadoEsPropio = useMemo(() => {
     if (!me || !rolId) return false;
 
-    const roleById = roles.find((rol) => String(rol.id) === String(rolId));
+    const roleById = rolSeleccionado;
     if (roleById && me?.rolId != null) {
       return String(me.rolId) === String(roleById.id);
     }
@@ -329,7 +421,7 @@ export function RolePermissionsForm() {
     }
 
     return false;
-  }, [me, rolId, roles]);
+  }, [me, rolId, rolSeleccionado]);
 
   useEffect(() => {
     cargarDatosIniciales();
@@ -604,39 +696,33 @@ export function RolePermissionsForm() {
   }
 
   function nombresPermisosObjetivo() {
-  const paths = new Set(paginasSeleccionadas);
-  const nombres = new Set();
+    const paths = new Set(paginasSeleccionadas);
+    const nombres = new Set();
 
-  paginasConfigurables.forEach((page) => {
-    if (!paths.has(page.path)) return;
+    paginasConfigurables.forEach((page) => {
+      if (!paths.has(page.path)) return;
 
-    const permisosAsignar = Array.isArray(page.permisosAsignar)
-      ? page.permisosAsignar
-      : [];
-
-    permisosAsignar.filter(Boolean).forEach((permiso) => {
-      nombres.add(permiso);
+      permisosAsignarPagina(page, rolSeleccionado)
+        .filter(Boolean)
+        .forEach((permiso) => {
+          nombres.add(permiso);
+        });
     });
-  });
 
-  return [...nombres];
-}
+    return [...nombres];
+  }
 
   function nombresPermisosGestionados() {
-  const nombres = new Set();
+    const nombres = new Set();
 
-  paginasConfigurables.forEach((page) => {
-    const permisosAsignar = Array.isArray(page.permisosAsignar)
-      ? page.permisosAsignar
-      : [];
-
-    permisosAsignar.filter(Boolean).forEach((permiso) => {
-      nombres.add(permiso);
+    paginasConfigurables.forEach((page) => {
+      permisosGestionadosPagina(page).forEach((permiso) => {
+        nombres.add(permiso);
+      });
     });
-  });
 
-  return [...nombres];
-}
+    return [...nombres];
+  }
   function idsDesdeNombres(listaPermisos, nombres) {
     return nombres
       .filter(Boolean)
