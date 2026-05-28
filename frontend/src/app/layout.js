@@ -1,5 +1,5 @@
 import { Geist, Geist_Mono } from "next/font/google";
-import { ThemeProvider } from "@/components/theme-provider"
+import { ThemeProvider } from "@/components/theme-provider";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 
 export const metadata = {
   title: "Consultorio Jurídico",
-  description: "Sistema de gestión de consultas, usuarios y procesos jurídicos.",
+  description: "Sistema de gestión de casos jurídicos del consultorio jurídico",
 };
 
 export default function RootLayout({ children }) {
@@ -22,13 +22,13 @@ export default function RootLayout({ children }) {
     <html lang="es" suppressHydrationWarning>
       <body className="min-h-full">
         <ThemeProvider
-            attribute="class"
-            defaultTheme="system"
-            enableSystem
-            disableTransitionOnChange
-          >
-            {children}
-          </ThemeProvider>
+          attribute="class"
+          defaultTheme="system"
+          enableSystem
+          disableTransitionOnChange
+        >
+          {children}
+        </ThemeProvider>
       </body>
     </html>
   );

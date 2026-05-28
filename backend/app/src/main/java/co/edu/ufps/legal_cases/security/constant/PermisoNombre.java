@@ -28,6 +28,7 @@ public final class PermisoNombre {
     public static final String ACCEDER_ASESORES_MONITORES = "Acceder asesores y monitores";
     public static final String ACCEDER_PERSONAS = "Acceder personas";
     public static final String ACCEDER_ELIMINACION = "Acceder eliminación";
+    public static final String ACCEDER_CONCILIACIONES = "Acceder conciliaciones";
     public static final String ACCEDER_PROCESOS = "Acceder procesos";
 
     // Catálogos y datos auxiliares.
