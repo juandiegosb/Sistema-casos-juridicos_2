@@ -1,5 +1,7 @@
 package co.edu.ufps.legal_cases.audit.service.log;
 
+import java.time.LocalDateTime;
+
 import co.edu.ufps.legal_cases.audit.dto.log.AuditLogDTO;
 import co.edu.ufps.legal_cases.audit.model.log.AuditLog;
 import co.edu.ufps.legal_cases.audit.repository.log.AuditLogRepository;
@@ -35,6 +37,7 @@ public class AuditLogService {
                 .entityName(entityName)
                 .entityId(entityId)
                 .details(details)
+                .timestamp(LocalDateTime.now())
                 .build();
 
         auditLogRepository.save(auditLog);
