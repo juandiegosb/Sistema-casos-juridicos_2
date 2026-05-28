@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { API_URL_BASE } from "@/lib/config";
 import { PERMISOS } from "@/lib/permission";
 import { tienePermiso } from "@/lib/authz";
+import { maxNumberRule, nonNegativeNumberRule, optionalEmailRule } from "@/lib/form-validation";
 
 const REQUIRED_MESSAGE = "El campo es obligatorio";
 const MAX_ESTRATO = 7;
@@ -240,16 +241,6 @@ async function fetchCatalogo(path) {
 export function PersonaForm({ onSubmit, initialValues }) {
   const router = useRouter();
 
-  const pasos = [
-    "Identificación",
-    "Identidad",
-    "Contacto",
-    "Vivienda",
-    "Economía",
-    "Acudiente",
-    "Servicio",
-  ];
-
   const initialValuesKey = useMemo(
     () => JSON.stringify(initialValues ?? {}),
     [initialValues]
@@ -310,9 +301,44 @@ export function PersonaForm({ onSubmit, initialValues }) {
     return edad < 18;
   }, [formValues.fechaNacimiento]);
 
+  const pasos = useMemo(() => {
+    const secciones = [
+      "Identificación",
+      "Identidad",
+      "Contacto",
+      "Vivienda",
+      "Economía",
+    ];
+
+    if (esMenorEdad) {
+      secciones.push("Acudiente");
+    }
+
+    secciones.push("Servicio");
+    return secciones;
+  }, [esMenorEdad]);
+
+  const pasoActualNombre = pasos[pasoActual] || pasos[0];
+
   useEffect(() => {
     reset(defaultFormValues);
   }, [defaultFormValues, reset]);
+
+  useEffect(() => {
+    if (pasoActual >= pasos.length) {
+      setPasoActual(Math.max(pasos.length - 1, 0));
+    }
+  }, [pasoActual, pasos.length]);
+
+  useEffect(() => {
+    if (!esMenorEdad) {
+      setValue("nombreCompletoAcudiente", "");
+      setValue("relacionAcudiente", "");
+      setValue("telefonoAcudiente", "");
+      setValue("correoAcudiente", "");
+      setValue("direccionAcudiente", "");
+    }
+  }, [esMenorEdad, setValue]);
 
   useEffect(() => {
     async function iniciar() {
@@ -470,12 +496,27 @@ export function PersonaForm({ onSubmit, initialValues }) {
   }
 
   async function handleSubmitForm(data) {
-    const payload = construirPayload(data);
+    const datosNormalizados = esMenorEdad
+      ? data
+      : {
+          ...data,
+          nombreCompletoAcudiente: "",
+          relacionAcudiente: "",
+          telefonoAcudiente: "",
+          correoAcudiente: "",
+          direccionAcudiente: "",
+        };
+
+    const payload = construirPayload(datosNormalizados);
 
     const result = await submit(payload);
 
-    if (result?.success && typeof onSubmit === "function") {
-      onSubmit(result.data || payload);
+    if (result?.success) {
+      limpiarFormulario();
+
+      if (typeof onSubmit === "function") {
+        onSubmit(result.data || payload);
+      }
     }
   }
 
@@ -532,7 +573,7 @@ export function PersonaForm({ onSubmit, initialValues }) {
 
       <form onSubmit={handleSubmit(handleSubmitForm)} className="space-y-6">
         <div className="rounded-xl border bg-background p-5">
-          {pasoActual === 0 && (
+          {pasoActualNombre === "Identificación" && (
             <Seccion
               titulo="Identificación"
               descripcion="Datos principales para reconocer a la persona."
@@ -613,7 +654,7 @@ export function PersonaForm({ onSubmit, initialValues }) {
             </Seccion>
           )}
 
-          {pasoActual === 1 && (
+          {pasoActualNombre === "Identidad" && (
             <Seccion
               titulo="Identidad y caracterización"
               descripcion="Información de identidad, características personales y condiciones diferenciales."
@@ -746,7 +787,7 @@ export function PersonaForm({ onSubmit, initialValues }) {
             </Seccion>
           )}
 
-          {pasoActual === 2 && (
+          {pasoActualNombre === "Contacto" && (
             <Seccion
               titulo="Contacto"
               descripcion="Datos de comunicación. Si no hay correo, déjalo vacío para enviar null."
@@ -757,6 +798,12 @@ export function PersonaForm({ onSubmit, initialValues }) {
                 placeholder="Ej: 3001234567"
                 register={register}
                 errors={errors}
+                rules={{
+                  validate: (value) =>
+                    String(value || "").trim() ||
+                    String(formValues.correo || "").trim() ||
+                    "Debe registrar al menos un teléfono o un correo electrónico",
+                }}
               />
 
               <FormInput
@@ -766,11 +813,22 @@ export function PersonaForm({ onSubmit, initialValues }) {
                 type="email"
                 register={register}
                 errors={errors}
+                rules={{
+                  ...optionalEmailRule(),
+                  validate: {
+                    formato: (value) =>
+                      optionalEmailRule().validate(value),
+                    contacto: (value) =>
+                      String(value || "").trim() ||
+                      String(formValues.telefono || "").trim() ||
+                      "Debe registrar al menos un teléfono o un correo electrónico",
+                  },
+                }}
               />
             </Seccion>
           )}
 
-          {pasoActual === 3 && (
+          {pasoActualNombre === "Vivienda" && (
             <Seccion
               titulo="Información de vivienda"
               descripcion="Selecciona departamento, municipio y barrio desde catálogos activos."
@@ -840,7 +898,11 @@ export function PersonaForm({ onSubmit, initialValues }) {
                 min={0}
                 register={register}
                 errors={errors}
-                rules={{ required: REQUIRED_MESSAGE }}
+                rules={{
+                  required: REQUIRED_MESSAGE,
+                  ...nonNegativeNumberRule(),
+                  ...maxNumberRule(MAX_ESTRATO),
+                }}
               />
 
               <FormInput
@@ -879,7 +941,11 @@ export function PersonaForm({ onSubmit, initialValues }) {
                 max={MAX_PERSONAS_A_CARGO}
                 register={register}
                 errors={errors}
-                rules={{ required: REQUIRED_MESSAGE }}
+                rules={{
+                  required: REQUIRED_MESSAGE,
+                  ...nonNegativeNumberRule(),
+                  ...maxNumberRule(MAX_PERSONAS_A_CARGO),
+                }}
               />
 
               <div className="rounded-lg border bg-muted/20 p-3">
@@ -920,7 +986,7 @@ export function PersonaForm({ onSubmit, initialValues }) {
             </Seccion>
           )}
 
-          {pasoActual === 4 && (
+          {pasoActualNombre === "Economía" && (
             <Seccion
               titulo="Aspectos económicos"
               descripcion="Datos laborales y económicos de la persona."
@@ -952,7 +1018,10 @@ export function PersonaForm({ onSubmit, initialValues }) {
                 min={0}
                 register={register}
                 errors={errors}
-                rules={{ required: REQUIRED_MESSAGE }}
+                rules={{
+                  required: REQUIRED_MESSAGE,
+                  ...nonNegativeNumberRule(),
+                }}
               />
 
               <FormInput
@@ -984,7 +1053,7 @@ export function PersonaForm({ onSubmit, initialValues }) {
             </Seccion>
           )}
 
-          {pasoActual === 5 && (
+          {pasoActualNombre === "Acudiente" && (
             <Seccion
               titulo="Datos del acudiente"
               descripcion={
@@ -1024,6 +1093,7 @@ export function PersonaForm({ onSubmit, initialValues }) {
                 type="email"
                 register={register}
                 errors={errors}
+                rules={optionalEmailRule()}
               />
 
               <FormInput
@@ -1036,7 +1106,7 @@ export function PersonaForm({ onSubmit, initialValues }) {
             </Seccion>
           )}
 
-          {pasoActual === 6 && (
+          {pasoActualNombre === "Servicio" && (
             <Seccion
               titulo="Información del servicio"
               descripcion="Información sobre cómo llegó la persona al servicio."
@@ -1068,7 +1138,7 @@ export function PersonaForm({ onSubmit, initialValues }) {
               type="button"
               variant="outline"
               onClick={irAnterior}
-              disabled={pasoActual === 0 || isSubmitting}
+              disabled={pasoActualNombre === "Identificación" || isSubmitting}
             >
               <ChevronLeft className="mr-1 size-4" />
               Anterior

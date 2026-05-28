@@ -9,7 +9,9 @@ import { API_URL_BASE, FILE_STORAGE_API_URL_BASE } from "@/lib/config"
 import { PERMISOS } from "@/lib/permission"
 import { tieneAlgunPermiso, tienePermiso } from "@/lib/authz"
 import { ConfirmActionDialog } from "@/components/ui/ConfirmActionDialog"
+import Pagination from "@/components/ui/Pagination"
 import { FormFileUpload } from "@/components/forms/parts/FormFileUpload"
+import { DEFAULT_PAGE_SIZE_OPTIONS, getTotalPages, paginateItems, sortByIdAsc } from "@/lib/list-utils"
 
 const FORM_TAREA_INICIAL = {
   categoriaId: "",
@@ -376,6 +378,12 @@ export function SeguimientosForm() {
   const [cargandoArchivosRespuesta, setCargandoArchivosRespuesta] = useState({})
   const [tareaAEliminar, setTareaAEliminar] = useState(null)
   const [eliminando, setEliminando] = useState(false)
+  const [paginaConsultas, setPaginaConsultas] = useState(1)
+  const [registrosPorPaginaConsultas, setRegistrosPorPaginaConsultas] = useState(10)
+  const [paginaTareas, setPaginaTareas] = useState(1)
+  const [registrosPorPaginaTareas, setRegistrosPorPaginaTareas] = useState(10)
+  const [paginaPendientes, setPaginaPendientes] = useState(1)
+  const [registrosPorPaginaPendientes, setRegistrosPorPaginaPendientes] = useState(5)
 
   const {
     register,
@@ -401,9 +409,9 @@ export function SeguimientosForm() {
   const consultasFiltradas = useMemo(() => {
     const texto = busquedaLocal.trim().toLowerCase()
 
-    if (!texto) return consultas
-
-    return consultas.filter((consulta) =>
+    const filtradas = !texto
+      ? consultas
+      : consultas.filter((consulta) =>
       [
         consulta.id,
         consulta.consulta,
@@ -420,6 +428,8 @@ export function SeguimientosForm() {
         .toLowerCase()
         .includes(texto)
     )
+
+    return sortByIdAsc(filtradas)
   }, [consultas, busquedaLocal])
 
   useEffect(() => {
@@ -526,8 +536,8 @@ export function SeguimientosForm() {
       ])
 
       if (categoriasRes.status === "fulfilled") setCategorias(categoriasRes.value)
-      if (consultasRes.status === "fulfilled") setConsultas(consultasRes.value)
-      if (pendientesRes.status === "fulfilled") setPendientesRevision(pendientesRes.value)
+      if (consultasRes.status === "fulfilled") setConsultas(sortByIdAsc(consultasRes.value))
+      if (pendientesRes.status === "fulfilled") setPendientesRevision(sortByIdAsc(pendientesRes.value))
 
       const errorCarga = [categoriasRes, consultasRes, pendientesRes].find(
         (item) => item.status === "rejected"
@@ -559,7 +569,7 @@ export function SeguimientosForm() {
         }
       })
 
-      return pendientes
+      return sortByIdAsc(pendientes)
     } catch (error) {
       if (mostrarToast) toast.error(error.message || "No se pudieron cargar pendientes")
       throw error
@@ -568,7 +578,7 @@ export function SeguimientosForm() {
 
   async function refrescarPendientesRevision() {
     const pendientes = await cargarPendientesRevision(true)
-    setPendientesRevision(pendientes)
+    setPendientesRevision(sortByIdAsc(pendientes))
   }
 
   async function cargarRespuestasPorSeguimiento(seguimientoId) {
@@ -612,7 +622,7 @@ export function SeguimientosForm() {
         "No tienes permisos para consultar las tareas"
       )
 
-      setTareas(tareasData)
+      setTareas(sortByIdAsc(tareasData))
 
       await Promise.allSettled(
         tareasData.map((item) => cargarRespuestasPorSeguimiento(obtenerIdTarea(item)))
@@ -1171,6 +1181,53 @@ export function SeguimientosForm() {
     )
   }
 
+  const tareasOrdenadas = useMemo(() => sortByIdAsc(tareas), [tareas])
+  const pendientesOrdenados = useMemo(() => sortByIdAsc(pendientesRevision), [pendientesRevision])
+
+  const totalPaginasConsultas = getTotalPages(consultasFiltradas.length, registrosPorPaginaConsultas)
+  const consultasPaginadas = useMemo(
+    () => paginateItems(consultasFiltradas, paginaConsultas, registrosPorPaginaConsultas),
+    [consultasFiltradas, paginaConsultas, registrosPorPaginaConsultas]
+  )
+
+  const totalPaginasTareas = getTotalPages(tareasOrdenadas.length, registrosPorPaginaTareas)
+  const tareasPaginadas = useMemo(
+    () => paginateItems(tareasOrdenadas, paginaTareas, registrosPorPaginaTareas),
+    [tareasOrdenadas, paginaTareas, registrosPorPaginaTareas]
+  )
+
+  const totalPaginasPendientes = getTotalPages(pendientesOrdenados.length, registrosPorPaginaPendientes)
+  const pendientesPaginados = useMemo(
+    () => paginateItems(pendientesOrdenados, paginaPendientes, registrosPorPaginaPendientes),
+    [pendientesOrdenados, paginaPendientes, registrosPorPaginaPendientes]
+  )
+
+  useEffect(() => {
+    setPaginaConsultas(1)
+  }, [busquedaLocal, registrosPorPaginaConsultas])
+
+  useEffect(() => {
+    if (paginaConsultas > totalPaginasConsultas) {
+      setPaginaConsultas(totalPaginasConsultas)
+    }
+  }, [paginaConsultas, totalPaginasConsultas])
+
+  useEffect(() => {
+    setPaginaTareas(1)
+  }, [consultaSeleccionada, registrosPorPaginaTareas])
+
+  useEffect(() => {
+    if (paginaTareas > totalPaginasTareas) {
+      setPaginaTareas(totalPaginasTareas)
+    }
+  }, [paginaTareas, totalPaginasTareas])
+
+  useEffect(() => {
+    if (paginaPendientes > totalPaginasPendientes) {
+      setPaginaPendientes(totalPaginasPendientes)
+    }
+  }, [paginaPendientes, totalPaginasPendientes])
+
   if (loading) {
     return <div className="text-center py-10">Cargando tareas...</div>
   }
@@ -1189,13 +1246,13 @@ export function SeguimientosForm() {
             </Button>
           </div>
 
-          {pendientesRevision.length === 0 ? (
+          {pendientesOrdenados.length === 0 ? (
             <div className="rounded-lg border bg-muted/30 p-4 text-sm text-muted-foreground">
               No hay respuestas pendientes por revisar.
             </div>
           ) : (
             <div className="space-y-3">
-              {pendientesRevision.map((respuesta) => (
+              {pendientesPaginados.map((respuesta) => (
                 <div key={respuesta.id} className="rounded-lg border bg-background p-4 space-y-3">
                   <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
                     <div className="space-y-2">
@@ -1234,6 +1291,19 @@ export function SeguimientosForm() {
                   {renderArchivosRespuesta(respuesta)}
                 </div>
               ))}
+
+              <Pagination
+                currentPage={paginaPendientes}
+                totalPages={totalPaginasPendientes}
+                onPageChange={setPaginaPendientes}
+                pageSize={registrosPorPaginaPendientes}
+                onPageSizeChange={(value) => {
+                  setRegistrosPorPaginaPendientes(value)
+                  setPaginaPendientes(1)
+                }}
+                pageSizeOptions={DEFAULT_PAGE_SIZE_OPTIONS}
+                totalItems={pendientesOrdenados.length}
+              />
             </div>
           )}
         </div>
@@ -1277,7 +1347,7 @@ export function SeguimientosForm() {
                     </td>
                   </tr>
                 ) : (
-                  consultasFiltradas.map((consulta) => (
+                  consultasPaginadas.map((consulta) => (
                     <tr
                       key={consulta.id || consulta.consultaId}
                       onClick={() => seleccionarConsulta(consulta)}
@@ -1316,6 +1386,19 @@ export function SeguimientosForm() {
               </tbody>
             </table>
           </div>
+
+          <Pagination
+            currentPage={paginaConsultas}
+            totalPages={totalPaginasConsultas}
+            onPageChange={setPaginaConsultas}
+            pageSize={registrosPorPaginaConsultas}
+            onPageSizeChange={(value) => {
+              setRegistrosPorPaginaConsultas(value)
+              setPaginaConsultas(1)
+            }}
+            pageSizeOptions={DEFAULT_PAGE_SIZE_OPTIONS}
+            totalItems={consultasFiltradas.length}
+          />
         </div>
       )}
 
@@ -1486,13 +1569,13 @@ export function SeguimientosForm() {
               <div className="rounded-lg border bg-muted/30 p-6 text-center text-sm text-muted-foreground">
                 Cargando tareas...
               </div>
-            ) : tareas.length === 0 ? (
+            ) : tareasOrdenadas.length === 0 ? (
               <div className="rounded-lg border bg-muted/30 p-6 text-center text-sm text-muted-foreground">
                 No hay tareas registradas para esta consulta.
               </div>
             ) : (
               <div className="space-y-3">
-                {tareas.map((tarea) => {
+                {tareasPaginadas.map((tarea) => {
                   const seguimientoId = obtenerIdTarea(tarea)
                   const respuestas = respuestasPorTarea[seguimientoId] || []
                   const ultima = ultimaRespuesta(respuestas)
@@ -1650,6 +1733,21 @@ export function SeguimientosForm() {
                   )
                 })}
               </div>
+            )}
+
+            {tareasOrdenadas.length > 0 && (
+              <Pagination
+                currentPage={paginaTareas}
+                totalPages={totalPaginasTareas}
+                onPageChange={setPaginaTareas}
+                pageSize={registrosPorPaginaTareas}
+                onPageSizeChange={(value) => {
+                  setRegistrosPorPaginaTareas(value)
+                  setPaginaTareas(1)
+                }}
+                pageSizeOptions={DEFAULT_PAGE_SIZE_OPTIONS}
+                totalItems={tareasOrdenadas.length}
+              />
             )}
           </div>
 

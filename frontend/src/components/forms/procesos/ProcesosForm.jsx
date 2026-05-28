@@ -9,6 +9,7 @@ import Pagination from "@/components/ui/Pagination";
 import { API_URL_BASE } from "@/lib/config";
 import { PERMISOS } from "@/lib/permission";
 import { tieneAlgunPermiso } from "@/lib/authz";
+import { getTotalPages, paginateItems, sortByIdAsc } from "@/lib/list-utils";
 
 const PERMISOS_PROCESOS = {
   VER_PROCESOS: PERMISOS.VER_PROCESOS || "Ver procesos",
@@ -534,8 +535,7 @@ export function ProcesosForm() {
 
   const procesosFiltrados = useMemo(() => {
     const texto = busqueda.trim().toLowerCase();
-    if (!texto) return procesos;
-    return procesos.filter((proceso) => {
+    const filtrados = !texto ? procesos : procesos.filter((proceso) => {
       const consulta = mapaConsultas.get(Number(proceso.consultaId));
       const valores = [
         proceso.id, proceso.numeroRadicado,
@@ -548,6 +548,8 @@ export function ProcesosForm() {
       ];
       return valores.some((v) => String(v || "").toLowerCase().includes(texto));
     });
+
+    return sortByIdAsc(filtrados);
   }, [busqueda, procesos, mapaConsultas, mapaDepartamentos, mapaOrganos, mapaEspecialidades]);
 
   useEffect(() => { verificarYCargar(); }, []);
@@ -598,13 +600,13 @@ export function ProcesosForm() {
           consultasPermitidas ? apiGet(`${API_URL_BASE}/consultas`) : Promise.resolve([]),
         ]);
 
-      if (procesosRes.status === "fulfilled") setProcesos(extraerLista(procesosRes.value));
+      if (procesosRes.status === "fulfilled") setProcesos(sortByIdAsc(extraerLista(procesosRes.value)));
       else throw procesosRes.reason;
 
       if (departamentosRes.status === "fulfilled") setDepartamentos(ordenarActivosPrimero(extraerLista(departamentosRes.value)));
       if (organosRes.status === "fulfilled") setOrganosControl(ordenarActivosPrimero(extraerLista(organosRes.value)));
       if (especialidadesRes.status === "fulfilled") setEspecialidades(ordenarActivosPrimero(extraerLista(especialidadesRes.value)));
-      if (consultasRes.status === "fulfilled") setConsultas(extraerLista(consultasRes.value));
+      if (consultasRes.status === "fulfilled") setConsultas(sortByIdAsc(extraerLista(consultasRes.value)));
 
       const erroresAuxiliares = [departamentosRes, organosRes, especialidadesRes, consultasRes]
         .filter((r) => r.status === "rejected").map((r) => r.reason?.message).filter(Boolean);
@@ -725,6 +727,22 @@ export function ProcesosForm() {
     }
   }
 
+  const totalPaginas = getTotalPages(procesosFiltrados.length, registrosPorPagina);
+  const procesosPaginados = useMemo(
+    () => paginateItems(procesosFiltrados, paginaActual, registrosPorPagina),
+    [procesosFiltrados, paginaActual, registrosPorPagina]
+  );
+
+  useEffect(() => {
+    setPaginaActual(1);
+  }, [busqueda, registrosPorPagina]);
+
+  useEffect(() => {
+    if (paginaActual > totalPaginas) {
+      setPaginaActual(totalPaginas);
+    }
+  }, [paginaActual, totalPaginas]);
+
   if (checking) return <div className="text-center mt-10">Cargando...</div>;
 
   return (
@@ -779,7 +797,7 @@ export function ProcesosForm() {
                     </td>
                   </tr>
                 ) : (
-                  procesosFiltrados.slice((paginaActual - 1) * registrosPorPagina, (paginaActual - 1) * registrosPorPagina + registrosPorPagina).map((proceso) => {
+                  procesosPaginados.map((proceso) => {
                     const consulta = mapaConsultas.get(Number(proceso.consultaId));
                     return (
                       <tr key={proceso.id} className="border-t align-top">
@@ -825,7 +843,7 @@ export function ProcesosForm() {
 
           <Pagination
             currentPage={paginaActual}
-            totalPages={Math.max(1, Math.ceil(procesosFiltrados.length / registrosPorPagina))}
+            totalPages={totalPaginas}
             onPageChange={(p) => setPaginaActual(p)}
             pageSize={registrosPorPagina}
             onPageSizeChange={(v) => { setRegistrosPorPagina(v); setPaginaActual(1); }}

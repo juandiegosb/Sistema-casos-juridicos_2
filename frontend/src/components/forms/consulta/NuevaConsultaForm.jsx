@@ -9,6 +9,7 @@ import { API_URL_BASE, FILE_STORAGE_API_URL_BASE } from "@/lib/config";
 import ArchivosConsultaForm from "../parts/ArchivosConsultaForm";
 import { PERMISOS } from "@/lib/permission";
 import { tienePermiso } from "@/lib/authz";
+import { getApiErrorDescription, getApiErrorTitle, readResponseBody } from "@/lib/api";
 
 const ESTADOS_CONSULTA_CREACION = [
   { value: "ACTIVO", label: "Activo" },
@@ -674,8 +675,39 @@ export function NuevaConsultaForm() {
     }
   }
 
+  function validarFormularioConsulta() {
+    const faltantes = [];
+
+    if (!form.fecha) faltantes.push("fecha");
+    if (!form.estado) faltantes.push("estado");
+    if (!form.tramite?.trim()) faltantes.push("trámite");
+    if (!form.sedeId) faltantes.push("sede");
+    if (!form.areaId) faltantes.push("área");
+    if (!form.temaId) faltantes.push("tema");
+    if (!form.tipoId) faltantes.push("tipo");
+    if (!form.personaId) faltantes.push("parte principal");
+    if (!form.descripcion?.trim()) faltantes.push("descripción");
+    if (!form.hechos?.trim()) faltantes.push("hechos");
+    if (!form.pretensiones?.trim()) faltantes.push("pretensiones");
+    if (!form.conceptoJuridico?.trim()) faltantes.push("concepto jurídico");
+
+    if (faltantes.length === 0) {
+      return true;
+    }
+
+    toast.error("Faltan datos obligatorios", {
+      description: `Complete o seleccione: ${faltantes.join(", ")}.`,
+    });
+
+    return false;
+  }
+
   async function handleGuardar(e) {
     e.preventDefault();
+
+    if (!validarFormularioConsulta()) {
+      return;
+    }
 
     setGuardando(true);
 
@@ -731,10 +763,12 @@ export function NuevaConsultaForm() {
         return;
       }
 
-      const data = await leerRespuesta(res);
+      const data = await readResponseBody(res);
 
       if (!res.ok) {
-        toast.error(data?.mensaje || data?.message || "Error al crear");
+        toast.error(getApiErrorTitle(data, "Error al crear"), {
+          description: getApiErrorDescription(data),
+        });
         return;
       }
 

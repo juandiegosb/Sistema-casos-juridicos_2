@@ -9,6 +9,9 @@ import { tienePermiso } from "@/lib/authz";
 
 import { API_URL_BASE, FILE_STORAGE_API_URL_BASE } from "@/lib/config";
 import { ConfirmActionDialog } from "@/components/ui/ConfirmActionDialog";
+import Pagination from "@/components/ui/Pagination";
+import { getApiErrorMessages, getApiErrorTitle } from "@/lib/api";
+import { DEFAULT_PAGE_SIZE_OPTIONS, getTotalPages, paginateItems } from "@/lib/list-utils";
 
 const ESTADOS_CONSULTA = [
   { value: "ACTIVO", label: "Activo" },
@@ -171,16 +174,13 @@ function normalizarConsultaFila(row) {
 }
 
 function mensajeErrorDesdeRespuesta(payload, defecto) {
-  if (!payload) return defecto;
-  if (typeof payload === "string") return payload || defecto;
+  const detalles = getApiErrorMessages(payload);
 
-  return (
-    payload.mensaje ||
-    payload.message ||
-    payload.descripcion ||
-    payload.error ||
-    defecto
-  );
+  if (detalles.length > 0) {
+    return detalles.join("\n");
+  }
+
+  return getApiErrorTitle(payload, defecto);
 }
 
 function accionPermitidaPorRegistro(row, claves = [], fallback = false) {
@@ -290,6 +290,8 @@ export function ConsultasJuridicasForm() {
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(false);
   const [searchText, setSearchText] = useState("");
+  const [paginaActual, setPaginaActual] = useState(1);
+  const [registrosPorPagina, setRegistrosPorPagina] = useState(10);
 
   const [mostrarFormEdicion, setMostrarFormEdicion] = useState(false);
   const [idEditando, setIdEditando] = useState(null);
@@ -422,6 +424,23 @@ export function ConsultasJuridicasForm() {
     );
   }
 
+  const rowsOrdenadas = useMemo(() => ordenarConsultasPorIdAscendente(rows), [rows]);
+  const totalPaginas = getTotalPages(rowsOrdenadas.length, registrosPorPagina);
+  const rowsPaginadas = useMemo(
+    () => paginateItems(rowsOrdenadas, paginaActual, registrosPorPagina),
+    [rowsOrdenadas, paginaActual, registrosPorPagina]
+  );
+
+  useEffect(() => {
+    setPaginaActual(1);
+  }, [searchText, registrosPorPagina]);
+
+  useEffect(() => {
+    if (paginaActual > totalPaginas) {
+      setPaginaActual(totalPaginas);
+    }
+  }, [paginaActual, totalPaginas]);
+
   useEffect(() => {
     async function init() {
       try {
@@ -445,7 +464,7 @@ export function ConsultasJuridicasForm() {
         const usuarioActual = await res.json();
 
         const puedeEntrar =
-          tienePermiso(usuarioActual, PERMISOS.ACCEDER_CONSULTAS_JURIDICAS) &&
+          tienePermiso(usuarioActual, PERMISOS.ACCEDER_CONSULTAS_JURIDICAS) ||
           tienePermiso(usuarioActual, PERMISOS.VER_CONSULTAS);
 
         if (!puedeEntrar) {
@@ -1092,9 +1111,9 @@ export function ConsultasJuridicasForm() {
               </tr>
             </thead>
             <tbody>
-              {rows.length === 0 ? (
+              {rowsOrdenadas.length === 0 ? (
                 <tr><td colSpan={8} className="text-center py-8 text-sm text-muted-foreground">{loading ? "Cargando..." : "Sin resultados. Usa el buscador o crea una nueva consulta."}</td></tr>
-              ) : rows.map(row => (
+              ) : rowsPaginadas.map(row => (
                 <tr key={row.id} className="border-t hover:bg-muted/50 transition-colors">
                   <td className="px-4 py-3 text-sm">{row.id}</td>
                   <td className="px-4 py-3 text-sm max-w-[200px] truncate" title={row.consulta}>{row.consulta}</td>
@@ -1140,6 +1159,19 @@ export function ConsultasJuridicasForm() {
             </tbody>
           </table>
         </div>
+
+        <Pagination
+          currentPage={paginaActual}
+          totalPages={totalPaginas}
+          onPageChange={setPaginaActual}
+          pageSize={registrosPorPagina}
+          onPageSizeChange={(value) => {
+            setRegistrosPorPagina(value);
+            setPaginaActual(1);
+          }}
+          pageSizeOptions={DEFAULT_PAGE_SIZE_OPTIONS}
+          totalItems={rowsOrdenadas.length}
+        />
       </div>
 
       {/* MODAL ASESOR */}

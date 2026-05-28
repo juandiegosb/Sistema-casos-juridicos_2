@@ -4,7 +4,9 @@ import React, { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { ConfirmActionDialog } from "@/components/ui/ConfirmActionDialog";
+import Pagination from "@/components/ui/Pagination";
 import { API_URL_BASE } from "@/lib/config";
+import { DEFAULT_PAGE_SIZE_OPTIONS, getTotalPages, paginateItems, sortByIdAsc } from "@/lib/list-utils";
 import { RotateCcw, RefreshCw } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { PERMISOS } from "@/lib/permission";
@@ -144,6 +146,8 @@ export function EliminacionForm() {
   const [busqueda, setBusqueda] = useState("");
   const [confirmDialogAbierto, setConfirmDialogAbierto] = useState(false);
   const [itemAReactivar, setItemAReactivar] = useState(null);
+  const [paginaActual, setPaginaActual] = useState(1);
+  const [registrosPorPagina, setRegistrosPorPagina] = useState(10);
   const router = useRouter();
 
   const seccion = useMemo(() => {
@@ -162,9 +166,9 @@ export function EliminacionForm() {
       return estaInactivo(item);
     });
 
-    if (!q) return filtradosPorEstado;
-
-    return filtradosPorEstado.filter((item) =>
+    const filtrados = !q
+      ? filtradosPorEstado
+      : filtradosPorEstado.filter((item) =>
       [
         item?.id,
         nombrePersona(item),
@@ -178,6 +182,8 @@ export function EliminacionForm() {
         .toLowerCase()
         .includes(q)
     );
+
+    return sortByIdAsc(filtrados);
   }, [data, seccionActiva, busqueda, seccion]);
 
   useEffect(() => {
@@ -343,6 +349,21 @@ export function EliminacionForm() {
   }
 
   const totalSeccion = itemsActuales.length;
+  const totalPaginas = getTotalPages(totalSeccion, registrosPorPagina);
+  const itemsPaginados = useMemo(
+    () => paginateItems(itemsActuales, paginaActual, registrosPorPagina),
+    [itemsActuales, paginaActual, registrosPorPagina]
+  );
+
+  useEffect(() => {
+    setPaginaActual(1);
+  }, [seccionActiva, busqueda, registrosPorPagina]);
+
+  useEffect(() => {
+    if (paginaActual > totalPaginas) {
+      setPaginaActual(totalPaginas);
+    }
+  }, [paginaActual, totalPaginas]);
 
   return (
     <div className="space-y-5">
@@ -445,7 +466,7 @@ export function EliminacionForm() {
                     </td>
                   </tr>
                 ) : (
-                  itemsActuales.map((item) => {
+                  itemsPaginados.map((item) => {
                     const key = `${seccion.id}-${item.id}`;
                     const isLoading = reactivando === key;
 
@@ -498,6 +519,19 @@ export function EliminacionForm() {
             </table>
           </div>
         </div>
+
+        <Pagination
+          currentPage={paginaActual}
+          totalPages={totalPaginas}
+          onPageChange={setPaginaActual}
+          pageSize={registrosPorPagina}
+          onPageSizeChange={(value) => {
+            setRegistrosPorPagina(value);
+            setPaginaActual(1);
+          }}
+          pageSizeOptions={DEFAULT_PAGE_SIZE_OPTIONS}
+          totalItems={totalSeccion}
+        />
       </div>
 
       <ConfirmActionDialog

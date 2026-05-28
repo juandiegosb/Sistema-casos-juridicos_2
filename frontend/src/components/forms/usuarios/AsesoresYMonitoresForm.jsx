@@ -9,6 +9,7 @@ import { ConfirmActionDialog } from "@/components/ui/ConfirmActionDialog";
 import Pagination from "@/components/ui/Pagination";
 import { PERMISOS } from "@/lib/permission";
 import { tienePermiso } from "@/lib/authz";
+import { getTotalPages, paginateItems, sortByIdAsc } from "@/lib/list-utils";
 
 export function AsesoresYMonitoresForm() {
   const router = useRouter();
@@ -81,8 +82,8 @@ export function AsesoresYMonitoresForm() {
         const asesoresData = await asesoresRes.json();
         const monitoresData = await monitoresRes.json();
 
-        setAsesores(Array.isArray(asesoresData) ? asesoresData : []);
-        setMonitores(Array.isArray(monitoresData) ? monitoresData : []);
+        setAsesores(sortByIdAsc(Array.isArray(asesoresData) ? asesoresData : []));
+        setMonitores(sortByIdAsc(Array.isArray(monitoresData) ? monitoresData : []));
       } catch (err) {
         console.error(err);
         toast.error("Error cargando usuarios");
@@ -125,14 +126,18 @@ export function AsesoresYMonitoresForm() {
 
         if (confirmDialog.rol === "Asesor") {
           setAsesores((prev) =>
-            prev.map((a) =>
-              a.id === confirmDialog.id ? { ...a, activo: false } : a
+            sortByIdAsc(
+              prev.map((a) =>
+                a.id === confirmDialog.id ? { ...a, activo: false } : a
+              )
             )
           );
         } else {
           setMonitores((prev) =>
-            prev.map((m) =>
-              m.id === confirmDialog.id ? { ...m, activo: false } : m
+            sortByIdAsc(
+              prev.map((m) =>
+                m.id === confirmDialog.id ? { ...m, activo: false } : m
+              )
             )
           );
         }
@@ -149,20 +154,34 @@ export function AsesoresYMonitoresForm() {
     }
   }
 
+  const usuarios = sortByIdAsc([
+    ...asesores.map((a) => ({ ...a, rol: "Asesor" })),
+    ...monitores.map((m) => ({ ...m, rol: "Monitor" })),
+  ]);
+
+  const filtrados = sortByIdAsc(
+    usuarios.filter((u) =>
+      `${u.nombre || ""} ${u.documento || ""} ${u.email || ""}`
+        .toLowerCase()
+        .includes(busqueda.toLowerCase())
+    )
+  );
+  const totalPaginas = getTotalPages(filtrados.length, registrosPorPagina);
+  const usuariosPaginados = paginateItems(filtrados, paginaActual, registrosPorPagina);
+
+  useEffect(() => {
+    setPaginaActual(1);
+  }, [busqueda]);
+
+  useEffect(() => {
+    if (paginaActual > totalPaginas) {
+      setPaginaActual(totalPaginas);
+    }
+  }, [paginaActual, totalPaginas]);
+
   if (cargando) {
     return <div className="text-center mt-10">Cargando...</div>;
   }
-
-  const usuarios = [
-    ...asesores.map((a) => ({ ...a, rol: "Asesor" })),
-    ...monitores.map((m) => ({ ...m, rol: "Monitor" })),
-  ];
-
-  const filtrados = usuarios.filter((u) =>
-    `${u.nombre || ""} ${u.documento || ""} ${u.email || ""}`
-      .toLowerCase()
-      .includes(busqueda.toLowerCase())
-  );
 
   return (
     <div className="space-y-6">
@@ -176,6 +195,7 @@ export function AsesoresYMonitoresForm() {
         <table className="w-full text-sm">
           <thead className="bg-muted/50">
             <tr className="text-left">
+              <th className="p-3">ID</th>
               <th className="p-3">Nombre</th>
               <th className="p-3">Documento</th>
               <th className="p-3">Email</th>
@@ -188,11 +208,12 @@ export function AsesoresYMonitoresForm() {
           </thead>
 
           <tbody>
-            {filtrados.slice((paginaActual - 1) * registrosPorPagina, (paginaActual - 1) * registrosPorPagina + registrosPorPagina).map((u) => (
+            {usuariosPaginados.map((u) => (
               <tr
                 key={`${u.rol}-${u.id}`}
                 className="border-t hover:bg-muted/30 transition"
               >
+                <td className="p-3">{u.id}</td>
                 <td className="p-3 font-medium">{u.nombre}</td>
                 <td className="p-3">{u.documento}</td>
                 <td className="p-3">{u.email}</td>
@@ -239,7 +260,7 @@ export function AsesoresYMonitoresForm() {
 
       <Pagination
         currentPage={paginaActual}
-        totalPages={Math.max(1, Math.ceil(filtrados.length / registrosPorPagina))}
+        totalPages={totalPaginas}
         onPageChange={(p) => setPaginaActual(p)}
         pageSize={registrosPorPagina}
         onPageSizeChange={(v) => { setRegistrosPorPagina(v); setPaginaActual(1); }}

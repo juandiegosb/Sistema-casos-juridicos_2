@@ -12,6 +12,7 @@ import { useRouter } from "next/navigation";
 import { PERMISOS } from "@/lib/permission";
 import { normalizar, tieneAlgunPermiso, tienePermiso } from "@/lib/authz";
 import Pagination from "@/components/ui/Pagination";
+import { sortByIdAsc } from "@/lib/list-utils";
 
 const PERMISO_GESTIONAR_USUARIOS = "Gestionar usuarios";
 
@@ -203,14 +204,26 @@ export function CambiarRolUsuarioForm() {
     const activos = filtrarActivos(usuarios);
     const q = busquedaModal.trim().toLowerCase();
 
-    if (!q) return activos;
-
-    return activos.filter((usuario) =>
+    const filtrados = !q ? activos : activos.filter((usuario) =>
       `${usuario.username || ""} ${usuario.rolNombre || ""} ${usuario.tipoPerfil || ""}`
         .toLowerCase()
         .includes(q)
     );
+
+    return sortByIdAsc(filtrados);
   }, [usuarios, busquedaModal]);
+
+  const totalPaginasModal = Math.max(1, Math.ceil(usuariosFiltrados.length / registrosPorPaginaModal));
+
+  useEffect(() => {
+    setPaginaActualModal(1);
+  }, [busquedaModal, registrosPorPaginaModal]);
+
+  useEffect(() => {
+    if (paginaActualModal > totalPaginasModal) {
+      setPaginaActualModal(totalPaginasModal);
+    }
+  }, [paginaActualModal, totalPaginasModal]);
 
   useEffect(() => {
     cargarDatosIniciales();
@@ -305,7 +318,7 @@ export function CambiarRolUsuarioForm() {
           fetchJson(`${API_URL_BASE}/areas`),
         ]);
 
-      setUsuarios(filtrarActivos(usuariosData));
+      setUsuarios(sortByIdAsc(filtrarActivos(usuariosData)));
       setRoles(filtrarActivos(rolesData));
       setTiposDocumento(tiposData.map(mapOption));
       setSedes(sedesData.map(mapOption));
@@ -494,8 +507,10 @@ export function CambiarRolUsuarioForm() {
       toast.success("Perfil y rol actualizados correctamente");
 
       setUsuarios((current) =>
-        filtrarActivos(
-          current.map((usuario) => (usuario.id === result.id ? result : usuario))
+        sortByIdAsc(
+          filtrarActivos(
+            current.map((usuario) => (usuario.id === result.id ? result : usuario))
+          )
         )
       );
 
@@ -887,7 +902,7 @@ export function CambiarRolUsuarioForm() {
 
               <Pagination
                 currentPage={paginaActualModal}
-                totalPages={Math.max(1, Math.ceil(usuariosFiltrados.length / registrosPorPaginaModal))}
+                totalPages={totalPaginasModal}
                 onPageChange={(p) => setPaginaActualModal(p)}
                 pageSize={registrosPorPaginaModal}
                 onPageSizeChange={(v) => { setRegistrosPorPaginaModal(v); setPaginaActualModal(1); }}
