@@ -220,6 +220,213 @@ function esRolAdministrador(usuario) {
   );
 }
 
+
+function obtenerDetalleConsulta(item) {
+  const persona = item?.persona || item?.consultante || item?.partePrincipal || {};
+  const nombreParte = valor(
+    item?.personaNombre,
+    item?.consultanteNombre,
+    item?.nombrePersona,
+    item?.nombre,
+    persona?.nombre,
+    persona?.nombreCompleto,
+    persona?.nombre_completo
+  );
+  const apellidoParte = valor(item?.personaApellido, item?.apellido, persona?.apellido, persona?.apellidos);
+  const documentoParte = valor(
+    item?.cedula,
+    item?.documento,
+    item?.numeroDocumento,
+    persona?.documento,
+    persona?.numeroDocumento
+  );
+  const responsable = valor(item?.estudianteNombre, item?.asesorNombre, item?.monitorNombre);
+
+  return {
+    id: idConsulta(item),
+    titulo: nombreConsulta(item),
+    parte: [nombreParte, apellidoParte].filter(Boolean).join(" "),
+    documentoParte,
+    estado: valor(item?.estado, item?.estadoNombre, item?.estadoConsulta),
+    area: valor(item?.areaNombre, item?.area, item?.nombreArea),
+    tema: valor(item?.temaNombre, item?.tema, item?.nombreTema),
+    tipo: valor(item?.tipoNombre, item?.tipo, item?.nombreTipo),
+    responsable,
+  };
+}
+
+function labelConsultaBusqueda(item) {
+  const detalle = obtenerDetalleConsulta(item);
+  return [
+    detalle.id,
+    detalle.titulo,
+    detalle.parte,
+    detalle.documentoParte,
+    detalle.estado,
+    detalle.area,
+    detalle.tema,
+    detalle.tipo,
+    detalle.responsable,
+  ]
+    .map(normalizarTexto)
+    .join(" ");
+}
+
+function ModalBuscarConsulta({ abierto, consultas, busqueda, setBusqueda, onSeleccionar, onCerrar, consultaIdSeleccionada }) {
+  if (!abierto) return null;
+
+  const texto = normalizarTexto(busqueda);
+  const consultasFiltradas = texto
+    ? consultas.filter((consulta) => labelConsultaBusqueda(consulta).includes(texto))
+    : consultas;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
+      <div className="w-full max-w-2xl rounded-xl border bg-background p-6 shadow-lg">
+        <div className="mb-4 flex items-center justify-between gap-3">
+          <div>
+            <h3 className="text-lg font-semibold">Seleccionar consulta</h3>
+            <p className="text-sm text-muted-foreground">
+              Busca por ID, descripción, parte, documento, estado, área, tema o tipo.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={onCerrar}
+            className="rounded-full px-2 py-1 text-xl text-muted-foreground hover:bg-muted hover:text-foreground"
+            aria-label="Cerrar selector de consultas"
+          >
+            ✕
+          </button>
+        </div>
+
+        <div className="relative mb-4">
+          <Search className="pointer-events-none absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+          <input
+            autoFocus
+            type="text"
+            value={busqueda}
+            onChange={(event) => setBusqueda(event.target.value)}
+            placeholder="Buscar consulta..."
+            className="h-10 w-full rounded-lg border bg-background pl-9 pr-3 text-sm outline-none focus:ring-2 focus:ring-ring"
+          />
+        </div>
+
+        <div className="max-h-80 space-y-2 overflow-y-auto pr-1">
+          {consultasFiltradas.length === 0 ? (
+            <div className="rounded-lg border border-dashed p-6 text-center text-sm text-muted-foreground">
+              No se encontraron consultas con ese criterio.
+            </div>
+          ) : (
+            consultasFiltradas.map((consulta) => {
+              const detalle = obtenerDetalleConsulta(consulta);
+              const seleccionado = String(consultaIdSeleccionada) === String(detalle.id);
+
+              return (
+                <button
+                  key={detalle.id}
+                  type="button"
+                  onClick={() => onSeleccionar(consulta)}
+                  className={`w-full rounded-lg border px-4 py-3 text-left text-sm transition-colors hover:bg-muted/60 ${
+                    seleccionado ? "border-primary bg-primary/10 text-primary" : "bg-background"
+                  }`}
+                >
+                  <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                    <div className="min-w-0">
+                      <div className="font-medium">
+                        #{detalle.id} — {detalle.titulo}
+                      </div>
+                      <div className="mt-1 text-xs text-muted-foreground">
+                        {detalle.parte || "Parte sin registrar"}
+                        {detalle.documentoParte ? ` · ${detalle.documentoParte}` : ""}
+                      </div>
+                    </div>
+
+                    {detalle.estado && (
+                      <span className="w-fit rounded-full border bg-muted/50 px-2 py-0.5 text-xs text-muted-foreground">
+                        {detalle.estado}
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="mt-2 flex flex-wrap gap-2 text-xs text-muted-foreground">
+                    {detalle.area && <span>Área: {detalle.area}</span>}
+                    {detalle.tema && <span>Tema: {detalle.tema}</span>}
+                    {detalle.tipo && <span>Tipo: {detalle.tipo}</span>}
+                    {detalle.responsable && <span>Responsable: {detalle.responsable}</span>}
+                  </div>
+                </button>
+              );
+            })
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function CampoConsulta({ label, consultaId, consultas, onSeleccionar, required = false }) {
+  const [modalAbierto, setModalAbierto] = useState(false);
+  const [busqueda, setBusqueda] = useState("");
+
+  const consultaSeleccionada = useMemo(
+    () => consultas.find((consulta) => String(idConsulta(consulta)) === String(consultaId)) || null,
+    [consultas, consultaId]
+  );
+
+  const detalle = consultaSeleccionada ? obtenerDetalleConsulta(consultaSeleccionada) : null;
+
+  function cerrarModal() {
+    setModalAbierto(false);
+    setBusqueda("");
+  }
+
+  return (
+    <div className="space-y-1.5">
+      <label className="text-sm font-medium">
+        {label}{required ? " *" : ""}
+      </label>
+
+      <button
+        type="button"
+        onClick={() => setModalAbierto(true)}
+        className={`min-h-10 w-full rounded-md border bg-background px-3 py-2 text-left text-sm transition-colors hover:bg-muted/50 ${
+          !detalle ? "text-muted-foreground" : ""
+        }`}
+      >
+        {detalle ? (
+          <span className="block">
+            <span className="block truncate font-medium text-foreground">
+              #{detalle.id} — {detalle.titulo}
+            </span>
+            <span className="block truncate text-xs text-muted-foreground">
+              {[detalle.parte, detalle.documentoParte].filter(Boolean).join(" · ") || "Consulta seleccionada"}
+            </span>
+          </span>
+        ) : (
+          <span className="flex items-center justify-between gap-2">
+            Buscar y seleccionar consulta...
+            <Search className="h-4 w-4" />
+          </span>
+        )}
+      </button>
+
+      <ModalBuscarConsulta
+        abierto={modalAbierto}
+        consultas={consultas}
+        busqueda={busqueda}
+        setBusqueda={setBusqueda}
+        consultaIdSeleccionada={consultaId}
+        onSeleccionar={(consulta) => {
+          onSeleccionar(String(idConsulta(consulta)));
+          cerrarModal();
+        }}
+        onCerrar={cerrarModal}
+      />
+    </div>
+  );
+}
+
 export function ConciliacionesForm() {
   const router = useRouter();
 
@@ -724,6 +931,9 @@ export function ConciliacionesForm() {
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div>
             <h2 className="text-2xl font-bold tracking-tight">Conciliaciones</h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Gestión y consulta de conciliaciones asociadas a consultas jurídicas visibles para tu usuario.
+            </p>
           </div>
           <Button type="button" variant="outline" onClick={() => refrescar()} disabled={saving}>
             <RefreshCw className="mr-2 h-4 w-4" />
@@ -751,30 +961,19 @@ export function ConciliacionesForm() {
             <div>
               <h3 className="font-semibold">Crear conciliación desde consulta</h3>
               <p className="text-sm text-muted-foreground">
-                La solicitud PDF es obligatoria. No se envían estudiante, conciliador ni estado.
+                La solicitud PDF es obligatoria.
               </p>
             </div>
           </div>
 
           <form onSubmit={crearConciliacion} className="grid grid-cols-1 gap-4 lg:grid-cols-[1fr_1fr_auto] lg:items-end">
-            <div className="space-y-1.5">
-              <label className="text-sm font-medium">Consulta *</label>
-              <select
-                value={crearConsultaId}
-                onChange={(event) => setCrearConsultaId(event.target.value)}
-                className="h-10 w-full rounded-md border bg-background px-3 text-sm"
-              >
-                <option value="">Selecciona una consulta</option>
-                {consultas.map((consulta) => {
-                  const id = idConsulta(consulta);
-                  return (
-                    <option key={id} value={id}>
-                      #{id} - {nombreConsulta(consulta)}
-                    </option>
-                  );
-                })}
-              </select>
-            </div>
+            <CampoConsulta
+              label="Consulta"
+              consultaId={crearConsultaId}
+              consultas={consultas}
+              onSeleccionar={setCrearConsultaId}
+              required
+            />
 
             <div className="space-y-1.5">
               <label className="text-sm font-medium">Solicitud PDF *</label>
@@ -960,7 +1159,7 @@ export function ConciliacionesForm() {
               {mostrarPanelGestion ? (
                 <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
                   {puedeAsignarEstudiante && (
-                    <ActionCard title="Asignar estudiante" description="">
+                    <ActionCard title="Asignar estudiante">
                       <div className="flex flex-col gap-2 sm:flex-row">
                         <select
                           value={estudianteId}
@@ -982,7 +1181,7 @@ export function ConciliacionesForm() {
                   )}
 
                   {puedeAsignarConciliador && (
-                    <ActionCard title="Asignar conciliador" description="">
+                    <ActionCard title="Asignar conciliador">
                       <div className="flex flex-col gap-2 sm:flex-row">
                         <select
                           value={conciliadorId}
@@ -1004,7 +1203,7 @@ export function ConciliacionesForm() {
                   )}
 
                   {puedeCambiarEstado && (
-                    <ActionCard title="Cambiar estado no final" description="">
+                    <ActionCard title="Cambiar estado no final">
                       <div className="flex flex-col gap-2 sm:flex-row">
                         <select
                           value={estadoNoFinal}
@@ -1025,7 +1224,7 @@ export function ConciliacionesForm() {
                   )}
 
                   {puedeFinalizar && (
-                    <ActionCard title="Finalizar con acta" description="">
+                    <ActionCard title="Finalizar con acta">
                       <form onSubmit={finalizarConciliacion} className="space-y-3">
                         <select
                           value={estadoFinal}
@@ -1053,7 +1252,7 @@ export function ConciliacionesForm() {
                   )}
 
                   {puedeReemplazarSolicitud && (
-                    <ActionCard title="Reemplazar solicitud" description="">
+                    <ActionCard title="Reemplazar solicitud">
                       <form onSubmit={reemplazarSolicitud} className="space-y-3">
                         <input
                           id="solicitud-reemplazo-conciliacion"
@@ -1070,7 +1269,7 @@ export function ConciliacionesForm() {
                   )}
 
                   {puedeDesactivar && (
-                    <ActionCard title="Desactivar conciliación" description="">
+                    <ActionCard title="Desactivar conciliación">
                       <Button type="button" variant="destructive" onClick={desactivarConciliacion} disabled={saving}>
                         <Trash2 className="mr-2 h-4 w-4" />
                         Desactivar
