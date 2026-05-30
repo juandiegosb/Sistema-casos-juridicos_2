@@ -11,6 +11,10 @@ import { PERMISOS } from "@/lib/permission";
 import { tienePermiso } from "@/lib/authz";
 import { getTotalPages, paginateItems, sortByIdAsc } from "@/lib/list-utils";
 
+/**
+ * Formulario para gestionar asesores y monitores.
+ * @returns {JSX.Element} Componente de administración de asesores y monitores.
+ */
 export function AsesoresYMonitoresForm() {
   const router = useRouter();
 

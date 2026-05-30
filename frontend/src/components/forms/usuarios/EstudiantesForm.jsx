@@ -11,6 +11,10 @@ import { PERMISOS } from "@/lib/permission";
 import { tienePermiso } from "@/lib/authz";
 import { getTotalPages, paginateItems, sortByIdAsc } from "@/lib/list-utils";
 
+/**
+ * Formulario para listar y administrar estudiantes.
+ * @returns {JSX.Element} Componente de lista de estudiantes.
+ */
 export function EstudiantesForm() {
   const router = useRouter();
 

@@ -1,6 +1,18 @@
 import React from 'react';
 import { UploadCloud, X, File as FileIcon } from 'lucide-react';
 
+/**
+ * Campo de carga de archivos compatible con react-hook-form.
+ * @param {Object} props - Propiedades del componente.
+ * @param {string} props.name - Nombre del campo de archivos.
+ * @param {string} props.label - Etiqueta mostrada para el campo.
+ * @param {boolean} [props.multiple=false] - Permite seleccionar múltiples archivos.
+ * @param {function} props.setValue - Función para actualizar el valor en react-hook-form.
+ * @param {File|File[]} props.value - Archivo o lista de archivos seleccionados.
+ * @param {Object} props.errors - Objetos de error de validación.
+ * @param {Object} [props.rules] - Reglas de validación del campo.
+ * @returns {JSX.Element} Campo visual de carga de archivos.
+ */
 export function FormFileUpload({ 
   name, 
   label, 

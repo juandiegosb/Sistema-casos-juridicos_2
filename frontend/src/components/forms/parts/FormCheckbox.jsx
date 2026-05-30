@@ -1,5 +1,15 @@
 import React from "react";
 
+/**
+ * Checkbox para formularios que integra react-hook-form.
+ * @param {Object} props - Propiedades del componente.
+ * @param {string} props.name - Nombre del campo.
+ * @param {string|React.ReactNode} props.label - Etiqueta mostrada junto al checkbox.
+ * @param {function} props.register - Función de registro de react-hook-form.
+ * @param {Object} props.errors - Errores de validación del formulario.
+ * @param {Object} [props.rules] - Reglas de validación.
+ * @returns {JSX.Element} Campo checkbox con validación.
+ */
 export function FormCheckbox({
   name,
   label,

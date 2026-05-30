@@ -17,6 +17,10 @@ import { API_URL_BASE } from "@/lib/config";
 import { getApiErrorDescription, readResponseBody } from "@/lib/api";
 import { toast } from "sonner";
 
+/**
+ * Tabla que muestra los registros de auditoría.
+ * @returns {JSX.Element} Componente de registros de auditoría.
+ */
 export function AuditLogsTable() {
   const [logs, setLogs] = useState([])
   const [loading, setLoading] = useState(true)

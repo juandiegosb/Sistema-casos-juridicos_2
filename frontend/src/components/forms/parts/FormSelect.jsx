@@ -2,6 +2,12 @@ function hasRequiredRule(rules) {
   return Boolean(rules?.required);
 }
 
+/**
+ * Renderiza la etiqueta del campo y agrega el marcador obligatorio.
+ * @param {string|React.ReactNode} label - Etiqueta a renderizar.
+ * @param {boolean} required - Indica si el campo es obligatorio.
+ * @returns {React.ReactNode|null} Elemento de etiqueta.
+ */
 function renderLabel(label, required) {
   if (!label) return null;
 
@@ -17,6 +23,18 @@ function renderLabel(label, required) {
   return label;
 }
 
+/**
+ * Campo de selección compatible con react-hook-form.
+ * @param {Object} props - Propiedades del componente.
+ * @param {string} props.name - Nombre del campo.
+ * @param {string|React.ReactNode} props.label - Texto de la etiqueta.
+ * @param {Array<{value:string,label:string}>} props.options - Opciones del select.
+ * @param {function} props.register - Registro de react-hook-form.
+ * @param {Object} props.errors - Errores de validación.
+ * @param {Object} [props.rules] - Reglas de validación.
+ * @param {string} [props.placeholder] - Texto de ayuda para el select.
+ * @returns {JSX.Element} Campo select con validación.
+ */
 export function FormSelect({
   name,
   label,

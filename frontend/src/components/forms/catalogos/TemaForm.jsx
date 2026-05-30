@@ -17,6 +17,10 @@ import { requiredSelectRule } from "@/lib/form-validation";
 import Pagination from "@/components/ui/Pagination";
 import { DEFAULT_PAGE_SIZE_OPTIONS, getTotalPages, paginateItems, sortByIdAsc } from "@/lib/list-utils";
 
+/**
+ * Formulario para gestionar temas de catálogo.
+ * @returns {JSX.Element} Componente de formulario de temas.
+ */
 export function TemaForm() {
   const router = useRouter();
   const [checking, setChecking] = useState(true);

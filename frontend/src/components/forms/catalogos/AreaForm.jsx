@@ -14,6 +14,10 @@ import { getApiErrorDescription, getApiErrorTitle, readResponseBody } from "@/li
 import Pagination from "@/components/ui/Pagination"
 import { DEFAULT_PAGE_SIZE_OPTIONS, getTotalPages, paginateItems, sortByIdAsc } from "@/lib/list-utils"
 
+/**
+ * Formulario para gestionar áreas de catálogo.
+ * @returns {JSX.Element} Componente de formulario de áreas.
+ */
 export function AreaForm() {
   const router = useRouter()
   const [checking, setChecking] = useState(true)

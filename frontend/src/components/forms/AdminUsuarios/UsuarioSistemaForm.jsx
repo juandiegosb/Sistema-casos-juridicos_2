@@ -62,6 +62,10 @@ function puedeVerCatalogosUsuario(usuario) {
   ]);
 }
 
+/**
+ * Formulario para gestionar usuarios del sistema.
+ * @returns {JSX.Element} Componente de administración de usuarios.
+ */
 export function UsuarioSistemaForm() {
   const router = useRouter();
 

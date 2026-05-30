@@ -37,6 +37,11 @@ function descargarPlantilla() {
 
 // ─── Componente ───────────────────────────────────────────────────────────────
 
+/**
+ * Formulario para importar estudiantes desde un archivo Excel.
+ * @param {{puedeImportar:boolean}} props - Props del componente.
+ * @returns {JSX.Element} Componente de importación de estudiantes.
+ */
 export function ImportarEstudiantesForm({ puedeImportar }) {
   const inputRef = useRef(null);
 

@@ -129,6 +129,10 @@ function coincideNombreRol(rol, perfil) {
   return perfil.nombresRol.some((nombreRol) => normalizar(nombreRol) === nombre);
 }
 
+/**
+ * Formulario para cambiar el rol de un usuario del sistema.
+ * @returns {JSX.Element} Componente de cambio de rol.
+ */
 export function CambiarRolUsuarioForm() {
   const router = useRouter();
 

@@ -3,6 +3,12 @@ import { useForm } from 'react-hook-form';
 import { FormFileUpload } from './FormFileUpload';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+
+/**
+ * Formulario para subir archivos desde el frontend.
+ * @returns {JSX.Element} Componente de carga de archivos.
+ */
+export default function ArchivoForm() {
 import {
   Accordion,
   AccordionContent,

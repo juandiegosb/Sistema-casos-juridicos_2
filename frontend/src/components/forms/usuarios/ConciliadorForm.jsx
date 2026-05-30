@@ -8,6 +8,11 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { API_URL_BASE } from "@/lib/config";
 
+/**
+ * Formulario para crear o editar conciliadores.
+ * @param {{onSuccess:function, initialValues:Object}} props - Props del componente.
+ * @returns {JSX.Element} Componente de formulario de conciliador.
+ */
 export function ConciliadorForm({ onSuccess, initialValues = {} }) {
   const defaultFormValues = {
     tipoUsuario: "conciliador",

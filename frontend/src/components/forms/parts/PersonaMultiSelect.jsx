@@ -2,6 +2,18 @@
 
 import React, { useState, useRef, useEffect } from "react";
 
+/**
+ * Selector de personas con modo single o multi.
+ * @param {Object} props - Propiedades del componente.
+ * @param {Array<Object>} [props.personas=[]] - Lista de personas disponibles.
+ * @param {Array<number>|string} [props.selectedIds=[]] - IDs seleccionados.
+ * @param {function} props.onChange - Callback cuando cambian las selecciones.
+ * @param {string} [props.placeholder] - Texto de búsqueda.
+ * @param {boolean} [props.disabled=false] - Indica si el selector está deshabilitado.
+ * @param {boolean} [props.single=false] - Activa modo de selección única.
+ * @param {boolean} [props.required=false] - Indica si el campo es obligatorio.
+ * @returns {JSX.Element} Selector de personas con búsqueda.
+ */
 export function PersonaMultiSelect({
   personas = [],
   selectedIds = [],
