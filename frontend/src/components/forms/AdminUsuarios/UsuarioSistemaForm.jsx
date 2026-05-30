@@ -11,6 +11,8 @@ import { Button } from "@/components/ui/button";
 import { API_URL_BASE } from "@/lib/config";
 import { PERMISOS } from "@/lib/permission";
 import { tieneAlgunPermiso, tienePermiso } from "@/lib/authz";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ImportarEstudiantesForm } from "../usuarios/ImportarEstudiantesForm";
 
 const REQUIRED = "Campo obligatorio";
 
@@ -66,6 +68,7 @@ export function UsuarioSistemaForm() {
   const [checking, setChecking] = useState(true);
   const [user, setUser] = useState(null);
   const [guardando, setGuardando] = useState(false);
+  const [tabEstudiante, setTabEstudiante] = useState("individual");
   const [tiposDocumento, setTiposDocumento] = useState([]);
   const [sedes, setSedes] = useState([]);
   const [areas, setAreas] = useState([]);
@@ -427,93 +430,194 @@ export function UsuarioSistemaForm() {
         />
 
         {rol && (
-          <>
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-              <FormInput
-                name="nombre"
-                label="Nombre"
-                register={register}
-                errors={errors}
-                rules={{ required: REQUIRED }}
-              />
+          rol === "estudiantes" ? (
+            <Tabs value={tabEstudiante} onValueChange={setTabEstudiante}>
+              <TabsList className="mb-4">
+                <TabsTrigger key="individual" value="individual">Crear uno</TabsTrigger>
+                <TabsTrigger key="masivo" value="masivo">Cargue masivo</TabsTrigger>
+              </TabsList>
 
-              {renderTipoDocumento()}
+              <TabsContent key="individual" value="individual">
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                  <FormInput
+                    name="nombre"
+                    label="Nombre"
+                    register={register}
+                    errors={errors}
+                    rules={{ required: REQUIRED }}
+                  />
 
-              <FormInput
-                name="documento"
-                label="Documento"
-                register={register}
-                errors={errors}
-                rules={{ required: REQUIRED }}
-              />
+                  {renderTipoDocumento()}
 
-              <FormInput
-                name="email"
-                label="Email"
-                register={register}
-                errors={errors}
-                rules={{ required: REQUIRED }}
-              />
+                  <FormInput
+                    name="documento"
+                    label="Documento"
+                    register={register}
+                    errors={errors}
+                    rules={{ required: REQUIRED }}
+                  />
 
-              <FormInput
-                name="telefono"
-                label="Teléfono"
-                register={register}
-                errors={errors}
-                rules={{ required: REQUIRED }}
-              />
+                  <FormInput
+                    name="email"
+                    label="Email"
+                    register={register}
+                    errors={errors}
+                    rules={{ required: REQUIRED }}
+                  />
 
-              <FormInput
-                name="usuario"
-                label="Usuario"
-                register={register}
-                errors={errors}
-                rules={{ required: REQUIRED }}
-              />
+                  <FormInput
+                    name="telefono"
+                    label="Teléfono"
+                    register={register}
+                    errors={errors}
+                    rules={{ required: REQUIRED }}
+                  />
 
-              <FormInput
-                name="codigo"
-                label="Código"
-                register={register}
-                errors={errors}
-                rules={{ required: REQUIRED }}
-              />
+                  <FormInput
+                    name="usuario"
+                    label="Usuario"
+                    register={register}
+                    errors={errors}
+                    rules={{ required: REQUIRED }}
+                  />
 
-              {sedes.length > 0 ? (
-                <FormSelect
-                  name="sedeId"
-                  label="Sede"
-                  options={sedes}
+                  <FormInput
+                    name="codigo"
+                    label="Código"
+                    register={register}
+                    errors={errors}
+                    rules={{ required: REQUIRED }}
+                  />
+
+                  {sedes.length > 0 ? (
+                    <FormSelect
+                      name="sedeId"
+                      label="Sede"
+                      options={sedes}
+                      register={register}
+                      errors={errors}
+                      rules={{ required: REQUIRED, valueAsNumber: true }}
+                    />
+                  ) : (
+                    <Aviso>No se cargaron sedes.</Aviso>
+                  )}
+
+                  {renderCamposRol()}
+                </div>
+
+                <div className="flex justify-end gap-4 mt-4">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => reset()}
+                    disabled={guardando}
+                  >
+                    Limpiar
+                  </Button>
+
+                  <Button
+                    type="button"
+                    onClick={handleSubmit(onSubmit)}
+                    disabled={guardando}
+                  >
+                    {guardando ? "Creando..." : "Crear Usuario"}
+                  </Button>
+                </div>
+              </TabsContent>
+
+              <TabsContent key="masivo" value="masivo">
+                <ImportarEstudiantesForm puedeImportar={puedeCrearUsuarios} />
+              </TabsContent>
+            </Tabs>
+          ) : (
+            <>
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                <FormInput
+                  name="nombre"
+                  label="Nombre"
                   register={register}
                   errors={errors}
-                  rules={{ required: REQUIRED, valueAsNumber: true }}
+                  rules={{ required: REQUIRED }}
                 />
-              ) : (
-                <Aviso>No se cargaron sedes.</Aviso>
-              )}
 
-              {renderCamposRol()}
-            </div>
+                {renderTipoDocumento()}
 
-            <div className="flex justify-end gap-4">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => reset()}
-                disabled={guardando}
-              >
-                Limpiar
-              </Button>
+                <FormInput
+                  name="documento"
+                  label="Documento"
+                  register={register}
+                  errors={errors}
+                  rules={{ required: REQUIRED }}
+                />
 
-              <Button
-                type="button"
-                onClick={handleSubmit(onSubmit)}
-                disabled={guardando}
-              >
-                {guardando ? "Creando..." : "Crear Usuario"}
-              </Button>
-            </div>
-          </>
+                <FormInput
+                  name="email"
+                  label="Email"
+                  register={register}
+                  errors={errors}
+                  rules={{ required: REQUIRED }}
+                />
+
+                <FormInput
+                  name="telefono"
+                  label="Teléfono"
+                  register={register}
+                  errors={errors}
+                  rules={{ required: REQUIRED }}
+                />
+
+                <FormInput
+                  name="usuario"
+                  label="Usuario"
+                  register={register}
+                  errors={errors}
+                  rules={{ required: REQUIRED }}
+                />
+
+                <FormInput
+                  name="codigo"
+                  label="Código"
+                  register={register}
+                  errors={errors}
+                  rules={{ required: REQUIRED }}
+                />
+
+                {sedes.length > 0 ? (
+                  <FormSelect
+                    name="sedeId"
+                    label="Sede"
+                    options={sedes}
+                    register={register}
+                    errors={errors}
+                    rules={{ required: REQUIRED, valueAsNumber: true }}
+                  />
+                ) : (
+                  <Aviso>No se cargaron sedes.</Aviso>
+                )}
+
+                {renderCamposRol()}
+              </div>
+
+              <div className="flex justify-end gap-4">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => reset()}
+                  disabled={guardando}
+                >
+                  Limpiar
+                </Button>
+
+                <Button
+                  type="button"
+                  onClick={handleSubmit(onSubmit)}
+                  disabled={guardando}
+                >
+                  {guardando ? "Creando..." : "Crear Usuario"}
+                </Button>
+              </div>
+            </>
+          )
         )}
       </div>
     </div>

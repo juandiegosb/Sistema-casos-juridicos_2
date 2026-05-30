@@ -11,8 +11,6 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 
-// ─── helpers ──────────────────────────────────────────────────────────────────
-
 function calcularSemestreActual() {
   const hoy = new Date();
   return { año: hoy.getFullYear(), semestre: hoy.getMonth() >= 6 ? 2 : 1 };
@@ -31,81 +29,74 @@ function etiquetaEstado(nombre) {
   return mapa[nombre] || nombre;
 }
 
-// ─── Tarjeta métrica: color sólido con variable CSS ───────────────────────────
-// Usa bg-primary, bg-destructive, bg-chart-* del tema
+// Solo variables del tema azul — sin rojo
 const METRIC_CARDS = [
-  { key: "totalConsultas",        label: "Total consultas",    cls: "bg-primary text-primary-foreground" },
-  { key: "consultasFinalizadas",  label: "Finalizadas",        cls: "bg-destructive text-destructive-foreground" },
-  { key: "consultasPendientes",   label: "Pendientes",         cls: "bg-[hsl(var(--chart-2))] text-primary-foreground" },
-  { key: "totalPersonasAtendidas",label: "Personas atendidas", cls: "bg-[hsl(var(--chart-3))] text-primary-foreground" },
+  { key: "totalConsultas",         label: "Total consultas",    cls: "bg-primary text-primary-foreground" },
+  { key: "consultasFinalizadas",   label: "Finalizadas",        cls: "bg-chart-1 text-primary-foreground" },
+  { key: "consultasPendientes",    label: "Pendientes",         cls: "bg-chart-2 text-primary-foreground" },
+  { key: "totalPersonasAtendidas", label: "Personas atendidas", cls: "bg-secondary text-secondary-foreground" },
 ];
 
-function MetricCard({ label, value, cls }) {
-  return (
-    <div className={`${cls} rounded-lg px-5 py-4 flex flex-col gap-1 min-w-0`}>
-      <span className="text-xs font-semibold uppercase tracking-wide opacity-80">{label}</span>
-      <span className="text-4xl font-extrabold leading-none">{value ?? "—"}</span>
-    </div>
-  );
-}
-
-// ─── Bar chart SVG — usa variables CSS chart-1..5 ────────────────────────────
 const CHART_COLORS = [
   "var(--chart-1)", "var(--chart-2)", "var(--chart-3)", "var(--chart-4)", "var(--chart-5)",
 ];
 
+function MetricCard({ label, value, cls }) {
+  return (
+    <div className={`${cls} rounded-lg px-4 py-3 flex flex-col gap-0.5 min-w-0`}>
+      <span className="text-[10px] font-semibold uppercase tracking-wider opacity-75">{label}</span>
+      <span className="text-3xl font-extrabold leading-tight">{value ?? "—"}</span>
+    </div>
+  );
+}
+
 function BarChartAreas({ areas }) {
   if (!areas || areas.length === 0)
-    return <p className="text-sm text-muted-foreground text-center py-8">Sin datos de áreas para este período</p>;
+    return <p className="text-xs text-muted-foreground text-center py-4">Sin datos de áreas</p>;
 
-  const W = 500, H = 190;
-  const pad = { top: 18, right: 16, bottom: 40, left: 34 };
+  const W = 480, H = 150;
+  const pad = { top: 14, right: 12, bottom: 32, left: 28 };
   const chartW = W - pad.left - pad.right;
   const chartH = H - pad.top - pad.bottom;
   const maxVal = Math.max(...areas.map((a) => a.cantidad), 1);
-  const barW = Math.min(40, (chartW / areas.length) - 12);
-  const gridLines = [0, 0.25, 0.5, 0.75, 1];
+  const barW = Math.min(38, (chartW / areas.length) - 10);
 
   return (
     <svg width="100%" viewBox={`0 0 ${W} ${H}`} className="overflow-visible">
-      {/* grid */}
-      {gridLines.map((f) => {
+      {[0, 0.5, 1].map((f) => {
         const y = pad.top + chartH * (1 - f);
         return (
           <React.Fragment key={f}>
             <line x1={pad.left} x2={W - pad.right} y1={y} y2={y}
               stroke="var(--border)" strokeWidth={1} strokeDasharray="4 3" />
-            <text x={pad.left - 5} y={y + 4} textAnchor="end"
-              style={{ fontSize: 9, fill: "var(--muted-foreground)" }}>
+            <text x={pad.left - 4} y={y + 3} textAnchor="end"
+              style={{ fontSize: 8, fill: "var(--muted-foreground)" }}>
               {Math.round(maxVal * f)}
             </text>
           </React.Fragment>
         );
       })}
 
-      {/* bars */}
       {areas.map((area, i) => {
         const slotW = chartW / areas.length;
         const x = pad.left + slotW * i + (slotW - barW) / 2;
-        const bH = (area.cantidad / maxVal) * chartH;
+        const bH = Math.max((area.cantidad / maxVal) * chartH, 2);
         const y = pad.top + chartH - bH;
         const color = CHART_COLORS[i % CHART_COLORS.length];
         return (
           <React.Fragment key={area.nombre}>
             <rect x={x} y={y} width={barW} height={bH} fill={color} rx={3} />
-            <text x={x + barW / 2} y={y - 5} textAnchor="middle"
-              style={{ fontSize: 10, fontWeight: 700, fill: color }}>
+            <text x={x + barW / 2} y={y - 4} textAnchor="middle"
+              style={{ fontSize: 9, fontWeight: 700, fill: color }}>
               {area.cantidad}
             </text>
-            <text x={x + barW / 2} y={H - pad.bottom + 14} textAnchor="middle"
-              style={{ fontSize: 10, fill: "var(--muted-foreground)" }}>
+            <text x={x + barW / 2} y={H - pad.bottom + 12} textAnchor="middle"
+              style={{ fontSize: 9, fill: "var(--muted-foreground)" }}>
               {area.nombre.length > 9 ? area.nombre.slice(0, 8) + "…" : area.nombre}
             </text>
           </React.Fragment>
         );
       })}
-
-      {/* eje X */}
       <line x1={pad.left} x2={W - pad.right}
         y1={pad.top + chartH} y2={pad.top + chartH}
         stroke="var(--border)" strokeWidth={1} />
@@ -113,71 +104,70 @@ function BarChartAreas({ areas }) {
   );
 }
 
-// ─── Donut chart SVG — usa primary y destructive ──────────────────────────────
 function DonutChart({ finalizadas, pendientes }) {
   const total = finalizadas + pendientes;
   if (total === 0)
-    return <p className="text-sm text-muted-foreground text-center py-8">Sin consultas en este período</p>;
+    return <p className="text-xs text-muted-foreground text-center py-4">Sin consultas</p>;
 
   const pctFin = Math.round((finalizadas / total) * 100);
-  const r = 68, cx = 88, cy = 88;
+  const r = 52, cx = 66, cy = 66;
   const circ = 2 * Math.PI * r;
   const dash = (finalizadas / total) * circ;
 
   return (
-    <div className="flex flex-col items-center gap-4">
-      <svg width={176} height={176} viewBox="0 0 176 176">
-        <circle cx={cx} cy={cy} r={r} fill="none" stroke="var(--muted)" strokeWidth={24} />
+    <div className="flex items-center gap-4">
+      <svg width={132} height={132} viewBox="0 0 132 132" className="shrink-0">
+        <circle cx={cx} cy={cy} r={r} fill="none" stroke="var(--accent)" strokeWidth={20} />
         {finalizadas > 0 && (
           <circle cx={cx} cy={cy} r={r} fill="none"
-            stroke="var(--destructive)" strokeWidth={24}
+            stroke="var(--primary)" strokeWidth={20}
             strokeDasharray={`${dash} ${circ}`}
             transform={`rotate(-90 ${cx} ${cy})`} />
         )}
-        <text x={cx} y={cy - 8} textAnchor="middle"
-          style={{ fontSize: 26, fontWeight: 800, fill: "var(--destructive)" }}>
+        <text x={cx} y={cy - 6} textAnchor="middle"
+          style={{ fontSize: 20, fontWeight: 800, fill: "var(--primary)" }}>
           {pctFin}%
         </text>
-        <text x={cx} y={cy + 14} textAnchor="middle"
-          style={{ fontSize: 11, fill: "var(--muted-foreground)" }}>
+        <text x={cx} y={cy + 12} textAnchor="middle"
+          style={{ fontSize: 9, fill: "var(--muted-foreground)" }}>
           finalizadas
         </text>
       </svg>
 
-      <div className="flex gap-5 text-sm">
+      <div className="flex flex-col gap-2 text-xs">
         <div className="flex items-center gap-2">
-          <div className="w-3 h-3 rounded-full bg-destructive" />
-          <span>Finalizadas <strong>({finalizadas})</strong></span>
+          <div className="w-2.5 h-2.5 rounded-full bg-primary shrink-0" />
+          <span className="text-foreground">Finalizadas</span>
+          <strong className="ml-auto pl-3">{finalizadas}</strong>
         </div>
         <div className="flex items-center gap-2">
-          <div className="w-3 h-3 rounded-full bg-muted border border-border" />
-          <span>Pendientes <strong>({pendientes})</strong></span>
+          <div className="w-2.5 h-2.5 rounded-full bg-accent border border-border shrink-0" />
+          <span className="text-foreground">Pendientes</span>
+          <strong className="ml-auto pl-3">{pendientes}</strong>
         </div>
       </div>
     </div>
   );
 }
 
-// ─── Barras de procesos por estado ────────────────────────────────────────────
 function ProcesosBarras({ procesos }) {
   if (!procesos || procesos.length === 0)
-    return <p className="text-sm text-muted-foreground">Sin procesos registrados para este período.</p>;
+    return <p className="text-xs text-muted-foreground">Sin procesos registrados.</p>;
 
   const maxVal = Math.max(...procesos.map((p) => p.cantidad), 1);
-
   return (
-    <div className="space-y-4">
+    <div className="space-y-2.5">
       {procesos.map((p, i) => {
         const pct = Math.round((p.cantidad / maxVal) * 100);
         const color = CHART_COLORS[i % CHART_COLORS.length];
         return (
           <div key={p.nombre}>
-            <div className="flex justify-between text-sm mb-1.5">
-              <span className="text-foreground font-medium">{etiquetaEstado(p.nombre)}</span>
+            <div className="flex justify-between text-xs mb-1">
+              <span className="font-medium text-foreground">{etiquetaEstado(p.nombre)}</span>
               <span className="font-bold" style={{ color }}>{p.cantidad}</span>
             </div>
-            <div className="w-full h-2 rounded-full bg-muted">
-              <div className="h-2 rounded-full transition-all duration-500"
+            <div className="w-full h-1.5 rounded-full bg-accent">
+              <div className="h-1.5 rounded-full transition-all duration-500"
                 style={{ width: `${pct}%`, backgroundColor: color }} />
             </div>
           </div>
@@ -187,31 +177,28 @@ function ProcesosBarras({ procesos }) {
   );
 }
 
-// ─── Panel / card wrapper ─────────────────────────────────────────────────────
-function Panel({ title, badge, children }) {
+function Panel({ title, badge, children, className = "" }) {
   return (
-    <div className="bg-card border border-border rounded-xl shadow-sm overflow-hidden">
+    <div className={`bg-card border border-border rounded-xl overflow-hidden ${className}`}>
       {title && (
-        <div className="flex justify-between items-center px-5 py-3.5 border-b border-border">
-          <span className="font-bold text-sm text-card-foreground">{title}</span>
+        <div className="flex justify-between items-center px-4 py-2.5 border-b border-border">
+          <span className="font-bold text-xs text-card-foreground uppercase tracking-wide">{title}</span>
           {badge && (
-            <span className="bg-destructive text-destructive-foreground text-xs font-bold px-2.5 py-0.5 rounded">
+            <span className="bg-primary text-primary-foreground text-[10px] font-bold px-2 py-0.5 rounded">
               {badge}
             </span>
           )}
         </div>
       )}
-      <div className="p-5">{children}</div>
+      <div className="p-4">{children}</div>
     </div>
   );
 }
 
-// ─── Skeleton ─────────────────────────────────────────────────────────────────
-function Skeleton() {
-  return <div className="rounded-lg bg-muted animate-pulse h-24" />;
+function Skeleton({ className = "h-20" }) {
+  return <div className={`rounded-xl bg-muted animate-pulse ${className}`} />;
 }
 
-// ─── Componente principal ─────────────────────────────────────────────────────
 export function EstadisticasForm() {
   const router = useRouter();
   const [checking, setChecking] = useState(true);
@@ -258,7 +245,7 @@ export function EstadisticasForm() {
         `${API_URL_BASE}/estadisticas/${sem.año}/semestre/${sem.semestre}`,
         { credentials: "include" }
       );
-      if (res.status === 403) { setError("Sin permiso para ver estas estadísticas."); setStats(null); return; }
+      if (res.status === 403) { setError("Sin permiso."); setStats(null); return; }
       if (!res.ok) { setError("Error al cargar estadísticas."); setStats(null); return; }
       setStats(await res.json());
     } catch {
@@ -293,116 +280,139 @@ export function EstadisticasForm() {
   }
 
   if (checking)
-    return <div className="p-10 text-muted-foreground animate-pulse text-sm">Cargando...</div>;
+    return <div className="p-8 text-muted-foreground animate-pulse text-sm">Cargando...</div>;
 
   const semActual = semestres.find((s) => s.etiqueta === semSeleccionado);
 
   return (
-    <div className="p-6 lg:p-10 space-y-6 bg-background min-h-full">
+    <div className="p-4 lg:p-6 flex flex-col gap-4 bg-background">
 
-      {/* ── Encabezado ── */}
-      <div className="flex flex-wrap justify-between items-start gap-4">
+      {/* Encabezado compacto */}
+      <div className="flex flex-wrap justify-between items-center gap-3">
         <div>
-          <div className="flex items-center gap-2 mb-1">
-            <FileBarChart2 className="w-5 h-5 text-primary" />
-            <h1 className="text-2xl font-extrabold text-foreground">Estadísticas del semestre</h1>
+          <div className="flex items-center gap-2">
+            <FileBarChart2 className="w-4 h-4 text-primary" />
+            <h1 className="text-lg font-extrabold text-foreground leading-none">Estadísticas</h1>
           </div>
-          <p className="text-sm text-muted-foreground">
-            Resumen global de consultas jurídicas
-            {semActual ? ` · ${semActual.periodoInicio} → ${semActual.periodoFin}` : ""}
-          </p>
+          {semActual && (
+            <p className="text-[11px] text-muted-foreground mt-0.5">
+              {semActual.periodoInicio} → {semActual.periodoFin}
+            </p>
+          )}
         </div>
 
-        <div className="flex items-center gap-2 flex-wrap">
+        <div className="flex items-center gap-2">
           <Select
             value={semSeleccionado || ""}
             onValueChange={setSemSeleccionado}
             disabled={cargando || semestres.length === 0}
           >
-            <SelectTrigger className="w-36">
+            <SelectTrigger className="w-32 h-8 text-xs">
               <SelectValue placeholder="Semestre" />
             </SelectTrigger>
             <SelectContent>
               {semestres.map((s) => (
-                <SelectItem key={s.etiqueta} value={s.etiqueta}>{s.etiqueta}</SelectItem>
+                <SelectItem key={s.etiqueta} value={s.etiqueta} className="text-xs">{s.etiqueta}</SelectItem>
               ))}
             </SelectContent>
           </Select>
 
-          <Button variant="outline" size="icon" onClick={cargarEstadisticas} disabled={cargando} title="Actualizar">
-            <RefreshCw className={`w-4 h-4 ${cargando ? "animate-spin" : ""}`} />
+          <Button variant="outline" size="icon" className="h-8 w-8"
+            onClick={cargarEstadisticas} disabled={cargando} title="Actualizar">
+            <RefreshCw className={`w-3.5 h-3.5 ${cargando ? "animate-spin" : ""}`} />
           </Button>
 
-          <Button onClick={descargarPDF} disabled={descargando || !stats} className="gap-2">
-            <Download className="w-4 h-4" />
+          <Button onClick={descargarPDF} disabled={descargando || !stats}
+            className="h-8 gap-1.5 text-xs px-3">
+            <Download className="w-3.5 h-3.5" />
             {descargando ? "Descargando…" : "Exportar PDF"}
           </Button>
         </div>
       </div>
 
-      {/* ── Error ── */}
+      {/* Error */}
       {error && (
-        <div className="rounded-lg border border-destructive/40 bg-destructive/10 px-4 py-3 text-destructive text-sm">
+        <div className="rounded-lg border border-primary/30 bg-primary/10 px-3 py-2 text-primary text-xs">
           {error}
         </div>
       )}
 
-      {/* ── Skeleton ── */}
+      {/* Skeleton */}
       {cargando && (
-        <div className="space-y-4">
-          <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
-            {[1,2,3,4].map((i) => <Skeleton key={i} />)}
+        <>
+          <div className="grid grid-cols-4 gap-3">
+            {[1,2,3,4].map((i) => <Skeleton key={i} className="h-16" />)}
           </div>
-          <Skeleton />
-          <div className="grid lg:grid-cols-2 gap-4">
-            <Skeleton /><Skeleton />
+          <div className="grid grid-cols-3 gap-3">
+            <Skeleton className="h-48 col-span-2" />
+            <Skeleton className="h-48" />
           </div>
-        </div>
+          <Skeleton className="h-32" />
+        </>
       )}
 
-      {/* ── Datos ── */}
+      {/* Datos — todo visible en pantalla */}
       {!cargando && stats && (
         <>
-          {/* Fila 1: 4 tarjetas de color sólido */}
-          <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
+          {/* Fila 1: 4 tarjetas */}
+          <div className="grid grid-cols-2 xl:grid-cols-4 gap-3">
             {METRIC_CARDS.map(({ key, label, cls }) => (
               <MetricCard key={key} label={label} value={stats[key]} cls={cls} />
             ))}
           </div>
 
-          {/* Fila 2: bar chart áreas — ancho completo */}
-          <Panel title="Consultas por área" badge={`Total ${stats.totalConsultas}`}>
-            <BarChartAreas areas={stats.consultasPorArea} />
-          </Panel>
+          {/* Fila 2: bar chart + donut lado a lado */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
+            <Panel title="Consultas por área"
+              badge={`Total ${stats.totalConsultas}`}
+              className="lg:col-span-2">
+              <BarChartAreas areas={stats.consultasPorArea} />
+            </Panel>
 
-          {/* Fila 3: donut + procesos */}
-          <div className="grid lg:grid-cols-2 gap-4">
-            <Panel
-              title="Estado de consultas"
-              badge={`${Math.round((stats.consultasFinalizadas / (stats.totalConsultas || 1)) * 100)}% completado`}
-            >
+            <Panel title="Estado de consultas"
+              badge={`${Math.round((stats.consultasFinalizadas / (stats.totalConsultas || 1)) * 100)}% completado`}>
               <DonutChart
                 finalizadas={stats.consultasFinalizadas}
                 pendientes={stats.consultasPendientes}
               />
             </Panel>
-
-            <Panel title="Procesos por estado">
-              <ProcesosBarras procesos={stats.procesosPorEstado} />
-            </Panel>
           </div>
 
-          <p className="text-xs text-muted-foreground text-right">
-            {semSeleccionado} · {semActual?.periodoInicio} → {semActual?.periodoFin}
-          </p>
+          {/* Fila 3: procesos por estado — horizontal */}
+          <Panel title="Procesos por estado">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-2">
+              {stats.procesosPorEstado && stats.procesosPorEstado.length > 0
+                ? (() => {
+                    const maxVal = Math.max(...stats.procesosPorEstado.map((p) => p.cantidad), 1);
+                    return stats.procesosPorEstado.map((p, i) => {
+                      const pct = Math.round((p.cantidad / maxVal) * 100);
+                      const color = CHART_COLORS[i % CHART_COLORS.length];
+                      return (
+                        <div key={p.nombre}>
+                          <div className="flex justify-between text-xs mb-1">
+                            <span className="font-medium text-foreground">{etiquetaEstado(p.nombre)}</span>
+                            <span className="font-bold" style={{ color }}>{p.cantidad}</span>
+                          </div>
+                          <div className="w-full h-1.5 rounded-full bg-accent">
+                            <div className="h-1.5 rounded-full transition-all duration-500"
+                              style={{ width: `${pct}%`, backgroundColor: color }} />
+                          </div>
+                        </div>
+                      );
+                    });
+                  })()
+                : <p className="text-xs text-muted-foreground col-span-3">Sin procesos registrados.</p>
+              }
+            </div>
+          </Panel>
         </>
       )}
 
-      {/* ── Sin datos ── */}
+      {/* Sin datos */}
       {!cargando && !stats && !error && (
-        <div className="text-center py-20 text-muted-foreground">
-          <FileBarChart2 className="w-12 h-12 mx-auto mb-3 opacity-25" />
-          <p className="text-sm">Selecciona un semestre para ver las estadísticas.</p>
+        <div className="text-center py-12 text-muted-foreground">
+          <FileBarChart2 className="w-10 h-10 mx-auto mb-2 opacity-25" />
+          <p className="text-xs">Selecciona un semestre para ver las estadísticas.</p>
         </div>
       )}
     </div>
