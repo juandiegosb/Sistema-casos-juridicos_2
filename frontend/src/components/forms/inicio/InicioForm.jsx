@@ -10,7 +10,6 @@ import {
   tienePermiso, esAdministrativo, esAsesor, esMonitor, esEstudiante,
 } from "@/lib/authz"
 
-// ─── helpers ──────────────────────────────────────────────────────────────────
 
 /**
  * Calcula el semestre actual basado en la fecha del sistema.
@@ -77,7 +76,6 @@ const METRIC_CARDS = [
   { key: "totalPersonasAtendidas", label: "Personas atendidas", cls: "bg-secondary text-secondary-foreground" },
 ]
 
-// ─── sub-componentes ──────────────────────────────────────────────────────────
 
 /**
  * Tarjeta de métrica individual que muestra un número con etiqueta.
@@ -260,7 +258,6 @@ function Skeleton({ className = "h-20" }) {
   return <div className={`rounded-xl bg-muted animate-pulse ${className}`} />
 }
 
-// ─── listas ───────────────────────────────────────────────────────────────────
 
 /**
  * Lista de consultas pendientes con estado y persona asociada.
@@ -413,7 +410,6 @@ function RespuestasPendientesLista({ items, cargando }) {
   )
 }
 
-// ─── componente principal ─────────────────────────────────────────────────────
 
 /**
  * Página de inicio / dashboard del sistema.
@@ -472,7 +468,7 @@ export function InicioForm() {
     }
   }, [año, semestre])
 
-  // ── fetch consultas pendientes ─────────────────────────────────────────────
+  
   const cargarConsultasPendientes = React.useCallback(async () => {
     setCargandoConsultas(true)
     try {
@@ -494,10 +490,7 @@ export function InicioForm() {
     }
   }, [])
 
-  // ── fetch tareas pendientes (estudiante) ───────────────────────────────────
-  // ── fetch tareas pendientes (estudiante) ───────────────────────────────────
-  // Flujo correcto: GET /consultas → por cada una GET /seguimientos/consulta/{id}/visibles-estudiante
-  // Tomamos las primeras 5 consultas para no saturar el backend
+  
   const cargarTareasPendientes = React.useCallback(async () => {
     setCargandoTareas(true)
     try {
@@ -534,7 +527,7 @@ export function InicioForm() {
     }
   }, [])
 
-  // ── fetch respuestas pendientes de calificacion (asesor/admin) ─────────────
+  
   const cargarRespuestasPendientes = React.useCallback(async () => {
     setCargandoRespuestas(true)
     try {
@@ -550,7 +543,7 @@ export function InicioForm() {
     }
   }, [])
 
-  // ── init ───────────────────────────────────────────────────────────────────
+  
   React.useEffect(() => {
     async function init() {
       try {
@@ -586,7 +579,7 @@ export function InicioForm() {
       cargarRespuestasPendientes()
   }, [user, cargarStats, cargarConsultasPendientes, cargarTareasPendientes, cargarRespuestasPendientes])
 
-  // ── derivadas ─────────────────────────────────────────────────────────────
+  
   const nombreRol = user?.tipoPerfil
     ? user.tipoPerfil.charAt(0) + user.tipoPerfil.slice(1).toLowerCase()
     : null
