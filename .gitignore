@@ -15,6 +15,7 @@ frontend/.next/
 frontend/out/
 frontend/build/
 frontend/.turbo/
+frontend/jsdoc/
 
 # Test and coverage artifacts
 coverage/
