@@ -24,6 +24,8 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.JoinTable;
 import jakarta.persistence.ManyToMany;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.PrePersist;
+import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
 import lombok.Getter;
 import lombok.Setter;
@@ -69,6 +71,12 @@ public class Consulta {
     @Column(name = "resultado", length = 100)
     private String resultado;
 
+    // Fecha de última actualización del registro.
+    // Se usa para filtrar consultas por semestre en estadísticas.
+    // Se llena automáticamente al crear y actualizar.
+    @Column(name = "last_updated_at", nullable = false)
+    private LocalDate lastUpdatedAt;
+
     // Relación simple: persona principal (parte solicitante)
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "persona_id", nullable = false)
@@ -111,4 +119,10 @@ public class Consulta {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "estudiante_id")
     private Estudiante estudiante;
+
+    @PrePersist
+    @PreUpdate
+    private void actualizarFecha() {
+        this.lastUpdatedAt = LocalDate.now();
+    }
 }
