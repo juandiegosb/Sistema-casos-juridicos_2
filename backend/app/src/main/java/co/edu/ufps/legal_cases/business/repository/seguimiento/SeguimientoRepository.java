@@ -112,4 +112,56 @@ public interface SeguimientoRepository extends JpaRepository<Seguimiento, Long> 
     Optional<DatosCorreoSeguimientoDTO> findDatosCorreoById(@Param("seguimientoId") Long seguimientoId);
 
     boolean existsByConsulta_IdAndActivoTrueAndEstado(Long consultaId, EstadoSeguimiento estado);
+    // Total de seguimientos en el semestre.
+    @Query(value = """
+                SELECT COUNT(s.id) AS total
+                FROM "DB_consultorioJuridico".seguimiento s
+                WHERE s.fecha_creacion >=
+                    CASE WHEN :semester = 1 THEN make_date(:year, 1, 1) ELSE make_date(:year, 7, 1) END
+                AND s.fecha_creacion <
+                    CASE WHEN :semester = 1 THEN make_date(:year, 7, 1) ELSE make_date(:year + 1, 1, 1) END
+                AND s.activo = true
+                """, nativeQuery = true)
+    List<Object[]> contarSeguimientosPorSemestre(
+            @Param("year") int year, @Param("semester") int semester);
+
+    // Seguimientos agrupados por estado en el semestre.
+    @Query(value = """
+                SELECT s.estado, COUNT(s.id) AS total
+                FROM "DB_consultorioJuridico".seguimiento s
+                WHERE s.fecha_creacion >=
+                    CASE WHEN :semester = 1 THEN make_date(:year, 1, 1) ELSE make_date(:year, 7, 1) END
+                AND s.fecha_creacion <
+                    CASE WHEN :semester = 1 THEN make_date(:year, 7, 1) ELSE make_date(:year + 1, 1, 1) END
+                AND s.activo = true
+                GROUP BY s.estado ORDER BY total DESC
+                """, nativeQuery = true)
+    List<Object[]> contarSeguimientosPorEstadoPorSemestre(
+            @Param("year") int year, @Param("semester") int semester);
+
+
+    @Query(value = """
+                SELECT COUNT(s.id) AS total
+                FROM "DB_consultorioJuridico".seguimiento s
+                WHERE s.fecha_creacion >= CAST(:fechaInicio AS date)
+                AND s.fecha_creacion <= CAST(:fechaFin AS date)
+                AND s.activo = true
+                """, nativeQuery = true)
+    List<Object[]> contarSeguimientosPorRango(
+            @Param("fechaInicio") String fechaInicio,
+            @Param("fechaFin") String fechaFin);
+
+    @Query(value = """
+                SELECT s.estado, COUNT(s.id) AS total
+                FROM "DB_consultorioJuridico".seguimiento s
+                WHERE s.fecha_creacion >= CAST(:fechaInicio AS date)
+                AND s.fecha_creacion <= CAST(:fechaFin AS date)
+                AND s.activo = true
+                GROUP BY s.estado ORDER BY total DESC
+                """, nativeQuery = true)
+    List<Object[]> contarSeguimientosPorEstadoPorRango(
+            @Param("fechaInicio") String fechaInicio,
+            @Param("fechaFin") String fechaFin);
+
+
 }

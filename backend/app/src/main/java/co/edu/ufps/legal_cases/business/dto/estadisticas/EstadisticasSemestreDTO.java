@@ -16,26 +16,40 @@ import lombok.Setter;
 @AllArgsConstructor
 public class EstadisticasSemestreDTO {
 
-    private int año;
-    private int semestre;
+    private Integer año;
+    private Integer semestre;
     private String periodoInicio;
     private String periodoFin;
 
-    // Consultas finalizadas (con resultado) en el semestre.
+    // --- Consultas ---
     private long consultasFinalizadas;
-
-    // Consultas pendientes (sin resultado) en el semestre.
     private long consultasPendientes;
-
-    // Total general del semestre.
     private long totalConsultas;
-
-    // Consultas agrupadas por área jurídica del semestre.
+    private List<ConteoDTO> consultasPorEstado;
     private List<ConteoDTO> consultasPorArea;
+    private List<ConteoDTO> consultasPorTipoViolencia;
 
-    // Total de personas atendidas en el semestre.
+    // --- Personas ---
     private long totalPersonasAtendidas;
+    private List<ConteoDTO> personasPorGenero;
+    private List<ConteoDTO> personasPorEstrato;
+    private List<ConteoDTO> personasPorZona;
+    private List<ConteoDTO> personasPorGrupoEtnico;
+    private List<ConteoDTO> personasPorMunicipio;
+    private List<ConteoDTO> personasPorCondicion;
 
-    // Procesos agrupados por estado — todos los tiempos por ahora.
+    // --- Procesos ---
     private List<ConteoDTO> procesosPorEstado;
+
+    // --- Conciliaciones ---
+    private long totalConciliaciones;
+    private List<ConteoDTO> conciliacionesPorEstado;
+
+    // --- Seguimientos ---
+    private long totalSeguimientos;
+    private List<ConteoDTO> seguimientosPorEstado;
+
+    // --- Académico ---
+    private long totalEstudiantesActivos;
+    private long totalEstudiantesHabilitadosConciliacion;
 }

@@ -254,23 +254,26 @@ public interface ConsultaRepository extends JpaRepository<Consulta, Long> {
             @Param("semester") int semester);
 
 
-    // Total de personas atendidas en el semestre.
-    // Cuenta personas principales de consultas más partes adicionales.
+    // Total de personas distintas atendidas en el semestre.
+    // Cuenta personas únicas incluyendo principales y partes adicionales.
     @Query(value = """
-                WITH consultas_semestre AS (
-                    SELECT c.id
+                SELECT COUNT(DISTINCT persona_id) AS total_personas_atendidas
+                FROM (
+                    SELECT c.persona_id
                     FROM "DB_consultorioJuridico".consulta c
                     WHERE c.last_updated_at >=
                         CASE WHEN :semester = 1 THEN make_date(:year, 1, 1) ELSE make_date(:year, 7, 1) END
                     AND c.last_updated_at <
                         CASE WHEN :semester = 1 THEN make_date(:year, 7, 1) ELSE make_date(:year + 1, 1, 1) END
-                )
-                SELECT
-                    (SELECT COUNT(*) FROM consultas_semestre)
-                    +
-                    (SELECT COUNT(*) FROM "DB_consultorioJuridico".consulta_parte cp
-                     WHERE cp.consulta_id IN (SELECT id FROM consultas_semestre))
-                AS total_personas_atendidas
+                    UNION
+                    SELECT cp.persona_id
+                    FROM "DB_consultorioJuridico".consulta_parte cp
+                    JOIN "DB_consultorioJuridico".consulta c ON c.id = cp.consulta_id
+                    WHERE c.last_updated_at >=
+                        CASE WHEN :semester = 1 THEN make_date(:year, 1, 1) ELSE make_date(:year, 7, 1) END
+                    AND c.last_updated_at <
+                        CASE WHEN :semester = 1 THEN make_date(:year, 7, 1) ELSE make_date(:year + 1, 1, 1) END
+                ) AS personas_unicas
                 """, nativeQuery = true)
     List<Object[]> contarPersonasAtendidasPorSemestre(
             @Param("year") int year,
@@ -384,6 +387,358 @@ public interface ConsultaRepository extends JpaRepository<Consulta, Long> {
             @Param("year") int year,
             @Param("semester") int semester,
             @Param("monitorId") Long monitorId);
+
+
+    // Consultas agrupadas por estado en el semestre.
+    @Query(value = """
+                SELECT c.estado, COUNT(c.id) AS total
+                FROM "DB_consultorioJuridico".consulta c
+                WHERE c.last_updated_at >=
+                    CASE WHEN :semester = 1 THEN make_date(:year, 1, 1) ELSE make_date(:year, 7, 1) END
+                AND c.last_updated_at <
+                    CASE WHEN :semester = 1 THEN make_date(:year, 7, 1) ELSE make_date(:year + 1, 1, 1) END
+                GROUP BY c.estado ORDER BY total DESC
+                """, nativeQuery = true)
+    List<Object[]> contarConsultasPorEstadoPorSemestre(
+            @Param("year") int year, @Param("semester") int semester);
+
+    // Consultas agrupadas por tipo de violencia en el semestre.
+    @Query(value = """
+                SELECT COALESCE(c.tipo_violencia, 'No aplica') AS tipo, COUNT(c.id) AS total
+                FROM "DB_consultorioJuridico".consulta c
+                WHERE c.last_updated_at >=
+                    CASE WHEN :semester = 1 THEN make_date(:year, 1, 1) ELSE make_date(:year, 7, 1) END
+                AND c.last_updated_at <
+                    CASE WHEN :semester = 1 THEN make_date(:year, 7, 1) ELSE make_date(:year + 1, 1, 1) END
+                GROUP BY tipo ORDER BY total DESC
+                """, nativeQuery = true)
+    List<Object[]> contarConsultasPorTipoViolenciaPorSemestre(
+            @Param("year") int year, @Param("semester") int semester);
+
+    // Personas atendidas por género en el semestre.
+    @Query(value = """
+                SELECT p.genero, COUNT(DISTINCT p.id) AS total
+                FROM "DB_consultorioJuridico".persona p
+                WHERE p.id IN (
+                    SELECT c.persona_id FROM "DB_consultorioJuridico".consulta c
+                    WHERE c.last_updated_at >=
+                        CASE WHEN :semester = 1 THEN make_date(:year, 1, 1) ELSE make_date(:year, 7, 1) END
+                    AND c.last_updated_at <
+                        CASE WHEN :semester = 1 THEN make_date(:year, 7, 1) ELSE make_date(:year + 1, 1, 1) END
+                    UNION
+                    SELECT cp.persona_id FROM "DB_consultorioJuridico".consulta_parte cp
+                    JOIN "DB_consultorioJuridico".consulta c ON c.id = cp.consulta_id
+                    WHERE c.last_updated_at >=
+                        CASE WHEN :semester = 1 THEN make_date(:year, 1, 1) ELSE make_date(:year, 7, 1) END
+                    AND c.last_updated_at <
+                        CASE WHEN :semester = 1 THEN make_date(:year, 7, 1) ELSE make_date(:year + 1, 1, 1) END
+                )
+                GROUP BY p.genero ORDER BY total DESC
+                """, nativeQuery = true)
+    List<Object[]> contarPersonasPorGeneroPorSemestre(
+            @Param("year") int year, @Param("semester") int semester);
+
+    // Personas atendidas por estrato en el semestre.
+    @Query(value = """
+                SELECT p.estrato, COUNT(DISTINCT p.id) AS total
+                FROM "DB_consultorioJuridico".persona p
+                WHERE p.id IN (
+                    SELECT c.persona_id FROM "DB_consultorioJuridico".consulta c
+                    WHERE c.last_updated_at >=
+                        CASE WHEN :semester = 1 THEN make_date(:year, 1, 1) ELSE make_date(:year, 7, 1) END
+                    AND c.last_updated_at <
+                        CASE WHEN :semester = 1 THEN make_date(:year, 7, 1) ELSE make_date(:year + 1, 1, 1) END
+                    UNION
+                    SELECT cp.persona_id FROM "DB_consultorioJuridico".consulta_parte cp
+                    JOIN "DB_consultorioJuridico".consulta c ON c.id = cp.consulta_id
+                    WHERE c.last_updated_at >=
+                        CASE WHEN :semester = 1 THEN make_date(:year, 1, 1) ELSE make_date(:year, 7, 1) END
+                    AND c.last_updated_at <
+                        CASE WHEN :semester = 1 THEN make_date(:year, 7, 1) ELSE make_date(:year + 1, 1, 1) END
+                )
+                GROUP BY p.estrato ORDER BY p.estrato
+                """, nativeQuery = true)
+    List<Object[]> contarPersonasPorEstratoPorSemestre(
+            @Param("year") int year, @Param("semester") int semester);
+
+    // Personas atendidas por zona en el semestre (incluye partes adicionales).
+    @Query(value = """
+                SELECT p.zona, COUNT(DISTINCT p.id) AS total
+                FROM "DB_consultorioJuridico".persona p
+                WHERE p.id IN (
+                    SELECT c.persona_id FROM "DB_consultorioJuridico".consulta c
+                    WHERE c.last_updated_at >=
+                        CASE WHEN :semester = 1 THEN make_date(:year, 1, 1) ELSE make_date(:year, 7, 1) END
+                    AND c.last_updated_at <
+                        CASE WHEN :semester = 1 THEN make_date(:year, 7, 1) ELSE make_date(:year + 1, 1, 1) END
+                    UNION
+                    SELECT cp.persona_id FROM "DB_consultorioJuridico".consulta_parte cp
+                    JOIN "DB_consultorioJuridico".consulta c ON c.id = cp.consulta_id
+                    WHERE c.last_updated_at >=
+                        CASE WHEN :semester = 1 THEN make_date(:year, 1, 1) ELSE make_date(:year, 7, 1) END
+                    AND c.last_updated_at <
+                        CASE WHEN :semester = 1 THEN make_date(:year, 7, 1) ELSE make_date(:year + 1, 1, 1) END
+                )
+                GROUP BY p.zona ORDER BY total DESC
+                """, nativeQuery = true)
+    List<Object[]> contarPersonasPorZonaPorSemestre(
+            @Param("year") int year, @Param("semester") int semester);
+
+    // Personas atendidas por grupo étnico en el semestre (incluye partes adicionales).
+    @Query(value = """
+                SELECT p.grupo_etnico, COUNT(DISTINCT p.id) AS total
+                FROM "DB_consultorioJuridico".persona p
+                WHERE p.id IN (
+                    SELECT c.persona_id FROM "DB_consultorioJuridico".consulta c
+                    WHERE c.last_updated_at >=
+                        CASE WHEN :semester = 1 THEN make_date(:year, 1, 1) ELSE make_date(:year, 7, 1) END
+                    AND c.last_updated_at <
+                        CASE WHEN :semester = 1 THEN make_date(:year, 7, 1) ELSE make_date(:year + 1, 1, 1) END
+                    UNION
+                    SELECT cp.persona_id FROM "DB_consultorioJuridico".consulta_parte cp
+                    JOIN "DB_consultorioJuridico".consulta c ON c.id = cp.consulta_id
+                    WHERE c.last_updated_at >=
+                        CASE WHEN :semester = 1 THEN make_date(:year, 1, 1) ELSE make_date(:year, 7, 1) END
+                    AND c.last_updated_at <
+                        CASE WHEN :semester = 1 THEN make_date(:year, 7, 1) ELSE make_date(:year + 1, 1, 1) END
+                )
+                GROUP BY p.grupo_etnico ORDER BY total DESC
+                """, nativeQuery = true)
+    List<Object[]> contarPersonasPorGrupoEtnicoPorSemestre(
+            @Param("year") int year, @Param("semester") int semester);
+
+    // Personas atendidas por municipio en el semestre (incluye partes adicionales).
+    @Query(value = """
+                SELECT m.nombre, COUNT(DISTINCT p.id) AS total
+                FROM "DB_consultorioJuridico".persona p
+                JOIN "DB_consultorioJuridico".municipio m ON m.id = p.municipio_id
+                WHERE p.id IN (
+                    SELECT c.persona_id FROM "DB_consultorioJuridico".consulta c
+                    WHERE c.last_updated_at >=
+                        CASE WHEN :semester = 1 THEN make_date(:year, 1, 1) ELSE make_date(:year, 7, 1) END
+                    AND c.last_updated_at <
+                        CASE WHEN :semester = 1 THEN make_date(:year, 7, 1) ELSE make_date(:year + 1, 1, 1) END
+                    UNION
+                    SELECT cp.persona_id FROM "DB_consultorioJuridico".consulta_parte cp
+                    JOIN "DB_consultorioJuridico".consulta c ON c.id = cp.consulta_id
+                    WHERE c.last_updated_at >=
+                        CASE WHEN :semester = 1 THEN make_date(:year, 1, 1) ELSE make_date(:year, 7, 1) END
+                    AND c.last_updated_at <
+                        CASE WHEN :semester = 1 THEN make_date(:year, 7, 1) ELSE make_date(:year + 1, 1, 1) END
+                )
+                GROUP BY m.nombre ORDER BY total DESC
+                """, nativeQuery = true)
+    List<Object[]> contarPersonasPorMunicipioPorSemestre(
+            @Param("year") int year, @Param("semester") int semester);
+
+    // Personas atendidas por condición en el semestre (incluye partes adicionales).
+    @Query(value = """
+                SELECT co.nombre, COUNT(DISTINCT p.id) AS total
+                FROM "DB_consultorioJuridico".persona p
+                JOIN "DB_consultorioJuridico".condicion co ON co.id = p.condicion_actual_id
+                WHERE p.id IN (
+                    SELECT c.persona_id FROM "DB_consultorioJuridico".consulta c
+                    WHERE c.last_updated_at >=
+                        CASE WHEN :semester = 1 THEN make_date(:year, 1, 1) ELSE make_date(:year, 7, 1) END
+                    AND c.last_updated_at <
+                        CASE WHEN :semester = 1 THEN make_date(:year, 7, 1) ELSE make_date(:year + 1, 1, 1) END
+                    UNION
+                    SELECT cp.persona_id FROM "DB_consultorioJuridico".consulta_parte cp
+                    JOIN "DB_consultorioJuridico".consulta c ON c.id = cp.consulta_id
+                    WHERE c.last_updated_at >=
+                        CASE WHEN :semester = 1 THEN make_date(:year, 1, 1) ELSE make_date(:year, 7, 1) END
+                    AND c.last_updated_at <
+                        CASE WHEN :semester = 1 THEN make_date(:year, 7, 1) ELSE make_date(:year + 1, 1, 1) END
+                )
+                GROUP BY co.nombre ORDER BY total DESC
+                """, nativeQuery = true)
+    List<Object[]> contarPersonasPorCondicionPorSemestre(
+            @Param("year") int year, @Param("semester") int semester);
+
+
+    // =====================================================
+    // QUERIES POR RANGO LIBRE DE FECHAS
+    // =====================================================
+
+    @Query(value = """
+                SELECT COUNT(*) FILTER (WHERE c.resultado IS NOT NULL) AS finished_consultas,
+                       COUNT(*) FILTER (WHERE c.resultado IS NULL) AS unfinished_consultas
+                FROM "DB_consultorioJuridico".consulta c
+                WHERE c.last_updated_at >= CAST(:fechaInicio AS date)
+                AND c.last_updated_at <= CAST(:fechaFin AS date)
+                """, nativeQuery = true)
+    List<Object[]> contarFinalizadasYPendientesPorRango(
+            @Param("fechaInicio") String fechaInicio,
+            @Param("fechaFin") String fechaFin);
+
+    @Query(value = """
+                SELECT COUNT(DISTINCT persona_id) AS total_personas_atendidas
+                FROM (
+                    SELECT c.persona_id
+                    FROM "DB_consultorioJuridico".consulta c
+                    WHERE c.last_updated_at >= CAST(:fechaInicio AS date)
+                    AND c.last_updated_at <= CAST(:fechaFin AS date)
+                    UNION
+                    SELECT cp.persona_id
+                    FROM "DB_consultorioJuridico".consulta_parte cp
+                    JOIN "DB_consultorioJuridico".consulta c ON c.id = cp.consulta_id
+                    WHERE c.last_updated_at >= CAST(:fechaInicio AS date)
+                    AND c.last_updated_at <= CAST(:fechaFin AS date)
+                ) AS personas_unicas
+                """, nativeQuery = true)
+    List<Object[]> contarPersonasAtendidasPorRango(
+            @Param("fechaInicio") String fechaInicio,
+            @Param("fechaFin") String fechaFin);
+
+    @Query(value = """
+                SELECT c.estado, COUNT(c.id) AS total
+                FROM "DB_consultorioJuridico".consulta c
+                WHERE c.last_updated_at >= CAST(:fechaInicio AS date)
+                AND c.last_updated_at <= CAST(:fechaFin AS date)
+                GROUP BY c.estado ORDER BY total DESC
+                """, nativeQuery = true)
+    List<Object[]> contarConsultasPorEstadoPorRango(
+            @Param("fechaInicio") String fechaInicio,
+            @Param("fechaFin") String fechaFin);
+
+    @Query(value = """
+                SELECT a.id AS area_id, a.nombre AS area_nombre, COUNT(c.id) AS total_consultas
+                FROM "DB_consultorioJuridico".consulta c
+                JOIN "DB_consultorioJuridico".area a ON a.id = c.area_id
+                WHERE c.last_updated_at >= CAST(:fechaInicio AS date)
+                AND c.last_updated_at <= CAST(:fechaFin AS date)
+                GROUP BY a.id, a.nombre ORDER BY total_consultas DESC
+                """, nativeQuery = true)
+    List<Object[]> contarConsultasPorAreaPorRango(
+            @Param("fechaInicio") String fechaInicio,
+            @Param("fechaFin") String fechaFin);
+
+    @Query(value = """
+                SELECT COALESCE(c.tipo_violencia, 'No aplica') AS tipo, COUNT(c.id) AS total
+                FROM "DB_consultorioJuridico".consulta c
+                WHERE c.last_updated_at >= CAST(:fechaInicio AS date)
+                AND c.last_updated_at <= CAST(:fechaFin AS date)
+                GROUP BY tipo ORDER BY total DESC
+                """, nativeQuery = true)
+    List<Object[]> contarConsultasPorTipoViolenciaPorRango(
+            @Param("fechaInicio") String fechaInicio,
+            @Param("fechaFin") String fechaFin);
+
+    @Query(value = """
+                SELECT p.genero, COUNT(DISTINCT p.id) AS total
+                FROM "DB_consultorioJuridico".persona p
+                WHERE p.id IN (
+                    SELECT c.persona_id FROM "DB_consultorioJuridico".consulta c
+                    WHERE c.last_updated_at >= CAST(:fechaInicio AS date)
+                    AND c.last_updated_at <= CAST(:fechaFin AS date)
+                    UNION
+                    SELECT cp.persona_id FROM "DB_consultorioJuridico".consulta_parte cp
+                    JOIN "DB_consultorioJuridico".consulta c ON c.id = cp.consulta_id
+                    WHERE c.last_updated_at >= CAST(:fechaInicio AS date)
+                    AND c.last_updated_at <= CAST(:fechaFin AS date)
+                )
+                GROUP BY p.genero ORDER BY total DESC
+                """, nativeQuery = true)
+    List<Object[]> contarPersonasPorGeneroPorRango(
+            @Param("fechaInicio") String fechaInicio,
+            @Param("fechaFin") String fechaFin);
+
+    @Query(value = """
+                SELECT p.estrato, COUNT(DISTINCT p.id) AS total
+                FROM "DB_consultorioJuridico".persona p
+                WHERE p.id IN (
+                    SELECT c.persona_id FROM "DB_consultorioJuridico".consulta c
+                    WHERE c.last_updated_at >= CAST(:fechaInicio AS date)
+                    AND c.last_updated_at <= CAST(:fechaFin AS date)
+                    UNION
+                    SELECT cp.persona_id FROM "DB_consultorioJuridico".consulta_parte cp
+                    JOIN "DB_consultorioJuridico".consulta c ON c.id = cp.consulta_id
+                    WHERE c.last_updated_at >= CAST(:fechaInicio AS date)
+                    AND c.last_updated_at <= CAST(:fechaFin AS date)
+                )
+                GROUP BY p.estrato ORDER BY p.estrato
+                """, nativeQuery = true)
+    List<Object[]> contarPersonasPorEstratoPorRango(
+            @Param("fechaInicio") String fechaInicio,
+            @Param("fechaFin") String fechaFin);
+
+    @Query(value = """
+                SELECT p.zona, COUNT(DISTINCT p.id) AS total
+                FROM "DB_consultorioJuridico".persona p
+                WHERE p.id IN (
+                    SELECT c.persona_id FROM "DB_consultorioJuridico".consulta c
+                    WHERE c.last_updated_at >= CAST(:fechaInicio AS date)
+                    AND c.last_updated_at <= CAST(:fechaFin AS date)
+                    UNION
+                    SELECT cp.persona_id FROM "DB_consultorioJuridico".consulta_parte cp
+                    JOIN "DB_consultorioJuridico".consulta c ON c.id = cp.consulta_id
+                    WHERE c.last_updated_at >= CAST(:fechaInicio AS date)
+                    AND c.last_updated_at <= CAST(:fechaFin AS date)
+                )
+                GROUP BY p.zona ORDER BY total DESC
+                """, nativeQuery = true)
+    List<Object[]> contarPersonasPorZonaPorRango(
+            @Param("fechaInicio") String fechaInicio,
+            @Param("fechaFin") String fechaFin);
+
+    @Query(value = """
+                SELECT p.grupo_etnico, COUNT(DISTINCT p.id) AS total
+                FROM "DB_consultorioJuridico".persona p
+                WHERE p.id IN (
+                    SELECT c.persona_id FROM "DB_consultorioJuridico".consulta c
+                    WHERE c.last_updated_at >= CAST(:fechaInicio AS date)
+                    AND c.last_updated_at <= CAST(:fechaFin AS date)
+                    UNION
+                    SELECT cp.persona_id FROM "DB_consultorioJuridico".consulta_parte cp
+                    JOIN "DB_consultorioJuridico".consulta c ON c.id = cp.consulta_id
+                    WHERE c.last_updated_at >= CAST(:fechaInicio AS date)
+                    AND c.last_updated_at <= CAST(:fechaFin AS date)
+                )
+                GROUP BY p.grupo_etnico ORDER BY total DESC
+                """, nativeQuery = true)
+    List<Object[]> contarPersonasPorGrupoEtnicoPorRango(
+            @Param("fechaInicio") String fechaInicio,
+            @Param("fechaFin") String fechaFin);
+
+    @Query(value = """
+                SELECT m.nombre, COUNT(DISTINCT p.id) AS total
+                FROM "DB_consultorioJuridico".persona p
+                JOIN "DB_consultorioJuridico".municipio m ON m.id = p.municipio_id
+                WHERE p.id IN (
+                    SELECT c.persona_id FROM "DB_consultorioJuridico".consulta c
+                    WHERE c.last_updated_at >= CAST(:fechaInicio AS date)
+                    AND c.last_updated_at <= CAST(:fechaFin AS date)
+                    UNION
+                    SELECT cp.persona_id FROM "DB_consultorioJuridico".consulta_parte cp
+                    JOIN "DB_consultorioJuridico".consulta c ON c.id = cp.consulta_id
+                    WHERE c.last_updated_at >= CAST(:fechaInicio AS date)
+                    AND c.last_updated_at <= CAST(:fechaFin AS date)
+                )
+                GROUP BY m.nombre ORDER BY total DESC
+                """, nativeQuery = true)
+    List<Object[]> contarPersonasPorMunicipioPorRango(
+            @Param("fechaInicio") String fechaInicio,
+            @Param("fechaFin") String fechaFin);
+
+    @Query(value = """
+                SELECT co.nombre, COUNT(DISTINCT p.id) AS total
+                FROM "DB_consultorioJuridico".persona p
+                JOIN "DB_consultorioJuridico".condicion co ON co.id = p.condicion_actual_id
+                WHERE p.id IN (
+                    SELECT c.persona_id FROM "DB_consultorioJuridico".consulta c
+                    WHERE c.last_updated_at >= CAST(:fechaInicio AS date)
+                    AND c.last_updated_at <= CAST(:fechaFin AS date)
+                    UNION
+                    SELECT cp.persona_id FROM "DB_consultorioJuridico".consulta_parte cp
+                    JOIN "DB_consultorioJuridico".consulta c ON c.id = cp.consulta_id
+                    WHERE c.last_updated_at >= CAST(:fechaInicio AS date)
+                    AND c.last_updated_at <= CAST(:fechaFin AS date)
+                )
+                GROUP BY co.nombre ORDER BY total DESC
+                """, nativeQuery = true)
+    List<Object[]> contarPersonasPorCondicionPorRango(
+            @Param("fechaInicio") String fechaInicio,
+            @Param("fechaFin") String fechaFin);
 
 
 }
