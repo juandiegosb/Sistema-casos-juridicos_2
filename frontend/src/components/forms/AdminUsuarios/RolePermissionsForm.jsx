@@ -209,11 +209,11 @@ const PAGINAS = [
     permisosVista: [PERMISOS.VER_REPORTES],
     permisosAsignar: [
       PERMISOS.VER_REPORTES,
-      PERMISOS.ACCEDER_ESTADISTICAS,
     ],
   },
   {
     title: "Administración",
+    path: "/admin",
     permisosVista: [PERMISOS.ACCEDER_ADMINISTRACION],
     permisosAsignar: [
       PERMISOS.ACCEDER_ADMINISTRACION,
