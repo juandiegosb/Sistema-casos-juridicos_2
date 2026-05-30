@@ -376,6 +376,9 @@ export function SeguimientosForm() {
   const [guardandoEstadoSeguimiento, setGuardandoEstadoSeguimiento] = useState(false)
   const [archivosPorRespuesta, setArchivosPorRespuesta] = useState({})
   const [cargandoArchivosRespuesta, setCargandoArchivosRespuesta] = useState({})
+  const [archivosTarea, setArchivosTarea] = useState([])
+  const [archivosPorTarea, setArchivosPorTarea] = useState({})
+  const [cargandoArchivosTarea, setCargandoArchivosTarea] = useState({})
   const [tareaAEliminar, setTareaAEliminar] = useState(null)
   const [eliminando, setEliminando] = useState(false)
   const [paginaConsultas, setPaginaConsultas] = useState(1)
@@ -612,6 +615,7 @@ export function SeguimientosForm() {
     try {
       setLoadingTareas(true)
       setRespuestasPorTarea({})
+      setArchivosPorTarea({})
 
       const endpoint = usuarioEstudiante
         ? `${API_URL_BASE}/seguimientos/consulta/${consultaId}/visibles-estudiante`
@@ -624,9 +628,10 @@ export function SeguimientosForm() {
 
       setTareas(sortByIdAsc(tareasData))
 
-      await Promise.allSettled(
-        tareasData.map((item) => cargarRespuestasPorSeguimiento(obtenerIdTarea(item)))
-      )
+      await Promise.allSettled([
+        ...tareasData.map((item) => cargarRespuestasPorSeguimiento(obtenerIdTarea(item))),
+        ...tareasData.map((item) => cargarArchivosTarea(obtenerIdTarea(item))),
+      ])
     } catch (error) {
       console.error(error)
       toast.error(error.message || "Error cargando tareas")
@@ -646,6 +651,7 @@ export function SeguimientosForm() {
     setFormEstadoSeguimiento(FORM_ESTADO_SEGUIMIENTO_INICIAL)
     setTareaAEliminar(null)
     setFormTarea(FORM_TAREA_INICIAL)
+    setArchivosTarea([])
     reset(FORM_RESPUESTA_INICIAL)
     await cargarTareasPorConsulta(consulta.id || consulta.consultaId)
   }
@@ -663,6 +669,7 @@ export function SeguimientosForm() {
     setFormEstadoSeguimiento(FORM_ESTADO_SEGUIMIENTO_INICIAL)
     setTareaAEliminar(null)
     setFormTarea(FORM_TAREA_INICIAL)
+    setArchivosTarea([])
     reset(FORM_RESPUESTA_INICIAL)
   }
 
@@ -678,6 +685,7 @@ export function SeguimientosForm() {
   function limpiarFormTarea() {
     setFormTarea(FORM_TAREA_INICIAL)
     setTareaEditando(null)
+    setArchivosTarea([])
   }
 
   function editarTarea(tarea) {
@@ -756,13 +764,26 @@ export function SeguimientosForm() {
 
       const method = tareaEditando ? "PUT" : "POST"
 
-      await apiRequest(url, {
+      const result = await apiRequest(url, {
         method,
         body: JSON.stringify(payload),
       })
 
+      const seguimientoId = result?.id || obtenerIdTarea(tareaEditando)
+
+      if (seguimientoId && archivosTarea.length > 0) {
+        try {
+          await subirDocumentosTarea(seguimientoId, archivosTarea)
+          await cargarArchivosTarea(seguimientoId)
+        } catch (error) {
+          console.error(error)
+          toast.warning("La tarea se guardó, pero hubo un problema subiendo los documentos")
+        }
+      }
+
       toast.success(tareaEditando ? "Tarea actualizada" : "Tarea creada")
       limpiarFormTarea()
+      setArchivosTarea([])
       await cargarTareasPorConsulta(consultaSeleccionada.id || consultaSeleccionada.consultaId)
     } catch (error) {
       console.error(error)
@@ -844,6 +865,112 @@ export function SeguimientosForm() {
     setTareaRespuesta(null)
     setRespuestaEditando(null)
     reset(FORM_RESPUESTA_INICIAL)
+  }
+
+  function pathTarea(seguimientoId) {
+    return `tareas-${seguimientoId}-documentos`
+  }
+
+  async function subirDocumentosTarea(seguimientoId, archivos) {
+    if (!archivos || archivos.length === 0) return
+
+    const formData = new FormData()
+
+    archivos.forEach((file) => {
+      formData.append("files", file)
+    })
+
+    formData.append("path", pathTarea(seguimientoId))
+
+    const res = await fetch(`${FILES_API}/files/upload-multiple`, {
+      method: "POST",
+      credentials: "include",
+      body: formData,
+    })
+
+    if (!res.ok) {
+      throw new Error("La tarea se guardó, pero ocurrió un error subiendo los documentos")
+    }
+  }
+
+  async function cargarArchivosTarea(seguimientoId) {
+    if (!seguimientoId) return
+
+    const path = pathTarea(seguimientoId)
+
+    try {
+      setCargandoArchivosTarea((prev) => ({
+        ...prev,
+        [seguimientoId]: true,
+      }))
+
+      const res = await fetch(
+        `${FILES_API}/files/list/${encodeURIComponent(path)}`,
+        {
+          credentials: "include",
+        }
+      )
+
+      if (!res.ok) {
+        setArchivosPorTarea((prev) => ({
+          ...prev,
+          [seguimientoId]: [],
+        }))
+        return
+      }
+
+      const data = await res.json()
+
+      setArchivosPorTarea((prev) => ({
+        ...prev,
+        [seguimientoId]: Array.isArray(data) ? data : extraerLista(data),
+      }))
+    } catch (error) {
+      console.error("Error cargando archivos de tarea:", error)
+
+      setArchivosPorTarea((prev) => ({
+        ...prev,
+        [seguimientoId]: [],
+      }))
+    } finally {
+      setCargandoArchivosTarea((prev) => ({
+        ...prev,
+        [seguimientoId]: false,
+      }))
+    }
+  }
+
+  async function descargarArchivoTarea(seguimientoId, fileName) {
+    const path = pathTarea(seguimientoId)
+
+    try {
+      const res = await fetch(
+        `${FILES_API}/files/download/${encodeURIComponent(path)}/${encodeURIComponent(fileName)}`,
+        {
+          method: "GET",
+          credentials: "include",
+        }
+      )
+
+      if (!res.ok) {
+        throw new Error("No se pudo descargar el archivo")
+      }
+
+      const blob = await res.blob()
+      const url = window.URL.createObjectURL(blob)
+
+      const a = document.createElement("a")
+      a.href = url
+      a.download = fileName
+      document.body.appendChild(a)
+      a.click()
+      a.remove()
+
+      window.URL.revokeObjectURL(url)
+    } catch (error) {
+      console.error("Error descargando archivo:", error)
+      toast.error(error.message || "Error descargando archivo")
+    }
   }
 
   async function subirDocumentosRespuesta(seguimientoId, respuestaId, archivos) {
@@ -1181,6 +1308,58 @@ export function SeguimientosForm() {
     )
   }
 
+  function renderArchivosTarea(tarea) {
+    if (!tarea) return null
+
+    const seguimientoId = obtenerIdTarea(tarea)
+    const archivos = archivosPorTarea[seguimientoId] || []
+
+    return (
+      <div className="rounded-lg border bg-muted/30 p-3 space-y-2">
+        <div className="flex items-center justify-between gap-3">
+          <p className="text-sm font-medium">Documentos del seguimiento</p>
+
+          {seguimientoId && (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => cargarArchivosTarea(seguimientoId)}
+            >
+              Ver archivos
+            </Button>
+          )}
+        </div>
+
+        {cargandoArchivosTarea[seguimientoId] ? (
+          <p className="text-sm text-muted-foreground">Cargando archivos...</p>
+        ) : archivos.length > 0 ? (
+          <ul className="space-y-2">
+            {archivos.map((fileName) => (
+              <li
+                key={fileName}
+                className="flex items-center justify-between gap-3 rounded-md border bg-background px-3 py-2 text-sm"
+              >
+                <span className="truncate">{fileName}</span>
+
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => descargarArchivoTarea(seguimientoId, fileName)}
+                >
+                  Descargar
+                </Button>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="text-sm text-muted-foreground">No hay documentos adjuntos al seguimiento.</p>
+        )}
+      </div>
+    )
+  }
+
   const tareasOrdenadas = useMemo(() => sortByIdAsc(tareas), [tareas])
   const pendientesOrdenados = useMemo(() => sortByIdAsc(pendientesRevision), [pendientesRevision])
 
@@ -1493,6 +1672,18 @@ export function SeguimientosForm() {
                 />
               </div>
 
+              <FormFileUpload
+                name="archivos"
+                label="Documentos del seguimiento"
+                multiple={true}
+                setValue={(name, value) => {
+                  if (name === "archivos") {
+                    setArchivosTarea(Array.isArray(value) ? value : value ? [value] : [])
+                  }
+                }}
+                value={archivosTarea}
+              />
+
               <label className="flex items-center gap-2 text-sm">
                 <input
                   type="checkbox"
@@ -1702,6 +1893,8 @@ export function SeguimientosForm() {
                           {tarea.notificarPartes ? "Sí" : "No"}
                         </div>
                       </div>
+
+                      {renderArchivosTarea(tarea)}
 
                       {ultima && (
                         <div className="rounded-lg border bg-muted/30 p-3 space-y-3">
