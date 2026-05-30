@@ -1,4 +1,14 @@
-"use client";
+"use client"
+
+/**
+ * Formulario de gestión de asesores y monitores.
+ *
+ * Lista los perfiles activos con opciones de búsqueda y paginación.
+ * Requiere permiso `ACCEDER_ASESORES_MONITORES`.
+ *
+ * @module components/forms/usuarios/AsesoresYMonitoresForm
+ */
+;
 
 import React, { useEffect, useState } from "react";
 import { Input } from "@/components/ui/input";

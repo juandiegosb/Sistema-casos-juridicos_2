@@ -1,7 +1,22 @@
+/**
+ * Formulario de gestión de permisos por página para roles del sistema.
+ *
+ * Permite seleccionar qué páginas puede ver un rol, asignando y revocando
+ * automáticamente los permisos necesarios para acceder a cada página.
+ *
+ * Protecciones implementadas:
+ * - No permite quitarle a tu propio rol el acceso a Administración.
+ * - Las acciones sin permiso muestran un toast en lugar de redirigir.
+ * - El algoritmo de diff solo revoca permisos gestionados por este form,
+ *   preservando permisos asignados por otros medios.
+ *
+ * @module components/forms/AdminUsuarios/RolePermissionsForm
+ */
 "use client";
 
 import React, { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { API_URL_BASE } from "@/lib/config";
 import { PERMISOS } from "@/lib/permission";
@@ -677,9 +692,18 @@ export function RolePermissionsForm() {
     }
   }
 
+  /**
+   * Alterna la selección de una página en el formulario de permisos.
+   * Muestra toast si el usuario no tiene permiso para asignar permisos.
+   * Muestra error en UI si intenta quitarse acceso a Administración.
+   *
+   * @param {string} path - Ruta de la página a togglear.
+   */
   function togglePagina(path) {
     if (!puedeAsignarPermisos) {
-      router.replace("/inicio");
+      toast.error("Sin permiso", {
+        description: "No tienes permiso para asignar permisos a roles.",
+      });
       return;
     }
 

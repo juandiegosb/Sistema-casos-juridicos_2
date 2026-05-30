@@ -1,4 +1,14 @@
-"use client";
+"use client"
+
+/**
+ * Tabla de logs de auditoría del sistema.
+ *
+ * Muestra el historial de acciones realizadas por los usuarios.
+ * Solo visible para administradores con acceso a la sección de administración.
+ *
+ * @module components/forms/AdminUsuarios/AuditLogsTable
+ */
+;
 
 import { useCallback, useEffect, useState } from "react";
 import { ArrowUpDown, ChevronDown, ChevronUp, Info, Search } from "lucide-react";

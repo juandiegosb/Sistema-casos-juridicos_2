@@ -1,3 +1,14 @@
+/**
+ * Formulario de gestión de estudiantes.
+ *
+ * Lista los estudiantes registrados con paginación, permite filtrar por búsqueda
+ * y desactivar estudiantes mediante un diálogo de confirmación.
+ *
+ * Las acciones sin permiso muestran un toast en lugar de redirigir,
+ * para que el usuario no pierda el contexto de la pantalla.
+ *
+ * @module components/forms/usuarios/EstudiantesForm
+ */
 "use client";
 
 import React, { useEffect, useState } from "react";
@@ -112,9 +123,18 @@ export function EstudiantesForm() {
     verificarYCargar();
   }, [router]);
 
+  /**
+   * Abre el diálogo de confirmación para desactivar un estudiante.
+   * Muestra un toast de error si el usuario no tiene el permiso requerido,
+   * sin redirigirlo para que no pierda el contexto.
+   *
+   * @param {object} estudiante - El estudiante a desactivar.
+   */
   function abrirConfirmacionDesactivar(estudiante) {
     if (!puedeCambiarEstado) {
-      router.replace("/inicio");
+      toast.error("Sin permiso", {
+        description: "No tienes permiso para cambiar el estado de estudiantes.",
+      });
       return;
     }
 

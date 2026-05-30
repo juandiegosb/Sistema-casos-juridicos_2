@@ -1,3 +1,10 @@
+/**
+ * Campo de checkbox reutilizable para formularios.
+ *
+ * Integra `register` de react-hook-form.
+ *
+ * @module components/forms/parts/FormCheckbox
+ */
 import React from "react";
 
 /**

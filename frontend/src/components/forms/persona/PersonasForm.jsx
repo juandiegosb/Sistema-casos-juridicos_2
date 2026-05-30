@@ -1,4 +1,14 @@
-"use client";
+"use client"
+
+/**
+ * Formulario de listado de personas registradas en el sistema.
+ *
+ * Muestra la lista de personas con búsqueda y paginación.
+ * Permite abrir el formulario de registro/edición de persona.
+ *
+ * @module components/forms/persona/PersonasForm
+ */
+;
 
 import React, { useEffect, useMemo, useState } from "react";
 import { Search, X } from "lucide-react";

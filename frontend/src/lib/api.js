@@ -1,7 +1,19 @@
 /**
- * Lee el cuerpo de la respuesta y devuelve JSON o texto.
- * @param {Response} response - Respuesta HTTP recibida.
- * @returns {Promise<any>} Cuerpo parseado o texto crudo.
+ * Utilidades para leer y normalizar respuestas HTTP del backend.
+ *
+ * Provee funciones para extraer el cuerpo de la respuesta y construir
+ * mensajes de error legibles a partir del DTO de error estándar del backend.
+ *
+ * @module lib/api
+ */
+
+/**
+ * Lee el cuerpo de una `Response` de fetch y lo devuelve como objeto o string.
+ * Devuelve `null` si la respuesta es 204 o no tiene cuerpo.
+ *
+ * @param {Response} response - La respuesta cruda de fetch.
+ * @returns {Promise<object|string|null>} El cuerpo parseado como JSON,
+ *   o como string si no es JSON válido, o `null` si está vacío.
  */
 export async function readResponseBody(response) {
   if (!response || response.status === 204) return null;
@@ -17,10 +29,12 @@ export async function readResponseBody(response) {
 }
 
 /**
- * Convierte un valor en mensaje de error legible.
- * @param {any} value - Valor de error o detalle.
- * @param {string|null} fieldName - Nombre del campo asociado.
- * @returns {string|null} Mensaje procesado o null.
+ * Convierte un valor de campo de error a un string de mensaje.
+ * Devuelve `null` si el valor está vacío o no es representable directamente.
+ *
+ * @param {unknown} value - Valor del campo.
+ * @param {string|null} fieldName - Nombre del campo, usado como prefijo.
+ * @returns {string|null} Mensaje formateado o `null`.
  */
 function valueToMessage(value, fieldName) {
   if (value === null || value === undefined || value === "") return null;
@@ -37,11 +51,13 @@ function valueToMessage(value, fieldName) {
 }
 
 /**
- * Recorre valores anidados y agrega mensajes al arreglo.
- * @param {any} value - Valor a procesar para mensajes.
+ * Recorre recursivamente un valor (string, array u objeto) y acumula
+ * los mensajes de error encontrados en el array `messages`.
+ *
+ * @param {unknown} value - Valor a recorrer.
  * @param {string|null} fieldName - Nombre del campo actual.
- * @param {Array<string>} messages - Arreglo para acumular mensajes.
- * @returns {void} No retorna valor.
+ * @param {string[]} messages - Array acumulador de mensajes.
+ * @returns {void}
  */
 function collectMessages(value, fieldName, messages) {
   const directMessage = valueToMessage(value, fieldName);
@@ -63,9 +79,11 @@ function collectMessages(value, fieldName, messages) {
 }
 
 /**
- * Extrae mensajes de error desde la carga útil de la API.
- * @param {any} payload - Respuesta de error de la API.
- * @returns {Array<string>} Mensajes individuales.
+ * Extrae todos los mensajes de error de detalle del payload de error del backend.
+ * Busca en los campos `detalles`, `details`, `errors`, `fieldErrors` y `validaciones`.
+ *
+ * @param {object|string|null} payload - Cuerpo de la respuesta de error.
+ * @returns {string[]} Lista de mensajes de error sin duplicados.
  */
 export function getApiErrorMessages(payload) {
   if (!payload) return [];
@@ -86,10 +104,12 @@ export function getApiErrorMessages(payload) {
 }
 
 /**
- * Determina el título de error desde la carga útil de la API.
- * @param {any} payload - Respuesta de error de la API.
- * @param {string} [fallback="Error en la operación"] - Título por defecto.
- * @returns {string} Título de error.
+ * Extrae el título/mensaje principal del payload de error del backend.
+ * Busca en los campos `mensaje`, `message`, `descripcion` y `error`.
+ *
+ * @param {object|string|null} payload - Cuerpo de la respuesta de error.
+ * @param {string} [fallback="Error en la operación"] - Texto por defecto si no hay mensaje.
+ * @returns {string} El título del error.
  */
 export function getApiErrorTitle(payload, fallback = "Error en la operación") {
   if (!payload) return fallback;
@@ -105,10 +125,12 @@ export function getApiErrorTitle(payload, fallback = "Error en la operación") {
 }
 
 /**
- * Construye la descripción de error a partir de los detalles disponibles.
- * @param {any} payload - Respuesta de error de la API.
- * @param {string} [fallback="Verifica la información e intenta nuevamente."] - Descripción por defecto.
- * @returns {string} Descripción de error compuesta.
+ * Construye un texto de descripción de error combinando los mensajes de detalle.
+ * Si no hay detalles, usa el título del error como descripción.
+ *
+ * @param {object|string|null} payload - Cuerpo de la respuesta de error.
+ * @param {string} [fallback="Verifica la información e intenta nuevamente."] - Texto por defecto.
+ * @returns {string} La descripción del error.
  */
 export function getApiErrorDescription(payload, fallback = "Verifica la información e intenta nuevamente.") {
   const messages = getApiErrorMessages(payload);

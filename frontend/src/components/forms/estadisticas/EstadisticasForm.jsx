@@ -17,11 +17,23 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
 
+/**
+ * Calcula el semestre actual basado en la fecha del sistema.
+ * Semestre 1: enero-mayo (meses 0-5), Semestre 2: junio-diciembre (meses 6-11)
+ * 
+ * @returns {Object} Objeto con propiedades {año: number, semestre: 1|2}
+ */
 function calcularSemestreActual() {
   const hoy = new Date();
   return { año: hoy.getFullYear(), semestre: hoy.getMonth() >= 6 ? 2 : 1 };
 }
 
+/**
+ * Convierte un nombre de estado a su etiqueta en español.
+ * 
+ * @param {string} nombre - Nombre del estado (ej: "PENDIENTE", "ACTIVO")
+ * @returns {string} Etiqueta en español o el nombre original si no coincide
+ */
 function etiquetaEstado(nombre) {
   const mapa = {
     PENDIENTE: "Pendiente", ACTIVO: "Activo", ARCHIVADO: "Archivado",
@@ -32,16 +44,19 @@ function etiquetaEstado(nombre) {
   return mapa[String(nombre || "")] || nombre;
 }
 
+/**
+ * Retorna la fecha de hoy en formato ISO (yyyy-MM-dd).
+ * Útil para valores por defecto en seleccionadores de fechas.
+ * 
+ * @returns {string} Fecha hoy en formato ISO
+ */
 function hoyStr() { return new Date().toISOString().slice(0, 10); }
 
-// ─── paleta ───────────────────────────────────────────────────────────────────
 
 const CHART_COLORS = [
   "var(--chart-1)", "var(--chart-2)", "var(--chart-3)",
   "var(--chart-4)", "var(--chart-5)",
 ];
-
-// ─── sub-componentes gráficos ─────────────────────────────────────────────────
 
 function BarChartAreas({ areas }) {
   if (!areas || areas.length === 0)
@@ -183,8 +198,6 @@ function Skeleton({ className = "h-20" }) {
   return <div className={`rounded-xl bg-muted animate-pulse ${className}`} />;
 }
 
-// ─── Tarjeta general clicable ─────────────────────────────────────────────────
-
 function MetricCard({ label, value, cls, icon: Icon, activa, onClick }) {
   return (
     <button
@@ -212,7 +225,6 @@ function MetricCard({ label, value, cls, icon: Icon, activa, onClick }) {
   );
 }
 
-// ─── Secciones de detalle por categoría ───────────────────────────────────────
 
 function DetalleConsultas({ stats }) {
   return (
@@ -335,7 +347,6 @@ const CATEGORIAS = [
   },
 ];
 
-// ─── Vista principal de estadísticas ─────────────────────────────────────────
 
 function EstadisticasContenido({ stats }) {
   const [abierta, setAbierta] = useState(null);
@@ -391,7 +402,6 @@ function EstadisticasContenido({ stats }) {
   );
 }
 
-// ─── Componente principal ─────────────────────────────────────────────────────
 
 export function EstadisticasForm() {
   const router = useRouter();
@@ -409,7 +419,6 @@ export function EstadisticasForm() {
   const [fechaInicio, setFechaInicio] = useState("2024-01-01");
   const [fechaFin, setFechaFin]       = useState(hoyStr());
 
-  // ── auth + semestres ───────────────────────────────────────────────────────
   useEffect(() => {
     async function init() {
       try {
@@ -436,7 +445,7 @@ export function EstadisticasForm() {
     init();
   }, [router]);
 
-  // ── cargar por semestre ────────────────────────────────────────────────────
+  
   const cargarPorSemestre = useCallback(async () => {
     if (!semSel || modoRango) return;
     const sem = semestres.find((s) => s.etiqueta === semSel);
@@ -454,7 +463,7 @@ export function EstadisticasForm() {
     finally { setCargando(false); }
   }, [semSel, semestres, modoRango]);
 
-  // ── cargar por rango ───────────────────────────────────────────────────────
+  
   const cargarPorRango = useCallback(async () => {
     if (!modoRango) return;
     if (!fechaInicio || !fechaFin) { setError("Selecciona fechas de inicio y fin."); return; }
@@ -477,7 +486,7 @@ export function EstadisticasForm() {
 
   useEffect(() => { if (!modoRango) cargarPorSemestre(); }, [cargarPorSemestre, modoRango]);
 
-  // ── descargar PDF ──────────────────────────────────────────────────────────
+  
   async function descargarPDF() {
     setDescargando(true);
     try {
@@ -503,7 +512,7 @@ export function EstadisticasForm() {
     finally { setDescargando(false); }
   }
 
-  // ── render ─────────────────────────────────────────────────────────────────
+  
   if (checking)
     return <div className="p-8 text-muted-foreground animate-pulse text-sm">Cargando...</div>;
 

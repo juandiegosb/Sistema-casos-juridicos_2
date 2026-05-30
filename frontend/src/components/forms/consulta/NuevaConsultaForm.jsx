@@ -1,3 +1,16 @@
+/**
+ * Formulario de creación de consultas jurídicas.
+ *
+ * Valida que todos los campos obligatorios estén completos antes de enviar,
+ * incluyendo la parte principal (validación explícita antes del fetch).
+ * Los IDs de personas y catálogos se convierten de forma segura con `numberOrNull()`
+ * para evitar enviar `NaN` al backend.
+ *
+ * Soporta subida de archivos adjuntos después de crear la consulta.
+ * Los campos de texto libre tienen límite de caracteres (maxLength).
+ *
+ * @module components/forms/consulta/NuevaConsultaForm
+ */
 "use client";
 
 import React, { useEffect, useMemo, useState } from "react";
@@ -1123,6 +1136,7 @@ export function NuevaConsultaForm() {
             name="descripcion"
             value={form.descripcion}
             onChange={handleChange}
+            maxLength={2000}
             required
             rows={3}
             placeholder="Resumen de la consulta"
@@ -1135,6 +1149,7 @@ export function NuevaConsultaForm() {
             name="hechos"
             value={form.hechos}
             onChange={handleChange}
+            maxLength={2000}
             required
             rows={3}
             placeholder="Descripción de los hechos"
@@ -1147,6 +1162,7 @@ export function NuevaConsultaForm() {
             name="pretensiones"
             value={form.pretensiones}
             onChange={handleChange}
+            maxLength={2000}
             required
             rows={3}
             placeholder="Qué solicita el consultante"
@@ -1159,6 +1175,7 @@ export function NuevaConsultaForm() {
             name="conceptoJuridico"
             value={form.conceptoJuridico}
             onChange={handleChange}
+            maxLength={2000}
             required
             rows={3}
             placeholder="Fundamento legal aplicable"
@@ -1171,6 +1188,7 @@ export function NuevaConsultaForm() {
             name="observaciones"
             value={form.observaciones}
             onChange={handleChange}
+            maxLength={500}
             rows={2}
             placeholder="Opcional"
             className={ic}

@@ -1,4 +1,13 @@
-"use client";
+"use client"
+
+/**
+ * Formulario para cambiar el rol de un usuario del sistema.
+ *
+ * Requiere permiso `ASIGNAR_ROL_USUARIOS`.
+ *
+ * @module components/forms/AdminUsuarios/CambiarRolUsuarioForm
+ */
+;
 
 import React, { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";

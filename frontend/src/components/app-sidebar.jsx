@@ -17,11 +17,20 @@ import { useRouter, usePathname } from "next/navigation"
 import { API_URL_BASE } from "@/lib/config"
 
 /**
- * Sidebar principal de la aplicación.
- * @param {{mainItems:Array<Object>, footerItems:Array<Object>}} props
- * @param {Array<Object>} props.mainItems Lista de elementos de navegación principal.
- * @param {Array<Object>} props.footerItems Lista de elementos de navegación en el pie.
- * @returns {JSX.Element} Sidebar principal.
+ * Componente de barra lateral principal de la aplicación.
+ * Muestra menú de navegación, información del usuario y controles de sesión.
+ * 
+ * @component
+ * @param {Object} props - Las propiedades del componente
+ * @param {Array} props.mainItems - Array de items del menú principal. Cada item debe tener {title, path}
+ * @param {Array} props.footerItems - Array de items del menú del pie de página
+ * @returns {JSX.Element} Barra lateral con navegación y controles de usuario
+ * 
+ * @example
+ * <AppSidebar 
+ *   mainItems={[{title: "Inicio", path: "/inicio"}]}
+ *   footerItems={[{title: "Configuración", path: "/config"}]}
+ * />
  */
 export function AppSidebar({ mainItems = [], footerItems = [] }) {
   const [email, setEmail] = React.useState("")
@@ -29,8 +38,16 @@ export function AppSidebar({ mainItems = [], footerItems = [] }) {
   const router = useRouter()
   const pathname = usePathname()
 
-  // Obtener usuario desde backend (cookie JWT)
+  /**
+   * Efecto para cargar información del usuario autenticado desde el backend.
+   * Se ejecuta una sola vez al montar el componente.
+   */
   React.useEffect(() => {
+    /**
+     * Obtiene los datos del usuario desde el endpoint /auth/me
+     * Guarda el email y nombre en el estado del componente
+     * @async
+     */
     const cargarUsuario = async () => {
       try {
         const res = await fetch(`${API_URL_BASE}/auth/me`, {
@@ -54,20 +71,24 @@ export function AppSidebar({ mainItems = [], footerItems = [] }) {
   }, [])
 
   /**
-   * Convierte un texto a ruta interna en minúsculas.
-   * @param {string} text - Texto usado para generar la ruta.
-   * @returns {string} Ruta normalizada.
+   * Convierte un texto a una ruta normalizada en minúsculas sin espacios.
+   * Ejemplo: "Mi Página" → "/mipágina"
+   * 
+   * @param {string} text - Texto a normalizar
+   * @returns {string} Ruta normalizada con / inicial
    */
   function normalizePath(text) {
     return `/${String(text).toLowerCase().replace(/\s+/g, "")}`
   }
 
   /**
-   * Obtiene la ruta para un elemento de menú.
-   * @param {Object} item - Elemento de menú.
-   * @param {string} [item.path] - Ruta definida en el elemento.
-   * @param {string} item.title - Título del elemento.
-   * @returns {string} Ruta resultante.
+   * Obtiene la ruta de un item del menú.
+   * Si el item tiene propiedad 'path', la utiliza; si no, genera una desde el título.
+   * 
+   * @param {Object} item - Objeto con propiedades {title, path}
+   * @param {string} item.title - Título del item
+   * @param {string} [item.path] - Ruta personalizada (opcional)
+   * @returns {string} Ruta del item
    */
   function getItemPath(item) {
     if (item.path) {
@@ -78,9 +99,11 @@ export function AppSidebar({ mainItems = [], footerItems = [] }) {
   }
 
   /**
-   * Navega al elemento seleccionado del menú.
-   * @param {Object} item - Elemento de menú seleccionado.
-   * @returns {void} No retorna valor.
+   * Navega hacia el item del menú seleccionado.
+   * Valida que la ruta sea válida antes de navegar.
+   * 
+   * @param {Object} item - Objeto del menú a navegar
+   * @param {string} item.path - Ruta del item
    */
   function handleSubmit(item) {
     const path = getItemPath(item)
@@ -91,8 +114,11 @@ export function AppSidebar({ mainItems = [], footerItems = [] }) {
   }
 
   /**
-   * Cierra sesión del usuario y redirige a la página de login.
-   * @returns {Promise<void>} Acción de cierre de sesión.
+   * Cierra la sesión del usuario.
+   * Realiza logout en el backend y redirige a la página de login.
+   * 
+   * @async
+   * @returns {Promise<void>}
    */
   const handleLogout = async () => {
     try {

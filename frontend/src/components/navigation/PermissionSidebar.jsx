@@ -124,12 +124,12 @@ const SIDEBAR_PAGES = [
 ];
 
 /**
- * Determina si el usuario puede ver una página según permisos.
- * @param {Object} page - Configuración de página.
- * @param {Array<string>} page.requiredPermissions - Permisos necesarios.
- * @param {string} page.match - Modo de coincidencia de permisos.
- * @param {Object} user - Usuario actual.
- * @returns {boolean} True si el usuario puede ver la página.
+ * Determina si un usuario puede ver una página específica.
+ * Verifica los permisos requeridos según la lógica de match (any/all).
+ * 
+ * @param {Object} page - Objeto de página con requiredPermissions y match
+ * @param {Object} user - Objeto del usuario
+ * @returns {boolean} True si el usuario tiene acceso a la página
  */
 function puedeVerPagina(page, user) {
   if (!user) return false;
@@ -150,19 +150,17 @@ function puedeVerPagina(page, user) {
 }
 
 /**
- * Filtra un arreglo de páginas según los permisos del usuario.
- * @param {Array<Object>} pages - Páginas disponibles.
- * @param {Object} user - Usuario actual.
- * @returns {Array<Object>} Páginas permitidas.
+ * Filtra una lista de páginas según los permisos del usuario.
+ * Solo retorna las páginas a las que el usuario tiene acceso.
+ * 
+ * @param {Array<Object>} pages - Array de páginas disponibles
+ * @param {Object} user - Objeto del usuario
+ * @returns {Array<Object>} Array de páginas filtradas
  */
 function filtrarPaginasPorPermisos(pages, user) {
   return pages.filter((page) => puedeVerPagina(page, user));
 }
 
-/**
- * Sidebar que muestra las páginas del menú para el usuario actual.
- * @returns {JSX.Element} Sidebar renderizado.
- */
 export function PermissionSidebar() {
   const router = useRouter();
 

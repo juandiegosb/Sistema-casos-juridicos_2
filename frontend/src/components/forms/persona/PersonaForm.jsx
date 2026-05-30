@@ -1,3 +1,17 @@
+/**
+ * Formulario de registro y edición de personas en el sistema jurídico.
+ *
+ * Implementa un formulario por pasos (wizard) con 6-7 secciones según si la
+ * persona es menor de edad (agrega paso "Acudiente"). Valida campos obligatorios
+ * por paso antes de avanzar usando `trigger()` de react-hook-form.
+ *
+ * Validaciones destacadas:
+ * - Al avanzar desde "Identificación" valida los campos del paso actual.
+ * - Al guardar verifica que exista al menos teléfono o correo (validación cruzada).
+ * - Campos numéricos (estrato, personas a cargo) validados en react-hook-form y en HTML.
+ *
+ * @module components/forms/persona/PersonaForm
+ */
 "use client";
 
 import React, { useEffect, useMemo, useState } from "react";
@@ -11,6 +25,7 @@ import { Button } from "@/components/ui/button";
 import { API_URL_BASE } from "@/lib/config";
 import { PERMISOS } from "@/lib/permission";
 import { tienePermiso } from "@/lib/authz";
+import { toast } from "sonner";
 import { maxNumberRule, nonNegativeNumberRule, optionalEmailRule } from "@/lib/form-validation";
 
 const REQUIRED_MESSAGE = "El campo es obligatorio";
@@ -297,6 +312,7 @@ export function PersonaForm({ onSubmit, initialValues }) {
     reset,
     watch,
     setValue,
+    trigger,
     formState: { errors },
   } = useForm({
     defaultValues: defaultFormValues,
@@ -535,7 +551,27 @@ export function PersonaForm({ onSubmit, initialValues }) {
     }
   }
 
+  /**
+   * Normaliza los datos del formulario, valida la regla cruzada de contacto
+   * (debe haber al menos teléfono o correo) y envía al backend.
+   * Solo ejecuta el callback `onSubmit` si el backend respondió con éxito.
+   *
+   * @param {object} data - Datos del formulario validados por react-hook-form.
+   * @returns {Promise<void>}
+   */
   async function handleSubmitForm(data) {
+    // Validación cruzada: debe existir al menos teléfono o correo
+    const telefono = String(data.telefono ?? "").trim();
+    const correo   = String(data.correo ?? "").trim();
+
+    if (!telefono && !correo) {
+      toast.error("Contacto requerido", {
+        description: "Debe ingresar al menos un teléfono o un correo electrónico.",
+      });
+      setPasoActual(pasos.indexOf("Contacto"));
+      return;
+    }
+
     const datosNormalizados = esMenorEdad
       ? data
       : {
@@ -564,7 +600,33 @@ export function PersonaForm({ onSubmit, initialValues }) {
     setPasoActual((actual) => Math.max(actual - 1, 0));
   }
 
-  function irSiguiente() {
+  /**
+   * Valida los campos del paso actual con react-hook-form `trigger()`
+   * y avanza al siguiente paso solo si todos son válidos.
+   *
+   * @returns {Promise<void>}
+   */
+  async function irSiguiente() {
+    // Campos obligatorios agrupados por paso
+    const camposPorPaso = {
+      "Identificación": [
+        "tipoPersonaId", "tipoDocumento", "numeroDocumento",
+        "fechaExpedicion", "ciudadExpedicion", "nombres",
+        "apellidos", "fechaNacimiento",
+      ],
+      "Identidad": [],
+      "Contacto": [],   // validación cruzada en handleSubmitForm
+      "Vivienda": [],
+      "Economía": [],
+      "Acudiente": [],
+      "Servicio": [],
+    };
+
+    const campos = camposPorPaso[pasoActualNombre] ?? [];
+    const esValido = campos.length === 0 || await trigger(campos);
+
+    if (!esValido) return;
+
     setPasoActual((actual) => Math.min(actual + 1, pasos.length - 1));
   }
 

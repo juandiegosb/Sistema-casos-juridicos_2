@@ -10,13 +10,24 @@ import {
   tienePermiso, esAdministrativo, esAsesor, esMonitor, esEstudiante,
 } from "@/lib/authz"
 
-// ─── helpers ──────────────────────────────────────────────────────────────────
 
+/**
+ * Calcula el semestre actual basado en la fecha del sistema.
+ * Semestre 1: enero-mayo (meses 0-5), Semestre 2: junio-diciembre (meses 6-11)
+ * 
+ * @returns {Object} Objeto con propiedades {año: number, semestre: 1|2}
+ */
 function calcularSemestreActual() {
   const hoy = new Date()
   return { año: hoy.getFullYear(), semestre: hoy.getMonth() >= 6 ? 2 : 1 }
 }
 
+/**
+ * Convierte un nombre de estado a su etiqueta en español.
+ * 
+ * @param {string} nombre - Nombre del estado en mayúsculas (ej: "PENDIENTE", "ACTIVO")
+ * @returns {string} Etiqueta en español o el nombre original si no coincide
+ */
 function etiquetaEstado(nombre) {
   const mapa = {
     PENDIENTE: "Pendiente", ACTIVO: "Activo", EN_PROCESO: "En proceso",
@@ -25,6 +36,12 @@ function etiquetaEstado(nombre) {
   return mapa[String(nombre || "").toUpperCase()] || nombre || "Sin estado"
 }
 
+/**
+ * Formatea una fecha a formato localizado de Colombia (dd/mes/yyyy)
+ * 
+ * @param {string|Date} str - Fecha a formatear (string ISO o Date)
+ * @returns {string} Fecha formateada o "—" si es inválida
+ */
 function formatFecha(str) {
   if (!str) return "—"
   try {
@@ -32,6 +49,13 @@ function formatFecha(str) {
   } catch { return str }
 }
 
+/**
+ * Extrae un array del payload de respuesta API, buscando en propiedades comunes.
+ * Útil para normalizar diferentes estructuras de respuesta del backend.
+ * 
+ * @param {*} payload - Respuesta del backend (puede ser array, objeto, etc)
+ * @returns {Array} Array extraído o array vacío si no se encuentra
+ */
 function obtenerArrayDesdeRespuesta(payload) {
   if (Array.isArray(payload)) return payload
   if (!payload || typeof payload !== "object") return []
@@ -52,8 +76,18 @@ const METRIC_CARDS = [
   { key: "totalPersonasAtendidas", label: "Personas atendidas", cls: "bg-secondary text-secondary-foreground" },
 ]
 
-// ─── sub-componentes ──────────────────────────────────────────────────────────
 
+/**
+ * Tarjeta de métrica individual que muestra un número con etiqueta.
+ * Se utiliza en el panel de estadísticas para mostrar KPIs.
+ * 
+ * @component
+ * @param {Object} props - Propiedades
+ * @param {string} props.label - Etiqueta descriptiva
+ * @param {number|string} props.value - Valor a mostrar
+ * @param {string} props.cls - Clases Tailwind para el estilo (color de fondo)
+ * @returns {JSX.Element} Tarjeta estilizada con métrica
+ */
 function MetricCard({ label, value, cls }) {
   return (
     <div className={`${cls} rounded-lg px-4 py-3 flex flex-col gap-0.5 min-w-0`}>
@@ -63,6 +97,16 @@ function MetricCard({ label, value, cls }) {
   )
 }
 
+/**
+ * Gráfico de donut SVG que muestra consultas finalizadas vs pendientes.
+ * Incluye porcentaje y leyenda de colores.
+ * 
+ * @component
+ * @param {Object} props - Propiedades
+ * @param {number} props.finalizadas - Cantidad de consultas finalizadas
+ * @param {number} props.pendientes - Cantidad de consultas pendientes
+ * @returns {JSX.Element} Gráfico de donut con leyenda
+ */
 function DonutChart({ finalizadas, pendientes }) {
   const total = finalizadas + pendientes
   if (total === 0)
@@ -108,6 +152,15 @@ function DonutChart({ finalizadas, pendientes }) {
   )
 }
 
+/**
+ * Gráfico de barras SVG que muestra cantidad de consultas por área.
+ * Incluye escala y etiquetas truncadas para áreas con nombre largo.
+ * 
+ * @component
+ * @param {Object} props - Propiedades
+ * @param {Array<{nombre: string, cantidad: number}>} props.areas - Array de áreas con cantidad
+ * @returns {JSX.Element} Gráfico SVG responsivo de barras
+ */
 function BarChartAreas({ areas }) {
   if (!areas || areas.length === 0)
     return <p className="text-xs text-muted-foreground text-center py-4">Sin datos de áreas</p>
@@ -160,6 +213,19 @@ function BarChartAreas({ areas }) {
   )
 }
 
+/**
+ * Panel contenedor con encabezado, icono, contador y contenido flexible.
+ * Se utiliza como contenedor genérico para secciones del dashboard.
+ * 
+ * @component
+ * @param {Object} props - Propiedades
+ * @param {string} props.title - Título del panel
+ * @param {Function} props.icon - Componente de icono de Lucide React
+ * @param {number} [props.count] - Número opcional a mostrar en la esquina
+ * @param {JSX.Element} props.children - Contenido del panel
+ * @param {string} [props.className] - Clases Tailwind adicionales
+ * @returns {JSX.Element} Panel estilizado
+ */
 function Panel({ title, icon: Icon, count, children, className = "" }) {
   return (
     <div className={`bg-card border border-border rounded-xl overflow-hidden flex flex-col ${className}`}>
@@ -179,12 +245,30 @@ function Panel({ title, icon: Icon, count, children, className = "" }) {
   )
 }
 
+/**
+ * Componente de esqueleto (skeleton loader) para mostrar mientras se carga contenido.
+ * Ayuda a mejorar la experiencia de usuario mostrando un placeholder animado.
+ * 
+ * @component
+ * @param {Object} props - Propiedades
+ * @param {string} [props.className] - Clases Tailwind para el tamaño (ej: "h-20")
+ * @returns {JSX.Element} Elemento con animación de carga
+ */
 function Skeleton({ className = "h-20" }) {
   return <div className={`rounded-xl bg-muted animate-pulse ${className}`} />
 }
 
-// ─── listas ───────────────────────────────────────────────────────────────────
 
+/**
+ * Lista de consultas pendientes con estado y persona asociada.
+ * Muestra máximo 10 consultas con estados no finalizados (PENDIENTE, URGENTE, EN_PROCESO, ACTIVO).
+ * 
+ * @component
+ * @param {Object} props - Propiedades
+ * @param {Array<Object>} props.items - Array de consultas a mostrar
+ * @param {boolean} props.cargando - Si true, muestra skeleton loaders
+ * @returns {JSX.Element} Lista con items o mensaje vacío
+ */
 function ConsultasPendientesLista({ items, cargando }) {
   if (cargando) return <div className="space-y-1.5">{[1,2,3].map(i => <Skeleton key={i} className="h-10" />)}</div>
   if (!items || items.length === 0)
@@ -225,6 +309,16 @@ function ConsultasPendientesLista({ items, cargando }) {
   )
 }
 
+/**
+ * Lista de tareas pendientes (seguimientos) por consulta.
+ * Filtra tareas con estado PENDIENTE solamente.
+ * 
+ * @component
+ * @param {Object} props - Propiedades
+ * @param {Array<Object>} props.items - Array de tareas/seguimientos a mostrar
+ * @param {boolean} props.cargando - Si true, muestra skeleton loaders
+ * @returns {JSX.Element} Lista con items o mensaje vacío
+ */
 function TareasPendientesLista({ items, cargando }) {
   if (cargando) return <div className="space-y-1.5">{[1,2,3].map(i => <Skeleton key={i} className="h-10" />)}</div>
   if (!items || items.length === 0)
@@ -266,6 +360,16 @@ function TareasPendientesLista({ items, cargando }) {
   )
 }
 
+/**
+ * Lista de respuestas de estudiantes pendientes de calificación.
+ * Indica si la respuesta está fuera del plazo establecido.
+ * 
+ * @component
+ * @param {Object} props - Propiedades
+ * @param {Array<Object>} props.items - Array de respuestas a mostrar
+ * @param {boolean} props.cargando - Si true, muestra skeleton loaders
+ * @returns {JSX.Element} Lista con items o mensaje vacío
+ */
 function RespuestasPendientesLista({ items, cargando }) {
   if (cargando) return <div className="space-y-1.5">{[1,2,3].map(i => <Skeleton key={i} className="h-10" />)}</div>
   if (!items || items.length === 0)
@@ -306,8 +410,22 @@ function RespuestasPendientesLista({ items, cargando }) {
   )
 }
 
-// ─── componente principal ─────────────────────────────────────────────────────
 
+/**
+ * Página de inicio / dashboard del sistema.
+ * Muestra estadísticas del semestre actual, consultas pendientes, tareas y respuestas por calificar.
+ * Los datos mostrados varían según el rol del usuario (admin, asesor, monitor, estudiante).
+ * 
+ * @component
+ * @returns {JSX.Element} Dashboard con métricas, gráficos y listas de tareas pendientes
+ * 
+ * @description
+ * - Carga estadísticas usando endpoint específico por rol
+ * - Muestra gráfico de donut con consultas finalizadas vs pendientes
+ * - Muestra gráfico de barras con consultas por área
+ * - Lista consultas, tareas y respuestas pendientes (máximo 10, 5 y 5 respectivamente)
+ * - Botón de recarga para actualizar datos manualmente
+ */
 export function InicioForm() {
   const router = useRouter()
   const [user, setUser] = React.useState(null)
@@ -350,7 +468,7 @@ export function InicioForm() {
     }
   }, [año, semestre])
 
-  // ── fetch consultas pendientes ─────────────────────────────────────────────
+  
   const cargarConsultasPendientes = React.useCallback(async () => {
     setCargandoConsultas(true)
     try {
@@ -372,10 +490,7 @@ export function InicioForm() {
     }
   }, [])
 
-  // ── fetch tareas pendientes (estudiante) ───────────────────────────────────
-  // ── fetch tareas pendientes (estudiante) ───────────────────────────────────
-  // Flujo correcto: GET /consultas → por cada una GET /seguimientos/consulta/{id}/visibles-estudiante
-  // Tomamos las primeras 5 consultas para no saturar el backend
+  
   const cargarTareasPendientes = React.useCallback(async () => {
     setCargandoTareas(true)
     try {
@@ -412,7 +527,7 @@ export function InicioForm() {
     }
   }, [])
 
-  // ── fetch respuestas pendientes de calificacion (asesor/admin) ─────────────
+  
   const cargarRespuestasPendientes = React.useCallback(async () => {
     setCargandoRespuestas(true)
     try {
@@ -428,7 +543,7 @@ export function InicioForm() {
     }
   }, [])
 
-  // ── init ───────────────────────────────────────────────────────────────────
+  
   React.useEffect(() => {
     async function init() {
       try {
@@ -464,7 +579,7 @@ export function InicioForm() {
       cargarRespuestasPendientes()
   }, [user, cargarStats, cargarConsultasPendientes, cargarTareasPendientes, cargarRespuestasPendientes])
 
-  // ── derivadas ─────────────────────────────────────────────────────────────
+  
   const nombreRol = user?.tipoPerfil
     ? user.tipoPerfil.charAt(0) + user.tipoPerfil.slice(1).toLowerCase()
     : null
