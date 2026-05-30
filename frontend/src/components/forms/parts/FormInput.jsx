@@ -1,10 +1,21 @@
 import React from "react";
 import { Input } from "@/components/ui/input";
 
+/**
+ * Comprueba si las reglas de validación incluyen un campo obligatorio.
+ * @param {Object} rules - Reglas de validación de react-hook-form.
+ * @returns {boolean} True si el campo es requerido.
+ */
 function hasRequiredRule(rules) {
   return Boolean(rules?.required);
 }
 
+/**
+ * Renderiza la etiqueta del campo con un asterisco si es requerido.
+ * @param {string|React.ReactNode} label - Texto o elemento de etiqueta.
+ * @param {boolean} required - Indica si el campo es obligatorio.
+ * @returns {React.ReactNode} Etiqueta renderizada.
+ */
 function renderLabel(label, required) {
   if (!label) return null;
 
@@ -20,6 +31,11 @@ function renderLabel(label, required) {
   return label;
 }
 
+/**
+ * Input de formulario que integra react-hook-form y muestra errores.
+ * @param {{name:string, label:string, type?:string, register:function, errors:Object, rules?:Object}} props - Propiedades del componente.
+ * @returns {JSX.Element} Campo de formulario.
+ */
 export function FormInput({ name, label, type = "text", register, errors, rules, ...props }) {
   const error = errors?.[name];
   const required = hasRequiredRule(rules);

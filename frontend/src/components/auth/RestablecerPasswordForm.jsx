@@ -8,6 +8,11 @@ import { getApiErrorTitle, readResponseBody } from "@/lib/api"
 import { useRouter } from "next/navigation" 
 import { useEffect } from "react"
 
+/**
+ * Formulario para restablecer la contraseña con token.
+ * @param {{token:string}} props - Props del formulario.
+ * @returns {JSX.Element} Formulario de restablecimiento.
+ */
 export function RestablecerPasswordForm({ token }) {
   const {
     register,
@@ -21,6 +26,13 @@ export function RestablecerPasswordForm({ token }) {
   const [loading, setLoading] = useState(false)
   const router = useRouter()
 
+  /**
+   * Envía la nueva contraseña al backend.
+   * @param {Object} data - Datos del formulario.
+   * @param {string} data.passwordNueva - Nueva contraseña.
+   * @param {string} data.confirmarPassword - Confirmación de contraseña.
+   * @returns {Promise<void>} Promesa de envío.
+   */
   const onSubmit = async (data) => {
     setError("")
     setSuccess("")

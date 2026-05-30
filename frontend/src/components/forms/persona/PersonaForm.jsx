@@ -147,6 +147,11 @@ function optionalLabel(label) {
   return <span>{label}</span>;
 }
 
+/**
+ * Convierte un registro de catálogo en una opción para select.
+ * @param {Object} item - Registro del catálogo.
+ * @returns {{value:string, label:string}} Opción para un campo select.
+ */
 function toOption(item) {
   return {
     value: String(item.id),
@@ -154,6 +159,11 @@ function toOption(item) {
   };
 }
 
+/**
+ * Convierte datos de documento en una opción amigable para el select.
+ * @param {Object} item - Datos del documento.
+ * @returns {{value:string, label:string}} Opción de documento.
+ */
 function toDocumentoOption(item) {
   const value = item.codigo || item.abreviatura || item.nombre || item.descripcion || "";
   const label = item.nombre || item.descripcion || item.codigo || item.abreviatura || value;
@@ -161,6 +171,11 @@ function toDocumentoOption(item) {
   return { value, label };
 }
 
+/**
+ * Normaliza los valores iniciales antes de usarlos en el formulario.
+ * @param {Object} values - Valores iniciales recibidos.
+ * @returns {Object} Valores preparados para el formulario.
+ */
 function toFormValues(values = {}) {
   return {
     ...FORM_DEFAULTS,
@@ -186,6 +201,11 @@ function toFormValues(values = {}) {
   };
 }
 
+/**
+ * Convierte un valor numérico vacío en null.
+ * @param {unknown} value - Valor de entrada.
+ * @returns {number|null} Número o null.
+ */
 function numberOrNull(value) {
   if (value === null || value === undefined || value === "") {
     return null;
@@ -195,11 +215,21 @@ function numberOrNull(value) {
   return Number.isNaN(number) ? null : number;
 }
 
+/**
+ * Convierte texto vacío en null y elimina espacios innecesarios.
+ * @param {unknown} value - Valor de texto recibido.
+ * @returns {string|null} Texto limpio o null.
+ */
 function textOrNull(value) {
   const text = String(value ?? "").trim();
   return text === "" ? null : text;
 }
 
+/**
+ * Construye un payload con tipos normalizados para el backend.
+ * @param {Object} data - Datos del formulario.
+ * @returns {Object} Payload normalizado.
+ */
 function construirPayload(data) {
   return {
     ...data,
@@ -224,6 +254,11 @@ function construirPayload(data) {
   };
 }
 
+/**
+ * Carga un catálogo desde la API.
+ * @param {string} path - Ruta del catálogo relativa.
+ * @returns {Promise<Array<any>>} Lista de registros.
+ */
 async function fetchCatalogo(path) {
   const res = await fetch(`${API_URL_BASE}${path}`, {
     method: "GET",
@@ -238,6 +273,11 @@ async function fetchCatalogo(path) {
   return Array.isArray(data) ? data : [];
 }
 
+/**
+ * Formulario para crear o editar una persona.
+ * @param {{onSubmit:function, initialValues:Object}} props - Props del componente.
+ * @returns {JSX.Element} Componente de formulario.
+ */
 export function PersonaForm({ onSubmit, initialValues }) {
   const router = useRouter();
 

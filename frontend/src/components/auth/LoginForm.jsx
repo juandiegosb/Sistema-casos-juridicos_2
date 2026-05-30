@@ -10,6 +10,10 @@ import { API_URL_BASE } from "@/lib/config"
 import { getApiErrorTitle, readResponseBody } from "@/lib/api"
 import { requiredEmailRule } from "@/lib/form-validation"
 
+/**
+ * Formulario de inicio de sesión.
+ * @returns {JSX.Element} Formulario de login.
+ */
 export function LoginForm() {
   const router = useRouter()
   const [errorMessage, setErrorMessage] = useState("")
@@ -52,6 +56,13 @@ export function LoginForm() {
   }
 
   // Login
+  /**
+   * Envía la solicitud de autenticación al backend.
+   * @param {Object} data
+   * @param {string} data.username
+   * @param {string} data.password
+   * @returns {Promise<void>}
+   */
   const handleSubmitForm = async (data) => {
     setErrorMessage("")
     setIsSubmitting(true)

@@ -10,6 +10,10 @@ import { API_URL_BASE } from "@/lib/config"
 import { getApiErrorTitle, readResponseBody } from "@/lib/api"
 import { requiredEmailRule } from "@/lib/form-validation"
 
+/**
+ * Formulario para solicitar recuperación de contraseña.
+ * @returns {JSX.Element} Formulario de recuperación.
+ */
 export function RecuperarPasswordForm() {
   const router = useRouter()
   const [message, setMessage] = useState("")
@@ -24,6 +28,12 @@ export function RecuperarPasswordForm() {
 
   const REQUIRED = "Campo obligatorio"
 
+  /**
+   * Envía la solicitud de recuperación al backend.
+   * @param {Object} data - Datos del formulario.
+   * @param {string} data.correo - Correo electrónico del usuario.
+   * @returns {Promise<void>} Promesa de envío.
+   */
   const onSubmit = async (data) => {
     setError("")
     setMessage("")

@@ -1,3 +1,8 @@
+/**
+ * Lee el cuerpo de la respuesta y devuelve JSON o texto.
+ * @param {Response} response - Respuesta HTTP recibida.
+ * @returns {Promise<any>} Cuerpo parseado o texto crudo.
+ */
 export async function readResponseBody(response) {
   if (!response || response.status === 204) return null;
 
@@ -11,6 +16,12 @@ export async function readResponseBody(response) {
   }
 }
 
+/**
+ * Convierte un valor en mensaje de error legible.
+ * @param {any} value - Valor de error o detalle.
+ * @param {string|null} fieldName - Nombre del campo asociado.
+ * @returns {string|null} Mensaje procesado o null.
+ */
 function valueToMessage(value, fieldName) {
   if (value === null || value === undefined || value === "") return null;
 
@@ -25,6 +36,13 @@ function valueToMessage(value, fieldName) {
   return null;
 }
 
+/**
+ * Recorre valores anidados y agrega mensajes al arreglo.
+ * @param {any} value - Valor a procesar para mensajes.
+ * @param {string|null} fieldName - Nombre del campo actual.
+ * @param {Array<string>} messages - Arreglo para acumular mensajes.
+ * @returns {void} No retorna valor.
+ */
 function collectMessages(value, fieldName, messages) {
   const directMessage = valueToMessage(value, fieldName);
   if (directMessage) {
@@ -44,6 +62,11 @@ function collectMessages(value, fieldName, messages) {
   }
 }
 
+/**
+ * Extrae mensajes de error desde la carga útil de la API.
+ * @param {any} payload - Respuesta de error de la API.
+ * @returns {Array<string>} Mensajes individuales.
+ */
 export function getApiErrorMessages(payload) {
   if (!payload) return [];
   if (typeof payload === "string") return payload ? [payload] : [];
@@ -62,6 +85,12 @@ export function getApiErrorMessages(payload) {
   return [...new Set(messages.filter(Boolean))];
 }
 
+/**
+ * Determina el título de error desde la carga útil de la API.
+ * @param {any} payload - Respuesta de error de la API.
+ * @param {string} [fallback="Error en la operación"] - Título por defecto.
+ * @returns {string} Título de error.
+ */
 export function getApiErrorTitle(payload, fallback = "Error en la operación") {
   if (!payload) return fallback;
   if (typeof payload === "string") return payload || fallback;
@@ -75,6 +104,12 @@ export function getApiErrorTitle(payload, fallback = "Error en la operación") {
   );
 }
 
+/**
+ * Construye la descripción de error a partir de los detalles disponibles.
+ * @param {any} payload - Respuesta de error de la API.
+ * @param {string} [fallback="Verifica la información e intenta nuevamente."] - Descripción por defecto.
+ * @returns {string} Descripción de error compuesta.
+ */
 export function getApiErrorDescription(payload, fallback = "Verifica la información e intenta nuevamente.") {
   const messages = getApiErrorMessages(payload);
 

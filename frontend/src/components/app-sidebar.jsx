@@ -16,6 +16,13 @@ import { Power } from "lucide-react"
 import { useRouter, usePathname } from "next/navigation"
 import { API_URL_BASE } from "@/lib/config"
 
+/**
+ * Sidebar principal de la aplicación.
+ * @param {{mainItems:Array<Object>, footerItems:Array<Object>}} props
+ * @param {Array<Object>} props.mainItems Lista de elementos de navegación principal.
+ * @param {Array<Object>} props.footerItems Lista de elementos de navegación en el pie.
+ * @returns {JSX.Element} Sidebar principal.
+ */
 export function AppSidebar({ mainItems = [], footerItems = [] }) {
   const [email, setEmail] = React.useState("")
   const [name, setName] = React.useState("")
@@ -46,10 +53,22 @@ export function AppSidebar({ mainItems = [], footerItems = [] }) {
     cargarUsuario()
   }, [])
 
+  /**
+   * Convierte un texto a ruta interna en minúsculas.
+   * @param {string} text - Texto usado para generar la ruta.
+   * @returns {string} Ruta normalizada.
+   */
   function normalizePath(text) {
     return `/${String(text).toLowerCase().replace(/\s+/g, "")}`
   }
 
+  /**
+   * Obtiene la ruta para un elemento de menú.
+   * @param {Object} item - Elemento de menú.
+   * @param {string} [item.path] - Ruta definida en el elemento.
+   * @param {string} item.title - Título del elemento.
+   * @returns {string} Ruta resultante.
+   */
   function getItemPath(item) {
     if (item.path) {
       return item.path.startsWith("/") ? item.path : `/${item.path}`
@@ -58,6 +77,11 @@ export function AppSidebar({ mainItems = [], footerItems = [] }) {
     return normalizePath(item.title)
   }
 
+  /**
+   * Navega al elemento seleccionado del menú.
+   * @param {Object} item - Elemento de menú seleccionado.
+   * @returns {void} No retorna valor.
+   */
   function handleSubmit(item) {
     const path = getItemPath(item)
 
@@ -66,6 +90,10 @@ export function AppSidebar({ mainItems = [], footerItems = [] }) {
     router.push(path)
   }
 
+  /**
+   * Cierra sesión del usuario y redirige a la página de login.
+   * @returns {Promise<void>} Acción de cierre de sesión.
+   */
   const handleLogout = async () => {
     try {
       await fetch(`${API_URL_BASE}/auth/logout`, {

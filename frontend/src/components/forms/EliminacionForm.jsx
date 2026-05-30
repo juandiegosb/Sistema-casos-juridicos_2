@@ -71,20 +71,40 @@ const SECCIONES = [
   },
 ];
 
+/**
+ * Normaliza un valor a texto para comparaciones internas.
+ * @param {any} value - Valor a normalizar.
+ * @returns {string} Cadena normalizada.
+ */
 function normalizar(value) {
   return String(value || "").trim().toUpperCase();
 }
 
+/**
+ * Determina si un registro está inactivo.
+ * @param {Object} item - Registro de persona o perfil.
+ * @returns {boolean} True si el registro se considera inactivo.
+ */
 function estaInactivo(item) {
   return item?.activo === false || normalizar(item?.estado) === "INACTIVO";
 }
 
+/**
+ * Determina si una consulta está archivada.
+ * @param {Object} item - Registro de consulta.
+ * @returns {boolean} True si la consulta está archivada.
+ */
 function estaArchivadaConsulta(item) {
   const estado = normalizar(item?.estado);
 
   return estado === "ARCHIVADO" || estado === "ARCHIVADA";
 }
 
+/**
+ * Devuelve el nombre visible de un registro.
+ * @param {Object} item - Registro de persona o consulta.
+ * @returns {string} Nombre mostrado.
+ */
 function nombrePersona(item) {
   return (
     item?.nombre ||
@@ -96,10 +116,20 @@ function nombrePersona(item) {
   );
 }
 
+/**
+ * Obtiene el documento o identificador de una persona.
+ * @param {Object} item - Registro de persona.
+ * @returns {string} Documento o identificador.
+ */
 function documentoPersona(item) {
   return item?.documento || item?.numeroDocumento || item?.cedula || "N/A";
 }
 
+/**
+ * Genera un texto descriptivo para una consulta.
+ * @param {Object} item - Registro de consulta.
+ * @returns {string} Texto descriptivo.
+ */
 function textoConsulta(item) {
   return (
     item?.consulta ||
@@ -110,6 +140,12 @@ function textoConsulta(item) {
   );
 }
 
+/**
+ * Obtiene un detalle adicional según el tipo de registro.
+ * @param {Object} item - Registro actual.
+ * @param {string} tipo - Tipo de registro.
+ * @returns {string} Detalle adicional.
+ */
 function detalleItem(item, tipo) {
   if (tipo === "consulta") {
     return item?.fecha || item?.estado || "Consulta archivada";
@@ -126,6 +162,11 @@ function detalleItem(item, tipo) {
   return item?.codigo || item?.usuario || item?.telefono || "Perfil desactivado";
 }
 
+/**
+ * Lee la respuesta de la API y devuelve JSON o mensaje simple.
+ * @param {Response} response - Respuesta HTTP recibida.
+ * @returns {Promise<any>} Resultado parseado.
+ */
 async function leerRespuesta(response) {
   const text = await response.text();
 
@@ -138,6 +179,10 @@ async function leerRespuesta(response) {
   }
 }
 
+/**
+ * Componente que muestra registros desactivados y permite reactivarlos.
+ * @returns {JSX.Element} Formulario de eliminación.
+ */
 export function EliminacionForm() {
   const [seccionActiva, setSeccionActiva] = useState("personas");
   const [data, setData] = useState({});
