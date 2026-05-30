@@ -1,4 +1,14 @@
-"use client";
+"use client"
+
+/**
+ * Formulario de gestión de temas jurídicos.
+ *
+ * Permite crear, editar y desactivar temas agrupados por área jurídica.
+ * Requiere permiso `GESTIONAR_CATALOGOS`.
+ *
+ * @module components/forms/catalogos/TemaForm
+ */
+;
 
 import React, { useState, useEffect, useMemo } from "react";
 import { useApiForm } from "@/hooks/useApiForm";

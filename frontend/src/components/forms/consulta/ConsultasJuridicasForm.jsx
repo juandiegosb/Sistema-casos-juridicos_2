@@ -1,4 +1,17 @@
-"use client";
+"use client"
+
+/**
+ * Formulario de listado y gestión de consultas jurídicas.
+ *
+ * Muestra las consultas filtradas por permisos del usuario:
+ * - Admin/asesor/monitor: todas las consultas de su alcance.
+ * - Estudiante: solo las consultas asignadas a él.
+ *
+ * Soporta búsqueda, filtrado por estado y área, y paginación.
+ *
+ * @module components/forms/consulta/ConsultasJuridicasForm
+ */
+;
 
 import React, { useEffect, useState, useMemo } from "react";
 import { toast } from "sonner";

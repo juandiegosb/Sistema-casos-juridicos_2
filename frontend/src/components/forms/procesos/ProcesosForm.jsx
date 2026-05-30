@@ -35,14 +35,33 @@ const ESTADOS_PROCESO = [
   { value: "PRESCRIPCION", label: "Prescripción" },
 ];
 
+/**
+ * Convierte un estado de proceso a su etiqueta en español.
+ * 
+ * @param {string} estado - Código de estado (ej: "PENDIENTE", "SENTENCIA_FAVORABLE")
+ * @returns {string} Etiqueta legible del estado
+ */
 function labelEstadoProceso(estado) {
   return ESTADOS_PROCESO.find((item) => item.value === estado)?.label || estado || "Sin estado";
 }
 
+/**
+ * Determina si un estado de proceso es final (no puede cambiar).
+ * 
+ * @param {string} estado - Estado a verificar
+ * @returns {boolean} True si el estado es final, false si es PENDIENTE
+ */
 function estadoProcesoEsFinal(estado) {
   return estado && estado !== "PENDIENTE";
 }
 
+/**
+ * Extrae un array de una estructura de datos anidada, buscando en claves comunes.
+ * Útil para normalizar diferentes formatos de respuesta del backend.
+ * 
+ * @param {*} data - Datos a procesar (array u objeto)
+ * @returns {Array} Array encontrado o array vacío
+ */
 function extraerLista(data) {
   if (Array.isArray(data)) return data;
   if (!data || typeof data !== "object") return [];
@@ -64,6 +83,14 @@ function extraerLista(data) {
   return [];
 }
 
+/**
+ * Lee la respuesta de una solicitud fetch y la parsea como JSON.
+ * Maneja respuestas vacías y errores de parseo.
+ * 
+ * @async
+ * @param {Response} response - Objeto Response de fetch
+ * @returns {Promise<*>} Datos parseados o null si está vacío
+ */
 async function leerRespuesta(response) {
   if (response.status === 204) return null;
   const text = await response.text();
@@ -71,12 +98,28 @@ async function leerRespuesta(response) {
   try { return JSON.parse(text); } catch { return { mensaje: text }; }
 }
 
+/**
+ * Extrae un mensaje de error de un payload de respuesta.
+ * Busca en propiedades comunes (mensaje, message, error).
+ * 
+ * @param {*} payload - Objeto de respuesta del backend
+ * @param {string} defecto - Mensaje por defecto si no se encuentra uno
+ * @returns {string} Mensaje de error encontrado o mensaje por defecto
+ */
 function mensajeError(payload, defecto) {
   if (!payload) return defecto;
   if (typeof payload === "string") return payload || defecto;
   return payload.mensaje || payload.message || payload.error || defecto;
 }
 
+/**
+ * Realiza una solicitud GET al API con manejo de errores y autenticación.
+ * 
+ * @async
+ * @param {string} url - URL del endpoint
+ * @returns {Promise<*>} Datos de respuesta
+ * @throws {Error} Si falla la autenticación, autorización o la solicitud
+ */
 async function apiGet(url) {
   const response = await fetch(url, { credentials: "include" });
   const payload = await leerRespuesta(response);
@@ -86,6 +129,16 @@ async function apiGet(url) {
   return payload;
 }
 
+/**
+ * Realiza una solicitud POST/PUT/DELETE al API con manejo de errores y autenticación.
+ * Automáticamente agrega header Content-Type: application/json.
+ * 
+ * @async
+ * @param {string} url - URL del endpoint
+ * @param {Object} options - Opciones de fetch (method, body, headers, etc)
+ * @returns {Promise<*>} Datos de respuesta
+ * @throws {Error} Si falla la autenticación, autorización o la solicitud
+ */
 async function apiEnviar(url, options) {
   const response = await fetch(url, {
     credentials: "include",
@@ -99,22 +152,58 @@ async function apiEnviar(url, options) {
   return payload;
 }
 
+/**
+ * Verifica si el usuario puede acceder a la sección de procesos.
+ * @param {Object} user - Objeto del usuario
+ * @returns {boolean} True si tiene alguno de los permisos necesarios
+ */
 function puedeAccederProcesos(user) {
   return tieneAlgunPermiso(user, [PERMISOS.ACCEDER_PROCESOS, PERMISOS_PROCESOS.VER_PROCESOS, PERMISOS_PROCESOS.GESTIONAR_PROCESOS]);
 }
+
+/**
+ * Verifica si el usuario puede ver (listar) procesos.
+ * @param {Object} user - Objeto del usuario
+ * @returns {boolean} True si tiene permiso VER_PROCESOS o GESTIONAR_PROCESOS
+ */
 function puedeVerProcesos(user) {
   return tieneAlgunPermiso(user, [PERMISOS_PROCESOS.VER_PROCESOS, PERMISOS_PROCESOS.GESTIONAR_PROCESOS]);
 }
+
+/**
+ * Verifica si el usuario puede crear/editar/eliminar procesos.
+ * @param {Object} user - Objeto del usuario
+ * @returns {boolean} True si tiene permiso GESTIONAR_PROCESOS
+ */
 function puedeGestionarProcesos(user) {
   return tieneAlgunPermiso(user, [PERMISOS_PROCESOS.GESTIONAR_PROCESOS]);
 }
+
+/**
+ * Verifica si el usuario puede cargar catálogos (departamentos, órganos, etc).
+ * @param {Object} user - Objeto del usuario
+ * @returns {boolean} True si tiene permiso VER_CATALOGOS o GESTIONAR_CATALOGOS
+ */
 function puedeCargarCatalogos(user) {
   return tieneAlgunPermiso(user, [PERMISOS.VER_CATALOGOS, PERMISOS.GESTIONAR_CATALOGOS]);
 }
+
+/**
+ * Verifica si el usuario puede cargar consultas para asociar a procesos.
+ * @param {Object} user - Objeto del usuario
+ * @returns {boolean} True si tiene permiso VER_CONSULTAS o GESTIONAR_CONSULTAS_LEGACY
+ */
 function puedeCargarConsultas(user) {
   return tieneAlgunPermiso(user, [PERMISOS.VER_CONSULTAS, PERMISOS_PROCESOS.GESTIONAR_CONSULTAS_LEGACY]);
 }
 
+/**
+ * Ordena una lista de items, colocando los activos primero y luego los inactivos.
+ * Dentro de cada grupo, ordena alfabéticamente por nombre o descripción.
+ * 
+ * @param {Array<Object>} lista - Lista a ordenar
+ * @returns {Array<Object>} Nueva lista ordenada
+ */
 function ordenarActivosPrimero(lista) {
   return [...lista].sort((a, b) => {
     const activoA = a.activo === false ? 1 : 0;
@@ -124,20 +213,49 @@ function ordenarActivosPrimero(lista) {
   });
 }
 
+/**
+ * Crea un Map indexado por id numérico desde una lista de items.
+ * Facilita búsquedas rápidas por id.
+ * 
+ * @param {Array<Object>} lista - Lista de items con propiedad 'id'
+ * @returns {Map<number, Object>} Mapa id => item
+ */
 function crearMapa(lista) {
   return new Map(lista.map((item) => [Number(item.id), item]));
 }
 
+/**
+ * Obtiene el nombre de un item del catálogo usando un Map.
+ * 
+ * @param {Map<number, Object>} mapa - Mapa de items indexado por id
+ * @param {number} id - ID a buscar
+ * @param {string} [fallback] - Valor por defecto si no se encuentra
+ * @returns {string} Nombre/descripción del item o fallback o "#id" si no existe
+ */
 function nombreCatalogo(mapa, id, fallback) {
   const item = mapa.get(Number(id));
   return item?.nombre || item?.descripcion || fallback || (id ? `#${id}` : "Sin asignar");
 }
 
+/**
+ * Genera una etiqueta legible para un item de catálogo.
+ * Agrega "(Inactivo)" al nombre si el item no está activo.
+ * 
+ * @param {Object} item - Item de catálogo con propiedades {nombre, descripcion, codigo, activo, id}
+ * @returns {string} Etiqueta formateada
+ */
 function labelCatalogo(item) {
   const nombre = item.nombre || item.descripcion || item.codigo || `#${item.id}`;
   return item.activo === false ? `${nombre} (Inactivo)` : nombre;
 }
 
+/**
+ * Genera una etiqueta detallada para una consulta.
+ * Incluye ID, descripción, nombre de la persona y documento.
+ * 
+ * @param {Object} consulta - Objeto de consulta
+ * @returns {string} Etiqueta en formato: "#id - descripción - persona - documento"
+ */
 function labelConsulta(consulta) {
   const persona = consulta.persona || consulta.consultante || {};
   const nombrePersona = [
@@ -153,6 +271,13 @@ function labelConsulta(consulta) {
   ].filter(Boolean).join(" - ");
 }
 
+/**
+ * Normaliza un formulario de proceso antes de enviarlo al backend.
+ * Convierte IDs a números y valores vacíos a null.
+ * 
+ * @param {Object} form - Objeto de formulario
+ * @returns {Object} Objeto normalizado listo para enviar al API
+ */
 function normalizarPayload(form) {
   const numeroRadicado = String(form.numeroRadicado || "").trim();
   return {
@@ -164,6 +289,13 @@ function normalizarPayload(form) {
   };
 }
 
+/**
+ * Convierte un objeto de proceso a formato de formulario.
+ * Asegura que todos los campos tengan valor por defecto (strings vacíos).
+ * 
+ * @param {Object} proceso - Objeto de proceso del backend
+ * @returns {Object} Objeto en formato de formulario
+ */
 function procesoAForm(proceso) {
   return {
     id: proceso.id,

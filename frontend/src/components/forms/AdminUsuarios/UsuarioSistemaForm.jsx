@@ -1,4 +1,17 @@
-"use client";
+"use client"
+
+/**
+ * Formulario de creación de usuarios del sistema jurídico.
+ *
+ * Permite crear asesores, monitores, estudiantes, conciliadores y administrativos.
+ * Cuando el tipo seleccionado es "Estudiante", muestra un Tabs con dos modos:
+ * creación individual y cargue masivo desde Excel.
+ *
+ * Requiere permiso `CREAR_USUARIOS` o `GESTIONAR_ADMINISTRADORES`.
+ *
+ * @module components/forms/AdminUsuarios/UsuarioSistemaForm
+ */
+;
 
 import React, { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";

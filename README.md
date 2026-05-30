@@ -1,205 +1,177 @@
-# Sistema de gestión de casos jurídicos
+# Frontend — Sistema de gestión de casos jurídicos
 
-Sistema web para la gestión integral de casos jurídicos del consultorio jurídico.
+Aplicación frontend del consultorio jurídico UFPS. Consume el backend principal mediante endpoints REST y gestiona la sesión a través de cookie HTTP-only.
 
-El proyecto centraliza la administración de usuarios, roles, permisos, personas, consultas jurídicas, seguimientos, procesos, conciliaciones, auditoría y archivos asociados al funcionamiento del consultorio.
+## Tecnologías
 
-## Propósito
+- **Next.js 15** (App Router)
+- **React 19**
+- **Tailwind CSS** + shadcn/ui (Radix UI)
+- **react-hook-form** para formularios
+- **Fetch API** con `credentials: "include"`
+- **Playwright** para pruebas e2e
 
-El sistema permite organizar y controlar el ciclo operativo de atención jurídica, desde el registro de personas y consultas hasta la gestión de actuaciones internas, seguimiento de casos, procesos y conciliaciones.
+## Requisitos
 
-La solución está estructurada como una aplicación web con backend en Spring Boot y frontend en Next.js.
+- Node.js 22 o superior
+- npm
 
-## Arquitectura general
+## Instalación
 
-```text
-backend/
-  app/
-    Backend principal del sistema.
-
-frontend/
-  Aplicación web del sistema.
+```bash
+npm install
 ```
 
-## Backend
+## Variables de entorno
 
-El backend principal se encuentra en:
+Copia `.env.example` a `.env.local` y ajusta los valores:
 
-```text
-backend/app
+```bash
+cp .env.example .env.local
 ```
 
-Tecnologías principales:
+| Variable | Propósito | Valor por defecto |
+|---|---|---|
+| `NEXT_PUBLIC_API_URL_BASE` | URL base del backend principal (incluye `/api`) | `http://localhost:8080/api` |
+| `NEXT_PUBLIC_FILE_STORAGE_API_URL_BASE` | URL base del servicio de archivos | igual a `NEXT_PUBLIC_API_URL_BASE` |
 
-- Java 21.
-- Spring Boot.
-- Spring Security.
-- Spring Data JPA.
-- PostgreSQL/Supabase.
-- Jakarta Validation.
-- Lombok.
-- Maven.
-- JWT para autenticación.
-- Cookies para manejo de sesión.
-- Soporte de auditoría.
-- Soporte de envío de correos.
-- Soporte de almacenamiento de archivos.
+> Las variables `NEXT_PUBLIC_*` son visibles para el navegador. No incluir tokens, claves ni credenciales en ellas.
 
-## Frontend
+## Ejecución local
 
-El frontend se encuentra en:
-
-```text
-frontend
+```bash
+npm run dev
 ```
 
-Tecnologías principales:
+La aplicación queda disponible en `http://localhost:3000`.
 
-- Next.js.
-- React.
-- Tailwind CSS.
-- Radix UI / shadcn.
-- Fetch API.
-- Playwright.
+## Compilación y producción
 
-## Seguridad y configuración
+```bash
+npm run build   # compila para producción
+npm run start   # sirve la compilación
+```
 
-La configuración sensible del sistema se maneja mediante variables de entorno o configuración externa del entorno de ejecución.
+## Estructura de carpetas relevante
 
-La documentación del repositorio describe el propósito de las variables, pero no debe incluir valores reales de secretos, llaves, tokens, firmas, credenciales o contraseñas.
+```
+src/
+├── app/                    # Rutas de Next.js (App Router)
+│   ├── layout.js           # Layout raíz (tema, fuentes, metadata)
+│   └── (dashboard)/        # Grupo de rutas protegidas
+├── components/
+│   ├── app-sidebar.jsx     # Barra lateral de navegación
+│   ├── auth/               # Formulario de login
+│   ├── forms/              # Formularios de cada módulo
+│   └── ui/                 # Componentes base de shadcn/ui
+├── hooks/
+│   ├── useApiForm.js       # Hook para envíos de formulario al backend
+│   └── use-mobile.js       # Hook para detectar viewport móvil
+└── lib/
+    ├── api.js              # Helpers para leer y normalizar respuestas HTTP
+    ├── apiClient.js        # Cliente HTTP centralizado (wrapper de fetch)
+    ├── authz.js            # Funciones de autorización (tienePermiso, etc.)
+    ├── config.js           # URLs del backend desde variables de entorno
+    ├── form-validation.js  # Reglas reutilizables para react-hook-form
+    ├── list-utils.js       # Ordenamiento y paginación de listas
+    ├── permission.js       # Constantes de permisos del sistema
+    └── utils.js            # Helper cn() para clases Tailwind
+```
 
-Variables principales del backend:
+## Autenticación y sesión
 
-| Variable | Propósito |
-|---|---|
-| `DB_URL` | Define la conexión a la base de datos. |
-| `DB_USERNAME` | Define el usuario de conexión a base de datos. |
-| `DB_PASSWORD` | Define la contraseña de conexión a base de datos. |
-| `JWT_SECRET` | Define el secreto usado por el mecanismo de tokens. |
-| `BREVO_API_KEY` | Define la llave del proveedor de correo. |
-| `MAIL_FROM_EMAIL` | Define el remitente usado para correos del sistema. |
-
-Variables principales del frontend:
-
-| Variable | Propósito |
-|---|---|
-| `NEXT_PUBLIC_API_URL` | Define la URL pública base del backend. |
-| `NEXT_PUBLIC_API_URL_BASE` | Define la URL pública base de la API. |
-| `NEXT_PUBLIC_FILE_STORAGE_API_URL_BASE` | Define la URL pública base para consumo de archivos. |
-
-Las variables `NEXT_PUBLIC_*` son visibles para el navegador y no deben contener información sensible.
-
-## Módulos principales
-
-### Autenticación
-
-Gestiona inicio de sesión, validación de sesión actual y cierre de sesión.
-
-El frontend consume la autenticación usando cookie de sesión y envía las peticiones protegidas con:
+La sesión se maneja mediante cookie HTTP-only. Todas las peticiones protegidas deben incluir:
 
 ```javascript
 credentials: "include"
 ```
 
-### Usuarios, roles y permisos
+Usar el cliente centralizado `lib/apiClient.js` que lo hace automáticamente:
 
-Gestiona usuarios del sistema, perfiles internos, roles y permisos funcionales.
+```javascript
+import { apiClient } from "@/lib/apiClient";
 
-La autorización combina permisos generales con reglas de alcance propias de cada módulo.
+const res = await apiClient.get("/auth/me");
+const user = await res.json();
+```
 
-### Personas
+### Códigos de estado de sesión
 
-Gestiona la información de personas relacionadas con el consultorio jurídico y sus casos.
+| Código | Significado | Acción en el frontend |
+|---|---|---|
+| `401` | Sesión no válida o expirada | Redirigir a `/` (login) |
+| `403` | Sin permiso sobre el recurso | Mostrar error, no redirigir |
 
-### Catálogos
+## Permisos
 
-Gestiona datos auxiliares usados por los formularios y flujos principales del sistema.
+Los permisos del usuario se obtienen del campo `permisos` de `/api/auth/me`. Las constantes están en `lib/permission.js` agrupadas por módulo. La verificación se hace con las funciones de `lib/authz.js`:
 
-### Consultas jurídicas
+```javascript
+import { PERMISOS } from "@/lib/permission";
+import { tienePermiso } from "@/lib/authz";
 
-Gestiona el registro y ciclo operativo de las consultas jurídicas.
+if (tienePermiso(user, PERMISOS.VER_CONSULTAS)) {
+  // mostrar sección
+}
+```
 
-### Seguimientos
+> La visibilidad en el frontend no reemplaza la seguridad del backend. El backend valida permisos y alcance real en cada endpoint.
 
-Gestiona seguimientos asociados a consultas jurídicas, incluyendo respuestas y documentos adjuntos cuando aplica.
+## Objeto de usuario (`/api/auth/me`)
 
-### Procesos
+```json
+{
+  "id": 1,
+  "username": "usuario@correo.com",
+  "nombre": "Nombre Apellido",
+  "tipoPerfil": "ASESOR",
+  "rolNombre": "Asesor",
+  "rolId": 2,
+  "perfilId": 5,
+  "permisos": [
+    { "id": 1, "nombre": "Ver consultas" },
+    { "id": 2, "nombre": "Acceder inicio" }
+  ]
+}
+```
 
-Gestiona procesos asociados a consultas jurídicas y su estado operativo.
+## Formato de errores del backend
 
-### Conciliaciones
+```json
+{
+  "fecha": "2026-05-30T10:00:00",
+  "estado": 400,
+  "error": "Bad Request",
+  "mensaje": "Mensaje descriptivo para el usuario",
+  "ruta": "/api/endpoint",
+  "detalles": {
+    "campo": "Mensaje de validación del campo"
+  }
+}
+```
 
-Gestiona conciliaciones asociadas a consultas jurídicas.
+Usar `lib/api.js` para extraer mensajes:
 
-Características principales del módulo:
+```javascript
+import { readResponseBody, getApiErrorTitle, getApiErrorDescription } from "@/lib/api";
 
-- creación de conciliación desde consulta;
-- carga de solicitud PDF;
-- autoasignación de estudiante habilitado;
-- autoasignación de conciliador por menor carga;
-- estados administrados por catálogo;
-- validación de reglas por código técnico de estado;
-- detalle con consultante, partes y contrapartes desde la consulta;
-- asignación de estudiante;
-- asignación de conciliador;
-- cambio de estados operativos;
-- finalización con acta PDF;
-- reemplazo de solicitud;
-- desactivación lógica;
-- validación de conciliaciones pendientes al cerrar consultas.
+const payload = await readResponseBody(response);
+const titulo = getApiErrorTitle(payload);
+const descripcion = getApiErrorDescription(payload);
+```
 
-### Auditoría
-
-Registra acciones relevantes del sistema según las reglas configuradas en backend.
-
-### Archivos
-
-Gestiona carga, consulta y descarga de documentos usados por los módulos del sistema.
-
-## Ejecución local
-
-### Backend
-
-Desde la raíz del proyecto:
+## Pruebas
 
 ```bash
-cd backend/app
-./mvnw spring-boot:run
+npm run test           # ejecuta las pruebas Playwright en modo headless
+npm run test:ui        # abre la interfaz visual de Playwright
+npm run test:headed    # ejecuta con navegador visible
 ```
 
-En Windows:
+## Convenciones de desarrollo
 
-```powershell
-cd backend/app
-.\mvnw.cmd spring-boot:run
-```
-
-### Frontend
-
-```bash
-cd frontend
-npm install
-npm run dev
-```
-
-Por defecto, el frontend se ejecuta en:
-
-```text
-http://localhost:3000
-```
-
-## Docker Compose
-
-Desde la raíz del proyecto:
-
-```bash
-docker compose up --build
-```
-
-## Convenciones de mantenimiento
-
-- La documentación debe mantenerse alineada con el código fuente vigente.
-- Los valores sensibles no deben documentarse ni versionarse.
-- Los archivos generados, reportes locales y configuraciones de IDE no deben formar parte del repositorio.
-- Los permisos deben documentarse cuando afecten navegación, acciones o reglas de acceso.
-- Las reglas de negocio críticas deben validarse en backend.
+- Usar `API_URL_BASE` de `lib/config.js` para todos los endpoints (nunca hardcodear URLs).
+- Usar `apiClient` de `lib/apiClient.js` en código nuevo para centralizar headers y credenciales.
+- Usar `cn()` de `lib/utils.js` para combinar clases Tailwind con condiciones.
+- Documentar componentes y funciones con JSDoc siguiendo el patrón de `lib/authz.js`.
+- Los archivos de test van en `src/__tests__/` con nombre `NombreComponente.test.jsx`.

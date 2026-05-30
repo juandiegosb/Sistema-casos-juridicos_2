@@ -1,5 +1,17 @@
 "use client"
 
+/**
+ * Formulario de inicio de sesión del sistema jurídico.
+ *
+ * Al montarse verifica si ya existe sesión activa mediante `/api/auth/me`
+ * y redirige a `/inicio` si el usuario ya está autenticado.
+ *
+ * Valida el formato del correo electrónico con `requiredEmailRule()` y
+ * deshabilita el botón de envío mientras la petición está en curso (`isSubmitting`)
+ * para evitar envíos duplicados.
+ *
+ * @module components/auth/LoginForm
+ */
 import React, { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { useForm } from "react-hook-form"

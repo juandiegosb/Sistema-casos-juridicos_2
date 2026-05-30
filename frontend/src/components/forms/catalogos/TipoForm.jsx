@@ -1,4 +1,14 @@
-"use client";
+"use client"
+
+/**
+ * Formulario de gestión de tipos de consulta jurídica.
+ *
+ * Permite crear, editar y desactivar tipos agrupados por tema.
+ * Requiere permiso `GESTIONAR_CATALOGOS`.
+ *
+ * @module components/forms/catalogos/TipoForm
+ */
+;
 
 import React, { useState, useEffect, useMemo } from "react";
 import { useApiForm } from "@/hooks/useApiForm";

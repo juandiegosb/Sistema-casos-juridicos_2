@@ -123,6 +123,14 @@ const SIDEBAR_PAGES = [
   },
 ];
 
+/**
+ * Determina si un usuario puede ver una página específica.
+ * Verifica los permisos requeridos según la lógica de match (any/all).
+ * 
+ * @param {Object} page - Objeto de página con requiredPermissions y match
+ * @param {Object} user - Objeto del usuario
+ * @returns {boolean} True si el usuario tiene acceso a la página
+ */
 function puedeVerPagina(page, user) {
   if (!user) return false;
 
@@ -141,6 +149,14 @@ function puedeVerPagina(page, user) {
   return tieneTodosLosPermisos(user, requiredPermissions);
 }
 
+/**
+ * Filtra una lista de páginas según los permisos del usuario.
+ * Solo retorna las páginas a las que el usuario tiene acceso.
+ * 
+ * @param {Array<Object>} pages - Array de páginas disponibles
+ * @param {Object} user - Objeto del usuario
+ * @returns {Array<Object>} Array de páginas filtradas
+ */
 function filtrarPaginasPorPermisos(pages, user) {
   return pages.filter((page) => puedeVerPagina(page, user));
 }

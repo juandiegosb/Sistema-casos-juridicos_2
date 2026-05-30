@@ -16,14 +16,38 @@ import { Power } from "lucide-react"
 import { useRouter, usePathname } from "next/navigation"
 import { API_URL_BASE } from "@/lib/config"
 
+/**
+ * Componente de barra lateral principal de la aplicación.
+ * Muestra menú de navegación, información del usuario y controles de sesión.
+ * 
+ * @component
+ * @param {Object} props - Las propiedades del componente
+ * @param {Array} props.mainItems - Array de items del menú principal. Cada item debe tener {title, path}
+ * @param {Array} props.footerItems - Array de items del menú del pie de página
+ * @returns {JSX.Element} Barra lateral con navegación y controles de usuario
+ * 
+ * @example
+ * <AppSidebar 
+ *   mainItems={[{title: "Inicio", path: "/inicio"}]}
+ *   footerItems={[{title: "Configuración", path: "/config"}]}
+ * />
+ */
 export function AppSidebar({ mainItems = [], footerItems = [] }) {
   const [email, setEmail] = React.useState("")
   const [name, setName] = React.useState("")
   const router = useRouter()
   const pathname = usePathname()
 
-  // Obtener usuario desde backend (cookie JWT)
+  /**
+   * Efecto para cargar información del usuario autenticado desde el backend.
+   * Se ejecuta una sola vez al montar el componente.
+   */
   React.useEffect(() => {
+    /**
+     * Obtiene los datos del usuario desde el endpoint /auth/me
+     * Guarda el email y nombre en el estado del componente
+     * @async
+     */
     const cargarUsuario = async () => {
       try {
         const res = await fetch(`${API_URL_BASE}/auth/me`, {
@@ -46,10 +70,26 @@ export function AppSidebar({ mainItems = [], footerItems = [] }) {
     cargarUsuario()
   }, [])
 
+  /**
+   * Convierte un texto a una ruta normalizada en minúsculas sin espacios.
+   * Ejemplo: "Mi Página" → "/mipágina"
+   * 
+   * @param {string} text - Texto a normalizar
+   * @returns {string} Ruta normalizada con / inicial
+   */
   function normalizePath(text) {
     return `/${String(text).toLowerCase().replace(/\s+/g, "")}`
   }
 
+  /**
+   * Obtiene la ruta de un item del menú.
+   * Si el item tiene propiedad 'path', la utiliza; si no, genera una desde el título.
+   * 
+   * @param {Object} item - Objeto con propiedades {title, path}
+   * @param {string} item.title - Título del item
+   * @param {string} [item.path] - Ruta personalizada (opcional)
+   * @returns {string} Ruta del item
+   */
   function getItemPath(item) {
     if (item.path) {
       return item.path.startsWith("/") ? item.path : `/${item.path}`
@@ -58,6 +98,13 @@ export function AppSidebar({ mainItems = [], footerItems = [] }) {
     return normalizePath(item.title)
   }
 
+  /**
+   * Navega hacia el item del menú seleccionado.
+   * Valida que la ruta sea válida antes de navegar.
+   * 
+   * @param {Object} item - Objeto del menú a navegar
+   * @param {string} item.path - Ruta del item
+   */
   function handleSubmit(item) {
     const path = getItemPath(item)
 
@@ -66,6 +113,13 @@ export function AppSidebar({ mainItems = [], footerItems = [] }) {
     router.push(path)
   }
 
+  /**
+   * Cierra la sesión del usuario.
+   * Realiza logout en el backend y redirige a la página de login.
+   * 
+   * @async
+   * @returns {Promise<void>}
+   */
   const handleLogout = async () => {
     try {
       await fetch(`${API_URL_BASE}/auth/logout`, {

@@ -1,4 +1,15 @@
+/**
+ * Hook para manejar envíos de formularios al backend.
+ *
+ * Centraliza la lógica común de todos los formularios: estado de carga,
+ * manejo de errores HTTP, toasts de éxito/error, y redirección en caso
+ * de sesión expirada (401).
+ *
+ * @module hooks/useApiForm
+ */
+
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import {
   getApiErrorDescription,
@@ -6,9 +17,51 @@ import {
   readResponseBody,
 } from "@/lib/api";
 
+/**
+ * @typedef {Object} UseApiFormOptions
+ * @property {string} endpoint - URL completa del endpoint del backend.
+ * @property {"GET"|"POST"|"PUT"|"PATCH"|"DELETE"} [method="POST"] - Método HTTP.
+ * @property {string} [successMessage="Registro exitoso"] - Mensaje del toast de éxito.
+ */
+
+/**
+ * @typedef {Object} UseApiFormResult
+ * @property {function(object): Promise<{success: boolean, data?: unknown, error?: unknown}>} submit
+ *   Función que ejecuta la petición. Recibe el payload y devuelve el resultado.
+ * @property {boolean} isSubmitting - `true` mientras la petición está en curso.
+ */
+
+/**
+ * Hook para enviar formularios al backend con manejo automático de errores y toasts.
+ *
+ * Soporta cualquier método HTTP a través del parámetro `method`.
+ * Ante un 401 redirige automáticamente al login (`/`).
+ *
+ * @param {UseApiFormOptions} options - Configuración del hook.
+ * @returns {UseApiFormResult} Función `submit` y estado `isSubmitting`.
+ *
+ * @example
+ * const { submit, isSubmitting } = useApiForm({
+ *   endpoint: `${API_URL_BASE}/areas`,
+ *   method: "POST",
+ *   successMessage: "Área creada correctamente",
+ * });
+ *
+ * const handleSubmit = async (data) => {
+ *   const result = await submit(data);
+ *   if (result.success) reset();
+ * };
+ */
 export function useApiForm({ endpoint, method = "POST", successMessage = "Registro exitoso" }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const router = useRouter();
 
+  /**
+   * Ejecuta la petición HTTP al backend con el payload recibido.
+   *
+   * @param {object} data - Datos del formulario a enviar como JSON.
+   * @returns {Promise<{success: boolean, data?: unknown, error?: unknown}>}
+   */
   const submit = async (data) => {
     setIsSubmitting(true);
 
@@ -29,7 +82,7 @@ export function useApiForm({ endpoint, method = "POST", successMessage = "Regist
           description: "Debe iniciar sesión nuevamente",
         });
 
-        window.location.href = "/";
+        router.replace("/");
         return { success: false, error: payload };
       }
 

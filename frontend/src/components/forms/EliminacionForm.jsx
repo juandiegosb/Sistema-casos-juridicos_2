@@ -1,4 +1,15 @@
-"use client";
+"use client"
+
+/**
+ * Formulario de eliminación y reactivación de registros.
+ *
+ * Permite cambiar el estado activo/inactivo de personas, usuarios,
+ * estudiantes y consultas. Requiere los permisos correspondientes
+ * según el tipo de recurso.
+ *
+ * @module components/forms/EliminacionForm
+ */
+;
 
 import React, { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";

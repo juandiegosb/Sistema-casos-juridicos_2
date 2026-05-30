@@ -1,3 +1,14 @@
+/**
+ * Formulario de gestión de áreas jurídicas.
+ *
+ * Permite crear, editar y desactivar áreas. Incluye tabla paginada
+ * con las áreas registradas y diálogo de confirmación para desactivar.
+ *
+ * Requiere permiso `GESTIONAR_CATALOGOS`. Si el usuario no tiene sesión
+ * válida redirige a `/`; si no tiene permiso suficiente redirige a `/inicio`.
+ *
+ * @module components/forms/catalogos/AreaForm
+ */
 "use client"
 
 import React, { useEffect, useMemo, useState } from "react"
@@ -70,23 +81,37 @@ export function AreaForm() {
     verificar()
   }, [router])
 
+  /**
+   * Carga la lista de áreas desde el backend y actualiza el estado.
+   * Redirige a raíz si la sesión expiró (401) o muestra toast si hay error de red.
+   */
   async function cargarAreas() {
-    const res = await fetch(`${API_URL_BASE}/areas`, {
-      credentials: "include",
-    })
+    try {
+      const res = await fetch(`${API_URL_BASE}/areas`, {
+        credentials: "include",
+      })
 
-    if (res.status === 401) {
-      router.push("/")
-      return
+      if (res.status === 401) {
+        router.push("/")
+        return
+      }
+
+      if (res.status === 403) {
+        toast.error("Sin permiso para ver áreas")
+        return
+      }
+
+      if (!res.ok) {
+        toast.error("Error al cargar áreas")
+        return
+      }
+
+      const data = await res.json()
+      setAreas(sortByIdAsc(Array.isArray(data) ? data : []))
+    } catch (error) {
+      console.error("Error de red al cargar áreas:", error)
+      toast.error("Error de conexión al cargar áreas")
     }
-
-    if (res.status === 403) {
-      router.push("/inicio")
-      return
-    }
-
-    const data = await res.json()
-    setAreas(sortByIdAsc(Array.isArray(data) ? data : []))
   }
 
   function abrirEditar(area) {
@@ -135,6 +160,13 @@ export function AreaForm() {
     }
   }
 
+  /**
+   * Envía el formulario al backend (POST para crear, PUT para editar).
+   * Muestra toast de éxito o error según el resultado.
+   * Recarga la lista de áreas si la operación fue exitosa.
+   *
+   * @param {{ nombre: string }} data - Datos del formulario validados por react-hook-form.
+   */
   const onSubmit = async (data) => {
     setIsSubmitting(true)
 
@@ -158,7 +190,7 @@ export function AreaForm() {
       }
 
       if (res.status === 403) {
-        router.push("/inicio")
+        toast.error("No tienes permiso para realizar esta acción")
         return
       }
 
@@ -174,6 +206,9 @@ export function AreaForm() {
           description: getApiErrorDescription(payload),
         })
       }
+    } catch (error) {
+      console.error("Error de red al guardar área:", error)
+      toast.error("Error de conexión al guardar")
     } finally {
       setIsSubmitting(false)
     }

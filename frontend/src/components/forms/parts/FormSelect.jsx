@@ -1,3 +1,10 @@
+/**
+ * Campo de selección reutilizable para formularios.
+ *
+ * Integra `register` de react-hook-form con lista de opciones `{ value, label }`.
+ *
+ * @module components/forms/parts/FormSelect
+ */
 function hasRequiredRule(rules) {
   return Boolean(rules?.required);
 }

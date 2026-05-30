@@ -1,5 +1,14 @@
 "use client"
 
+/**
+ * Formulario de gestión de seguimientos (tareas) de consultas jurídicas.
+ *
+ * Permite crear, editar y responder seguimientos según el rol del usuario.
+ * Los estudiantes solo pueden ver y responder; asesores y monitores pueden
+ * crear, editar, y calificar respuestas.
+ *
+ * @module components/forms/consulta/SeguimientosForm
+ */
 import React, { useEffect, useMemo, useState } from "react"
 import { useRouter } from "next/navigation"
 import { useForm } from "react-hook-form"

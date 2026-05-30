@@ -1,3 +1,11 @@
+/**
+ * Campo de entrada de texto reutilizable para formularios.
+ *
+ * Integra `register` de react-hook-form y muestra el mensaje de error
+ * del campo automáticamente si existe.
+ *
+ * @module components/forms/parts/FormInput
+ */
 import React from "react";
 import { Input } from "@/components/ui/input";
 
