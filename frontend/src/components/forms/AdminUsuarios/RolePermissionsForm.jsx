@@ -203,8 +203,16 @@ const PAGINAS = [
     ],
   },
   {
+    title: "Estadísticas",
+    path: "/estadisticas",
+    permisosVista: [PERMISOS.VER_REPORTES],
+    permisosAsignar: [
+      PERMISOS.VER_REPORTES,
+      PERMISOS.ACCEDER_ESTADISTICAS,
+    ],
+  },
+  {
     title: "Administración",
-    path: "/admin",
     permisosVista: [PERMISOS.ACCEDER_ADMINISTRACION],
     permisosAsignar: [
       PERMISOS.ACCEDER_ADMINISTRACION,
@@ -876,18 +884,19 @@ export function RolePermissionsForm() {
                 const selected = paginasSeleccionadas.includes(page.path);
 
                 return (
-                  <button
-                    key={page.path}
-                    type="button"
-                    onClick={() => togglePagina(page.path)}
-                    className={`rounded-lg border px-4 py-3 text-sm font-medium transition ${
-                      selected
-                        ? "border-primary bg-primary text-primary-foreground"
-                        : "bg-background hover:bg-muted"
-                    }`}
-                  >
-                    {page.title}
-                  </button>
+                  <React.Fragment key={page.path}>
+                    <button
+                      type="button"
+                      onClick={() => togglePagina(page.path)}
+                      className={`rounded-lg border px-4 py-3 text-sm font-medium transition ${
+                        selected
+                          ? "border-primary bg-primary text-primary-foreground"
+                          : "bg-background hover:bg-muted"
+                      }`}
+                    >
+                      {page.title}
+                    </button>
+                  </React.Fragment>
                 );
               })}
             </div>

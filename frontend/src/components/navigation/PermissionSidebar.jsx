@@ -99,6 +99,13 @@ const SIDEBAR_PAGES = [
     match: "all",
   },
   {
+    title: "Estadísticas",
+    tooltip: "Estadísticas del semestre",
+    path: "/estadisticas",
+    requiredPermissions: [PERMISOS.VER_REPORTES],
+    match: "any",
+  },
+  {
     title: "Administración",
     tooltip: "Administración",
     path: "/admin",
