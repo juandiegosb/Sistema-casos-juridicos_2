@@ -32,7 +32,7 @@ public class Proceso {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "numero_radicado", nullable = false, unique = true, length = 23)
+    @Column(name = "numero_radicado", unique = true, length = 23)
     private String numeroRadicado;
 
     @ManyToOne(fetch = FetchType.LAZY)

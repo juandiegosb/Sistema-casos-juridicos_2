@@ -20,6 +20,8 @@ import co.edu.ufps.legal_cases.common.exception.BusinessException;
 @Component
 public class ProcesoValidator {
 
+    private static final int LONGITUD_RADICADO = 23;
+
     public void validarCreacion(ProcesoDTO dto) {
         validarDtoObligatorio(dto);
 
@@ -36,17 +38,19 @@ public class ProcesoValidator {
         }
     }
 
-    public String normalizarNumeroRadicado(String numeroRadicado) {
+    public String normalizarNumeroRadicadoParaEstado(String numeroRadicado, EstadoProceso estado) {
         String normalizado = normalizarTexto(numeroRadicado);
+        EstadoProceso estadoValidado = estado != null ? estado : EstadoProceso.PENDIENTE;
 
-        if (normalizado == null || normalizado.isBlank()) {
-            throw new BusinessException("El número de radicado es obligatorio");
+        if (normalizado == null) {
+            if (estadoValidado.esFinal()) {
+                throw new BusinessException("No se puede finalizar el proceso sin número de radicado");
+            }
+
+            return null;
         }
 
-        if (normalizado.length() != 23) {
-            throw new BusinessException("El número de radicado debe tener exactamente 23 caracteres");
-        }
-
+        validarFormatoNumeroRadicado(normalizado);
         return normalizado;
     }
 
@@ -59,8 +63,7 @@ public class ProcesoValidator {
                 ? proceso.getConsulta().getId()
                 : null;
 
-        // La consulta define el alcance del proceso, por eso no se permite cambiarla en
-        // edición.
+        // La consulta define el alcance del proceso, por eso no se permite cambiarla en edición.
         if (!Objects.equals(consultaActualId, dto.getConsultaId())) {
             throw new BusinessException("No se permite cambiar la consulta de un proceso existente");
         }
@@ -110,6 +113,12 @@ public class ProcesoValidator {
 
         if (Objects.equals(proceso.getEstado(), estado)) {
             throw new BusinessException("El proceso ya tiene ese estado");
+        }
+    }
+
+    private void validarFormatoNumeroRadicado(String numeroRadicado) {
+        if (numeroRadicado.length() != LONGITUD_RADICADO) {
+            throw new BusinessException("El número de radicado debe tener exactamente 23 caracteres");
         }
     }
 

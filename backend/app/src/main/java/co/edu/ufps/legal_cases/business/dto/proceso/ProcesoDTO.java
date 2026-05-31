@@ -1,9 +1,7 @@
 package co.edu.ufps.legal_cases.business.dto.proceso;
 
 import co.edu.ufps.legal_cases.business.model.proceso.EstadoProceso;
-import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -17,8 +15,8 @@ public class ProcesoDTO {
 
     private Long id;
 
-    @NotBlank(message = "El número de radicado es obligatorio")
-    @Size(min = 23, max = 23, message = "El número de radicado debe tener exactamente 23 caracteres")
+    // Puede ser nulo mientras el proceso permanezca PENDIENTE.
+    // Para estados finales se valida en ProcesoValidator.
     private String numeroRadicado;
 
     @NotNull(message = "El departamento es obligatorio")

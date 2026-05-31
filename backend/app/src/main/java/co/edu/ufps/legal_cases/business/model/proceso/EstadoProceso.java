@@ -6,5 +6,9 @@ public enum EstadoProceso {
     SENTENCIA_DESFAVORABLE,
     DESISTIMIENTO,
     RECHAZO,
-    PRESCRIPCION
+    PRESCRIPCION;
+
+    public boolean esFinal() {
+        return this != PENDIENTE;
+    }
 }

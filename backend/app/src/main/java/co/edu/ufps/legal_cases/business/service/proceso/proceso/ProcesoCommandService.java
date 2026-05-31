@@ -4,7 +4,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import co.edu.ufps.legal_cases.audit.aop.log.Auditable;
-
 import co.edu.ufps.legal_cases.business.dto.proceso.ProcesoDTO;
 import co.edu.ufps.legal_cases.business.model.catalogo.Departamento;
 import co.edu.ufps.legal_cases.business.model.consulta.Consulta;
@@ -37,20 +36,18 @@ public class ProcesoCommandService {
     private final ConsultaEstadoService consultaEstadoService;
 
     // Crea un proceso asociado a una consulta existente.
-    // El alcance se valida con la consulta porque Proceso no tiene un alcance
-    // independiente.
+    // El alcance se valida con la consulta porque Proceso no tiene un alcance independiente.
     @Transactional
     @Auditable(action = "CREAR_PROCESO", entityName = "Proceso")
     public ProcesoDTO crear(ProcesoDTO dto) {
         procesoValidator.validarCreacion(dto);
 
-        String numeroRadicado = procesoValidator.normalizarNumeroRadicado(dto.getNumeroRadicado());
+        String numeroRadicado = procesoValidator.normalizarNumeroRadicadoParaEstado(
+                dto.getNumeroRadicado(),
+                EstadoProceso.PENDIENTE);
 
         procesoAccessService.validarPuedeCrearProceso(dto.getConsultaId());
-
-        if (procesoRepository.existsByNumeroRadicado(numeroRadicado)) {
-            throw new BusinessException("Ya existe un proceso con ese número de radicado");
-        }
+        validarRadicadoUnicoEnCreacion(numeroRadicado);
 
         DatosProceso datos = prepararDatos(dto, numeroRadicado);
 
@@ -63,8 +60,7 @@ public class ProcesoCommandService {
     }
 
     // Actualiza datos del proceso sin permitir cambiar la consulta.
-    // La consulta define el alcance, por eso mover un proceso a otra consulta sería
-    // otro flujo de negocio.
+    // La consulta define el alcance, por eso mover un proceso a otra consulta sería otro flujo de negocio.
     @Transactional
     @Auditable(action = "ACTUALIZAR_PROCESO", entityName = "Proceso")
     public ProcesoDTO actualizar(Long id, ProcesoDTO dto) {
@@ -74,11 +70,11 @@ public class ProcesoCommandService {
         Proceso proceso = buscarProcesoActivo(id);
         procesoValidator.validarNoCambieConsulta(proceso, dto);
 
-        String numeroRadicado = procesoValidator.normalizarNumeroRadicado(dto.getNumeroRadicado());
+        String numeroRadicado = procesoValidator.normalizarNumeroRadicadoParaEstado(
+                dto.getNumeroRadicado(),
+                proceso.getEstado());
 
-        if (procesoRepository.existsByNumeroRadicadoAndIdNot(numeroRadicado, id)) {
-            throw new BusinessException("Ya existe un proceso con ese número de radicado");
-        }
+        validarRadicadoUnicoEnActualizacion(numeroRadicado, id);
 
         DatosProceso datos = prepararDatos(dto, numeroRadicado);
 
@@ -102,6 +98,11 @@ public class ProcesoCommandService {
 
         procesoValidator.validarCambioEstadoProceso(proceso, estado);
 
+        String numeroRadicado = procesoValidator.normalizarNumeroRadicadoParaEstado(
+                proceso.getNumeroRadicado(),
+                estado);
+
+        proceso.setNumeroRadicado(numeroRadicado);
         proceso.setEstado(estado);
 
         return procesoMapper.convertirADTO(procesoRepository.save(proceso));
@@ -152,6 +153,18 @@ public class ProcesoCommandService {
                 consulta,
                 organoControl,
                 especialidad);
+    }
+
+    private void validarRadicadoUnicoEnCreacion(String numeroRadicado) {
+        if (numeroRadicado != null && procesoRepository.existsByNumeroRadicado(numeroRadicado)) {
+            throw new BusinessException("Ya existe un proceso con ese número de radicado");
+        }
+    }
+
+    private void validarRadicadoUnicoEnActualizacion(String numeroRadicado, Long id) {
+        if (numeroRadicado != null && procesoRepository.existsByNumeroRadicadoAndIdNot(numeroRadicado, id)) {
+            throw new BusinessException("Ya existe un proceso con ese número de radicado");
+        }
     }
 
     private Proceso buscarProcesoActivo(Long id) {

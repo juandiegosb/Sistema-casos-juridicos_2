@@ -174,9 +174,8 @@ function ModalBuscarConsulta({ abierto, consultas, busqueda, setBusqueda, onSele
                   key={id}
                   type="button"
                   onClick={() => onSeleccionar(consulta)}
-                  className={`w-full text-left px-3 py-2 rounded-lg text-sm hover:bg-muted transition-colors ${
-                    marcado ? "bg-primary/10 text-primary font-medium" : ""
-                  }`}
+                  className={`w-full text-left px-3 py-2 rounded-lg text-sm hover:bg-muted transition-colors ${marcado ? "bg-primary/10 text-primary font-medium" : ""
+                    }`}
                 >
                   <div className="font-medium">
                     #{id} — {consulta.consulta || consulta.descripcion || consulta.hechos || "Sin descripción"}
@@ -214,18 +213,16 @@ function CampoConsulta({ label, consultaId, consultas, onSeleccionar, required }
       <button
         type="button"
         onClick={() => { setBusqueda(""); setModalAbierto(true); }}
-        className={`flex h-9 w-full items-center justify-between rounded-lg border bg-background px-3 text-sm text-left hover:bg-muted/50 transition-colors ${
-          !consultaSeleccionada ? "text-muted-foreground" : ""
-        }`}
+        className={`flex h-9 w-full items-center justify-between rounded-lg border bg-background px-3 text-sm text-left hover:bg-muted/50 transition-colors ${!consultaSeleccionada ? "text-muted-foreground" : ""
+          }`}
       >
         <span className="truncate">
           {consultaSeleccionada
-            ? `#${consultaSeleccionada.id || consultaSeleccionada.consultaId} — ${
-                consultaSeleccionada.consulta ||
-                consultaSeleccionada.descripcion ||
-                consultaSeleccionada.hechos ||
-                "Sin descripción"
-              }`
+            ? `#${consultaSeleccionada.id || consultaSeleccionada.consultaId} — ${consultaSeleccionada.consulta ||
+            consultaSeleccionada.descripcion ||
+            consultaSeleccionada.hechos ||
+            "Sin descripción"
+            }`
             : "Buscar consulta..."}
         </span>
         <span className="text-muted-foreground ml-2 flex-shrink-0">▼</span>
@@ -370,17 +367,27 @@ export function NuevoProcesoForm() {
 
   function validarAntesDeGuardar() {
     const numeroRadicado = String(form.numeroRadicado || "").trim();
-    if (!numeroRadicado) { toast.error("Ingresa el número de radicado"); return false; }
-    if (numeroRadicado.length !== 23) {
+
+    if (numeroRadicado && numeroRadicado.length !== 23) {
       toast.error("El número de radicado debe tener exactamente 23 caracteres");
       return false;
     }
-    if (!form.departamentoId) { toast.error("Selecciona un departamento"); return false; }
-    if (!form.consultaId) { toast.error("Selecciona una consulta"); return false; }
+
+    if (!form.departamentoId) {
+      toast.error("Selecciona un departamento");
+      return false;
+    }
+
+    if (!form.consultaId) {
+      toast.error("Selecciona una consulta");
+      return false;
+    }
+
     if (form.especialidadId && !form.organoControlId) {
       toast.error("Selecciona primero un órgano de control");
       return false;
     }
+
     return true;
   }
 
@@ -426,13 +433,18 @@ export function NuevoProcesoForm() {
       ) : (
         <form onSubmit={guardarProceso} className="space-y-5">
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-            <CampoTexto
-              label="Número de radicado *"
-              value={form.numeroRadicado}
-              onChange={(v) => actualizarCampo("numeroRadicado", v)}
-              placeholder="Exactamente 23 caracteres"
-              maxLength={23}
-            />
+            <div className="space-y-1">
+              <CampoTexto
+                label="Número de radicado"
+                value={form.numeroRadicado}
+                onChange={(v) => actualizarCampo("numeroRadicado", v)}
+                placeholder="Opcional mientras el proceso esté pendiente"
+                maxLength={23}
+              />
+              <p className="text-xs text-muted-foreground">
+                Puede quedar vacío mientras el proceso esté pendiente. Será obligatorio antes de registrar un resultado final.
+              </p>
+            </div>
 
             <CampoSelect
               label="Departamento"
