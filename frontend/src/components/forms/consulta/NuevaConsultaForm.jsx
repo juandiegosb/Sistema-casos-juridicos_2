@@ -24,13 +24,6 @@ import { PERMISOS } from "@/lib/permission";
 import { tienePermiso } from "@/lib/authz";
 import { getApiErrorDescription, getApiErrorTitle, readResponseBody } from "@/lib/api";
 
-const ESTADOS_CONSULTA_CREACION = [
-  { value: "ACTIVO", label: "Activo" },
-  { value: "EN_PROCESO", label: "En proceso" },
-  { value: "PENDIENTE", label: "Pendiente" },
-  { value: "URGENTE", label: "Urgente" },
-];
-
 const VACIOS = {
   fecha: "",
   descripcion: "",
@@ -40,7 +33,7 @@ const VACIOS = {
   tramite: "",
   observaciones: "",
   tipoViolencia: "",
-  estado: "ACTIVO",
+  estado: "",
   resultado: "",
   personaId: "",
   sedeId: "",
@@ -94,9 +87,8 @@ function ModalSimple({
           <button
             type="button"
             onClick={() => onSeleccionar(null)}
-            className={`w-full text-left px-3 py-2 rounded-lg text-sm hover:bg-muted transition-colors ${
-              !seleccionado ? "bg-primary/10 text-primary font-medium" : ""
-            }`}
+            className={`w-full text-left px-3 py-2 rounded-lg text-sm hover:bg-muted transition-colors ${!seleccionado ? "bg-primary/10 text-primary font-medium" : ""
+              }`}
           >
             Sin asignar
           </button>
@@ -111,11 +103,10 @@ function ModalSimple({
                 key={item.id}
                 type="button"
                 onClick={() => onSeleccionar(item)}
-                className={`w-full text-left px-3 py-2 rounded-lg text-sm hover:bg-muted transition-colors ${
-                  seleccionado?.id === item.id
+                className={`w-full text-left px-3 py-2 rounded-lg text-sm hover:bg-muted transition-colors ${seleccionado?.id === item.id
                     ? "bg-primary/10 text-primary font-medium"
                     : ""
-                }`}
+                  }`}
               >
                 {renderItem(item)}
               </button>
@@ -194,14 +185,12 @@ function ModalMultiple({
                   key={item.id}
                   type="button"
                   onClick={() => toggleItem(item.id)}
-                  className={`w-full text-left px-3 py-2 rounded-lg text-sm hover:bg-muted transition-colors flex items-center gap-3 ${
-                    marcado ? "bg-primary/10" : ""
-                  }`}
+                  className={`w-full text-left px-3 py-2 rounded-lg text-sm hover:bg-muted transition-colors flex items-center gap-3 ${marcado ? "bg-primary/10" : ""
+                    }`}
                 >
                   <span
-                    className={`w-4 h-4 rounded border flex items-center justify-center flex-shrink-0 ${
-                      marcado ? "bg-primary border-primary" : "border-gray-400"
-                    }`}
+                    className={`w-4 h-4 rounded border flex items-center justify-center flex-shrink-0 ${marcado ? "bg-primary border-primary" : "border-gray-400"
+                      }`}
                   >
                     {marcado && <span className="text-white text-xs">✓</span>}
                   </span>
@@ -404,8 +393,8 @@ export function NuevaConsultaForm() {
 
     return t
       ? asesores.filter((a) =>
-          `${a.nombre} ${a.documento}`.toLowerCase().includes(t)
-        )
+        `${a.nombre} ${a.documento}`.toLowerCase().includes(t)
+      )
       : asesores;
   }, [asesores, modalAsesor.busqueda]);
 
@@ -414,8 +403,8 @@ export function NuevaConsultaForm() {
 
     return t
       ? monitores.filter((m) =>
-          `${m.nombre} ${m.documento}`.toLowerCase().includes(t)
-        )
+        `${m.nombre} ${m.documento}`.toLowerCase().includes(t)
+      )
       : monitores;
   }, [monitores, modalMonitor.busqueda]);
 
@@ -424,8 +413,8 @@ export function NuevaConsultaForm() {
 
     return t
       ? estudiantes.filter((e) =>
-          `${e.nombre} ${e.documento} ${e.codigo}`.toLowerCase().includes(t)
-        )
+        `${e.nombre} ${e.documento} ${e.codigo}`.toLowerCase().includes(t)
+      )
       : estudiantes;
   }, [estudiantes, modalEstudiante.busqueda]);
 
@@ -434,10 +423,10 @@ export function NuevaConsultaForm() {
 
     return t
       ? personasParaPrincipal.filter((p) =>
-          `${p.nombres} ${p.apellidos} ${p.numeroDocumento}`
-            .toLowerCase()
-            .includes(t)
-        )
+        `${p.nombres} ${p.apellidos} ${p.numeroDocumento}`
+          .toLowerCase()
+          .includes(t)
+      )
       : personasParaPrincipal;
   }, [personasParaPrincipal, modalParte.busqueda]);
 
@@ -446,10 +435,10 @@ export function NuevaConsultaForm() {
 
     return t
       ? personasParaAdicionales.filter((p) =>
-          `${p.nombres} ${p.apellidos} ${p.numeroDocumento}`
-            .toLowerCase()
-            .includes(t)
-        )
+        `${p.nombres} ${p.apellidos} ${p.numeroDocumento}`
+          .toLowerCase()
+          .includes(t)
+      )
       : personasParaAdicionales;
   }, [personasParaAdicionales, modalPartesAdicionales.busqueda]);
 
@@ -458,10 +447,10 @@ export function NuevaConsultaForm() {
 
     return t
       ? personasParaContrapartes.filter((p) =>
-          `${p.nombres} ${p.apellidos} ${p.numeroDocumento}`
-            .toLowerCase()
-            .includes(t)
-        )
+        `${p.nombres} ${p.apellidos} ${p.numeroDocumento}`
+          .toLowerCase()
+          .includes(t)
+      )
       : personasParaContrapartes;
   }, [personasParaContrapartes, modalContrapartes.busqueda]);
 
@@ -692,7 +681,6 @@ export function NuevaConsultaForm() {
     const faltantes = [];
 
     if (!form.fecha) faltantes.push("fecha");
-    if (!form.estado) faltantes.push("estado");
     if (!form.tramite?.trim()) faltantes.push("trámite");
     if (!form.sedeId) faltantes.push("sede");
     if (!form.areaId) faltantes.push("área");
@@ -733,7 +721,6 @@ export function NuevaConsultaForm() {
       tramite: form.tramite,
       observaciones: form.observaciones || "",
       tipoViolencia: textOrNull(form.tipoViolencia),
-      estado: form.estado || "ACTIVO",
       resultado: textOrNull(form.resultado),
       personaId: numberOrNull(form.personaId),
       sedeId: numberOrNull(form.sedeId),
@@ -832,23 +819,6 @@ export function NuevaConsultaForm() {
               required
               className={ic}
             />
-          </C>
-
-          <C label="Estado *">
-            <select
-              name="estado"
-              value={form.estado}
-              onChange={handleChange}
-              required
-              className={ic}
-            >
-              <option value="">Seleccione</option>
-              {ESTADOS_CONSULTA_CREACION.map((estado) => (
-                <option key={estado.value} value={estado.value}>
-                  {estado.label}
-                </option>
-              ))}
-            </select>
           </C>
 
           <C label="Trámite *">
@@ -977,11 +947,10 @@ export function NuevaConsultaForm() {
                     }
                   >
                     {asesorSeleccionado
-                      ? `${asesorSeleccionado.nombre}${
-                          asesorSeleccionado.documento
-                            ? ` - ${asesorSeleccionado.documento}`
-                            : ""
-                        }`
+                      ? `${asesorSeleccionado.nombre}${asesorSeleccionado.documento
+                        ? ` - ${asesorSeleccionado.documento}`
+                        : ""
+                      }`
                       : "Sin asignar"}
                   </span>
                   <span className="text-muted-foreground">▼</span>
@@ -1007,11 +976,10 @@ export function NuevaConsultaForm() {
                     }
                   >
                     {monitorSeleccionado
-                      ? `${monitorSeleccionado.nombre}${
-                          monitorSeleccionado.documento
-                            ? ` - ${monitorSeleccionado.documento}`
-                            : ""
-                        }`
+                      ? `${monitorSeleccionado.nombre}${monitorSeleccionado.documento
+                        ? ` - ${monitorSeleccionado.documento}`
+                        : ""
+                      }`
                       : "Sin asignar"}
                   </span>
                   <span className="text-muted-foreground">▼</span>
@@ -1037,11 +1005,10 @@ export function NuevaConsultaForm() {
                     }
                   >
                     {estudianteSeleccionado
-                      ? `${estudianteSeleccionado.nombre}${
-                          estudianteSeleccionado.codigo
-                            ? ` - ${estudianteSeleccionado.codigo}`
-                            : ""
-                        }`
+                      ? `${estudianteSeleccionado.nombre}${estudianteSeleccionado.codigo
+                        ? ` - ${estudianteSeleccionado.codigo}`
+                        : ""
+                      }`
                       : "Sin asignar"}
                   </span>
                   <span className="text-muted-foreground">▼</span>
@@ -1095,8 +1062,8 @@ export function NuevaConsultaForm() {
             >
               {partesAdicionalesSeleccionadas.length > 0
                 ? partesAdicionalesSeleccionadas
-                    .map((p) => `${p.nombres} ${p.apellidos}`)
-                    .join(", ")
+                  .map((p) => `${p.nombres} ${p.apellidos}`)
+                  .join(", ")
                 : "Buscar y agregar partes..."}
             </span>
             <span className="text-muted-foreground">▼</span>
@@ -1123,8 +1090,8 @@ export function NuevaConsultaForm() {
             >
               {contrapartesSeleccionadas.length > 0
                 ? contrapartesSeleccionadas
-                    .map((p) => `${p.nombres} ${p.apellidos}`)
-                    .join(", ")
+                  .map((p) => `${p.nombres} ${p.apellidos}`)
+                  .join(", ")
                 : "Buscar y agregar contrapartes..."}
             </span>
             <span className="text-muted-foreground">▼</span>

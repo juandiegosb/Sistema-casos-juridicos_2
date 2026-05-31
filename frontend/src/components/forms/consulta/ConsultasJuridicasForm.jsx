@@ -1,17 +1,17 @@
 "use client"
 
-/**
- * Formulario de listado y gestión de consultas jurídicas.
- *
- * Muestra las consultas filtradas por permisos del usuario:
- * - Admin/asesor/monitor: todas las consultas de su alcance.
- * - Estudiante: solo las consultas asignadas a él.
- *
- * Soporta búsqueda, filtrado por estado y área, y paginación.
- *
- * @module components/forms/consulta/ConsultasJuridicasForm
- */
-;
+  /**
+   * Formulario de listado y gestión de consultas jurídicas.
+   *
+   * Muestra las consultas filtradas por permisos del usuario:
+   * - Admin/asesor/monitor: todas las consultas de su alcance.
+   * - Estudiante: solo las consultas asignadas a él.
+   *
+   * Soporta búsqueda, filtrado por estado y área, y paginación.
+   *
+   * @module components/forms/consulta/ConsultasJuridicasForm
+   */
+  ;
 
 import React, { useEffect, useState, useMemo } from "react";
 import { toast } from "sonner";
@@ -109,6 +109,22 @@ function obtenerArrayDesdeRespuesta(payload) {
 
 function valorDefinido(...valores) {
   return valores.find((valor) => valor !== undefined && valor !== null && valor !== "") ?? "";
+}
+
+function idNormalizado(valor) {
+  if (valor === undefined || valor === null || valor === "") {
+    return "";
+  }
+
+  return String(valor);
+}
+
+function obtenerAreaIdAsesor(asesor) {
+  return idNormalizado(asesor?.areaId ?? asesor?.area?.id);
+}
+
+function obtenerAsesorIdEstudiante(estudiante) {
+  return idNormalizado(estudiante?.asesorId ?? estudiante?.asesor?.id);
 }
 
 function normalizarEstadoConsulta(estado) {
@@ -334,9 +350,25 @@ export function ConsultasJuridicasForm() {
   const [modalContrapartes, setModalContrapartes] = useState({ abierto: false, busqueda: "" });
 
   // Seleccionados
-  const asesorSeleccionado = useMemo(() => asesores.find(a => String(a.id) === String(form.asesorId)) || null, [asesores, form.asesorId]);
-  const monitorSeleccionado = useMemo(() => monitores.find(m => String(m.id) === String(form.monitorId)) || null, [monitores, form.monitorId]);
-  const estudianteSeleccionado = useMemo(() => estudiantes.find(e => String(e.id) === String(form.estudianteId)) || null, [estudiantes, form.estudianteId]);
+  const areaSeleccionadaId = useMemo(
+    () => idNormalizado(form.areaId),
+    [form.areaId]
+  );
+
+  const asesorSeleccionado = useMemo(
+    () => asesores.find((a) => idNormalizado(a.id) === idNormalizado(form.asesorId)) || null,
+    [asesores, form.asesorId]
+  );
+
+  const monitorSeleccionado = useMemo(
+    () => monitores.find((m) => idNormalizado(m.id) === idNormalizado(form.monitorId)) || null,
+    [monitores, form.monitorId]
+  );
+
+  const estudianteSeleccionado = useMemo(
+    () => estudiantes.find((e) => idNormalizado(e.id) === idNormalizado(form.estudianteId)) || null,
+    [estudiantes, form.estudianteId]
+  );
   const parteSeleccionada = useMemo(() => personas.find(p => Number(p.id) === Number(form.personaId)) || null, [personas, form.personaId]);
   const partesAdicionalesSeleccionadas = useMemo(() => personas.filter(p => (form.partesIds || []).includes(Number(p.id))), [personas, form.partesIds]);
   const contrapartesSeleccionadas = useMemo(() => personas.filter(p => (form.contrapartesIds || []).includes(Number(p.id))), [personas, form.contrapartesIds]);
@@ -358,21 +390,59 @@ export function ConsultasJuridicasForm() {
   }), [personas, form.personaId, form.partesIds]);
 
   // Filtros por búsqueda
+  // Filtros por búsqueda y coherencia funcional de responsables.
+  // El backend valida estas reglas; aquí solo evitamos que la UI proponga combinaciones inválidas.
+  const asesoresDisponiblesPorArea = useMemo(() => {
+    if (!areaSeleccionadaId) {
+      return [];
+    }
+
+    return asesores.filter(
+      (asesor) => obtenerAreaIdAsesor(asesor) === areaSeleccionadaId
+    );
+  }, [asesores, areaSeleccionadaId]);
+
+  const estudiantesDisponiblesPorAsesor = useMemo(() => {
+    if (!form.asesorId) {
+      return [];
+    }
+
+    const asesorId = idNormalizado(form.asesorId);
+
+    return estudiantes.filter(
+      (estudiante) => obtenerAsesorIdEstudiante(estudiante) === asesorId
+    );
+  }, [estudiantes, form.asesorId]);
+
   const asesoresFiltrados = useMemo(() => {
     const t = modalAsesor.busqueda.toLowerCase();
-    return t ? asesores.filter(a => `${a.nombre} ${a.documento}`.toLowerCase().includes(t)) : asesores;
-  }, [asesores, modalAsesor.busqueda]);
+
+    return t
+      ? asesoresDisponiblesPorArea.filter((a) =>
+        `${a.nombre} ${a.documento}`.toLowerCase().includes(t)
+      )
+      : asesoresDisponiblesPorArea;
+  }, [asesoresDisponiblesPorArea, modalAsesor.busqueda]);
 
   const monitoresFiltrados = useMemo(() => {
     const t = modalMonitor.busqueda.toLowerCase();
-    return t ? monitores.filter(m => `${m.nombre} ${m.documento}`.toLowerCase().includes(t)) : monitores;
+
+    return t
+      ? monitores.filter((m) =>
+        `${m.nombre} ${m.documento}`.toLowerCase().includes(t)
+      )
+      : monitores;
   }, [monitores, modalMonitor.busqueda]);
 
   const estudiantesFiltrados = useMemo(() => {
     const t = modalEstudiante.busqueda.toLowerCase();
-    return t ? estudiantes.filter(e => `${e.nombre} ${e.documento} ${e.codigo}`.toLowerCase().includes(t)) : estudiantes;
-  }, [estudiantes, modalEstudiante.busqueda]);
 
+    return t
+      ? estudiantesDisponiblesPorAsesor.filter((e) =>
+        `${e.nombre} ${e.documento} ${e.codigo}`.toLowerCase().includes(t)
+      )
+      : estudiantesDisponiblesPorAsesor;
+  }, [estudiantesDisponiblesPorAsesor, modalEstudiante.busqueda]);
   const parteFiltrada = useMemo(() => {
     const t = modalParte.busqueda.toLowerCase();
     return t ? personasParaPrincipal.filter(p => `${p.nombres} ${p.apellidos} ${p.numeroDocumento}`.toLowerCase().includes(t)) : personasParaPrincipal;
@@ -520,77 +590,77 @@ export function ConsultasJuridicasForm() {
   }, [form.temaId]);
 
   async function cargarConsultas(search = "") {
-  setLoading(true);
+    setLoading(true);
 
-  const url = construirUrlConsultas(search);
+    const url = construirUrlConsultas(search);
 
-  try {
-    console.log("[CONSULTAS] Consultando:", url);
+    try {
+      console.log("[CONSULTAS] Consultando:", url);
 
-    const res = await fetch(url, {
-      method: "GET",
-      credentials: "include",
-    });
-
-    const payload = await leerJsonSeguro(res);
-
-    console.log("[CONSULTAS] Status:", res.status);
-    console.log("[CONSULTAS] Payload:", payload);
-
-    if (res.status === 401) {
-      router.replace("/");
-      return;
-    }
-
-    if (res.status === 403) {
-      toast.error("No tienes permisos para ver estas consultas.");
-      router.replace("/inicio");
-      return;
-    }
-
-    if (!res.ok) {
-      const mensaje = mensajeErrorDesdeRespuesta(
-        payload,
-        "Error cargando consultas"
-      );
-
-      console.log("[CONSULTAS] Falló backend:", {
-        url,
-        status: res.status,
-        statusText: res.statusText,
-        payload,
+      const res = await fetch(url, {
+        method: "GET",
+        credentials: "include",
       });
 
-      toast.error(`Error ${res.status} cargando consultas`, {
-        description: mensaje,
+      const payload = await leerJsonSeguro(res);
+
+      console.log("[CONSULTAS] Status:", res.status);
+      console.log("[CONSULTAS] Payload:", payload);
+
+      if (res.status === 401) {
+        router.replace("/");
+        return;
+      }
+
+      if (res.status === 403) {
+        toast.error("No tienes permisos para ver estas consultas.");
+        router.replace("/inicio");
+        return;
+      }
+
+      if (!res.ok) {
+        const mensaje = mensajeErrorDesdeRespuesta(
+          payload,
+          "Error cargando consultas"
+        );
+
+        console.log("[CONSULTAS] Falló backend:", {
+          url,
+          status: res.status,
+          statusText: res.statusText,
+          payload,
+        });
+
+        toast.error(`Error ${res.status} cargando consultas`, {
+          description: mensaje,
+        });
+
+        setRows([]);
+        return;
+      }
+
+      const consultas = obtenerArrayDesdeRespuesta(payload)
+        .map(normalizarConsultaFila)
+        .filter(
+          (consulta) =>
+            consulta.id !== "" &&
+            consulta.id !== null &&
+            consulta.id !== undefined
+        );
+
+      setRows(ordenarConsultasPorIdAscendente(consultas));
+    } catch (error) {
+      console.log("[CONSULTAS] Error de conexión o parsing:", error);
+
+      toast.error("Error de conexión cargando consultas", {
+        description: error?.message || "No se pudo conectar con el servidor",
       });
 
       setRows([]);
-      return;
+    } finally {
+      setLoading(false);
     }
-
-    const consultas = obtenerArrayDesdeRespuesta(payload)
-      .map(normalizarConsultaFila)
-      .filter(
-        (consulta) =>
-          consulta.id !== "" &&
-          consulta.id !== null &&
-          consulta.id !== undefined
-      );
-
-    setRows(ordenarConsultasPorIdAscendente(consultas));
-  } catch (error) {
-    console.log("[CONSULTAS] Error de conexión o parsing:", error);
-
-    toast.error("Error de conexión cargando consultas", {
-      description: error?.message || "No se pudo conectar con el servidor",
-    });
-
-    setRows([]);
-  } finally {
-    setLoading(false);
   }
-}
 
   async function cargarCatalogos() {
     try {
@@ -641,7 +711,32 @@ export function ConsultasJuridicasForm() {
 
   function handleChange(e) {
     const { name, value } = e.target;
-    setForm(prev => ({ ...prev, [name]: value }));
+
+    setForm((prev) => {
+      if (name === "areaId") {
+        return {
+          ...prev,
+          areaId: value,
+          temaId: "",
+          tipoId: "",
+          asesorId: "",
+          estudianteId: "",
+        };
+      }
+
+      if (name === "temaId") {
+        return {
+          ...prev,
+          temaId: value,
+          tipoId: "",
+        };
+      }
+
+      return {
+        ...prev,
+        [name]: value,
+      };
+    });
   }
 
   async function abrirEditar(id) {
@@ -901,6 +996,24 @@ export function ConsultasJuridicasForm() {
     }
   }
 
+  function abrirModalAsesor() {
+    if (!form.areaId) {
+      toast.error("Selecciona primero el área de la consulta.");
+      return;
+    }
+
+    setModalAsesor((prev) => ({ ...prev, abierto: true }));
+  }
+
+  function abrirModalEstudiante() {
+    if (!form.asesorId) {
+      toast.error("Selecciona primero un asesor.");
+      return;
+    }
+
+    setModalEstudiante((prev) => ({ ...prev, abierto: true }));
+  }
+
   function renderPersona(p) {
     return (
       <>
@@ -1006,10 +1119,18 @@ export function ConsultasJuridicasForm() {
                   <>
                     {/* ASESOR */}
                     <C label="Asesor">
-                      <button type="button" onClick={() => setModalAsesor(p => ({ ...p, abierto: true }))}
-                        className="flex h-9 w-full items-center justify-between rounded-md border bg-background px-3 py-2 text-sm text-left hover:bg-muted/50 transition-colors">
+                      <button
+                        type="button"
+                        onClick={abrirModalAsesor}
+                        disabled={!form.areaId}
+                        className="flex h-9 w-full items-center justify-between rounded-md border bg-background px-3 py-2 text-sm text-left hover:bg-muted/50 transition-colors disabled:cursor-not-allowed disabled:opacity-50"
+                      >
                         <span className={asesorSeleccionado ? "text-foreground" : "text-muted-foreground"}>
-                          {asesorSeleccionado ? `${asesorSeleccionado.nombre}${asesorSeleccionado.documento ? ` - ${asesorSeleccionado.documento}` : ""}` : "Sin asignar"}
+                          {asesorSeleccionado
+                            ? `${asesorSeleccionado.nombre}${asesorSeleccionado.documento ? ` - ${asesorSeleccionado.documento}` : ""}`
+                            : form.areaId
+                              ? "Sin asignar"
+                              : "Seleccione área primero"}
                         </span>
                         <span className="text-muted-foreground">▼</span>
                       </button>
@@ -1028,10 +1149,18 @@ export function ConsultasJuridicasForm() {
 
                     {/* ESTUDIANTE */}
                     <C label="Estudiante">
-                      <button type="button" onClick={() => setModalEstudiante(p => ({ ...p, abierto: true }))}
-                        className="flex h-9 w-full items-center justify-between rounded-md border bg-background px-3 py-2 text-sm text-left hover:bg-muted/50 transition-colors">
+                      <button
+                        type="button"
+                        onClick={abrirModalEstudiante}
+                        disabled={!form.asesorId}
+                        className="flex h-9 w-full items-center justify-between rounded-md border bg-background px-3 py-2 text-sm text-left hover:bg-muted/50 transition-colors disabled:cursor-not-allowed disabled:opacity-50"
+                      >
                         <span className={estudianteSeleccionado ? "text-foreground" : "text-muted-foreground"}>
-                          {estudianteSeleccionado ? `${estudianteSeleccionado.nombre}${estudianteSeleccionado.codigo ? ` - ${estudianteSeleccionado.codigo}` : ""}` : "Sin asignar"}
+                          {estudianteSeleccionado
+                            ? `${estudianteSeleccionado.nombre}${estudianteSeleccionado.codigo ? ` - ${estudianteSeleccionado.codigo}` : ""}`
+                            : form.asesorId
+                              ? "Sin asignar"
+                              : "Seleccione asesor primero"}
                         </span>
                         <span className="text-muted-foreground">▼</span>
                       </button>
@@ -1189,13 +1318,29 @@ export function ConsultasJuridicasForm() {
 
       {/* MODAL ASESOR */}
       <ModalSimple
-        abierto={modalAsesor.abierto} titulo="Seleccionar Asesor"
-        items={asesoresFiltrados} busqueda={modalAsesor.busqueda}
-        setBusqueda={v => setModalAsesor(p => ({ ...p, busqueda: v }))}
-        onSeleccionar={item => { setForm(prev => ({ ...prev, asesorId: item ? String(item.id) : "" })); setModalAsesor({ abierto: false, busqueda: "" }); }}
+        abierto={modalAsesor.abierto}
+        titulo="Seleccionar Asesor"
+        items={asesoresFiltrados}
+        busqueda={modalAsesor.busqueda}
+        setBusqueda={(v) => setModalAsesor((p) => ({ ...p, busqueda: v }))}
+        onSeleccionar={(item) => {
+          setForm((prev) => ({
+            ...prev,
+            asesorId: item ? String(item.id) : "",
+            estudianteId: "",
+          }));
+          setModalAsesor({ abierto: false, busqueda: "" });
+        }}
         onCerrar={() => setModalAsesor({ abierto: false, busqueda: "" })}
         seleccionado={asesorSeleccionado}
-        renderItem={a => (<><div className="font-medium">{a.nombre}</div><div className="text-xs text-muted-foreground">{a.documento}</div></>)}
+        renderItem={(a) => (
+          <>
+            <div className="font-medium">{a.nombre}</div>
+            <div className="text-xs text-muted-foreground">
+              {a.documento}
+            </div>
+          </>
+        )}
       />
 
       {/* MODAL MONITOR */}
@@ -1211,13 +1356,28 @@ export function ConsultasJuridicasForm() {
 
       {/* MODAL ESTUDIANTE */}
       <ModalSimple
-        abierto={modalEstudiante.abierto} titulo="Seleccionar Estudiante"
-        items={estudiantesFiltrados} busqueda={modalEstudiante.busqueda}
-        setBusqueda={v => setModalEstudiante(p => ({ ...p, busqueda: v }))}
-        onSeleccionar={item => { setForm(prev => ({ ...prev, estudianteId: item ? String(item.id) : "" })); setModalEstudiante({ abierto: false, busqueda: "" }); }}
+        abierto={modalEstudiante.abierto}
+        titulo="Seleccionar Estudiante"
+        items={estudiantesFiltrados}
+        busqueda={modalEstudiante.busqueda}
+        setBusqueda={(v) => setModalEstudiante((p) => ({ ...p, busqueda: v }))}
+        onSeleccionar={(item) => {
+          setForm((prev) => ({
+            ...prev,
+            estudianteId: item ? String(item.id) : "",
+          }));
+          setModalEstudiante({ abierto: false, busqueda: "" });
+        }}
         onCerrar={() => setModalEstudiante({ abierto: false, busqueda: "" })}
         seleccionado={estudianteSeleccionado}
-        renderItem={e => (<><div className="font-medium">{e.nombre}</div><div className="text-xs text-muted-foreground">{e.codigo} — {e.documento}</div></>)}
+        renderItem={(e) => (
+          <>
+            <div className="font-medium">{e.nombre}</div>
+            <div className="text-xs text-muted-foreground">
+              {e.codigo} — {e.documento}
+            </div>
+          </>
+        )}
       />
 
       {/* MODAL PARTE PRINCIPAL */}
