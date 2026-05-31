@@ -52,7 +52,7 @@ public class ConsultaEstadoService {
         }
 
         if (EstadoConsulta.CERRADO.equals(estadoNuevo)) {
-            validarPuedeCerrar(consulta.getId());
+            validarPuedeCerrar(consulta);
         }
 
         if (EstadoConsulta.ARCHIVADO.equals(estadoNuevo)) {
@@ -98,8 +98,16 @@ public class ConsultaEstadoService {
         }
     }
 
-    private void validarPuedeCerrar(Long consultaId) {
-        validarNoTienePendientesOperativos(consultaId);
+    private void validarPuedeCerrar(Consulta consulta) {
+        validarConsultaObligatoria(consulta);
+        validarResultadoObligatorioParaCierre(consulta);
+        validarNoTienePendientesOperativos(consulta.getId());
+    }
+
+    private void validarResultadoObligatorioParaCierre(Consulta consulta) {
+        if (textoVacio(consulta.getResultado())) {
+            throw new BusinessException("No se puede cerrar la consulta sin resultado o conclusión final");
+        }
     }
 
     private void validarNoTienePendientesOperativos(Long consultaId) {
@@ -144,6 +152,10 @@ public class ConsultaEstadoService {
                 EstadoConciliacionCodigo.EN_ESPERA,
                 EstadoConciliacionCodigo.ESPERANDO_REUNION,
                 EstadoConciliacionCodigo.REUNION_PROGRAMADA);
+    }
+
+    private boolean textoVacio(String valor) {
+        return valor == null || valor.trim().isEmpty();
     }
 
     private void validarConsultaObligatoria(Consulta consulta) {

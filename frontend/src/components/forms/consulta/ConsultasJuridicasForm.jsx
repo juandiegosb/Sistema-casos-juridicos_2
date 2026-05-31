@@ -150,6 +150,14 @@ function normalizarEstadoConsulta(estado) {
   return equivalencias[texto] || texto || "";
 }
 
+function textoVacio(valor) {
+  return !String(valor || "").trim();
+}
+
+function textoNormalizado(valor) {
+  return String(valor || "").trim();
+}
+
 function labelEstadoConsulta(estado) {
   const estadoNormalizado = normalizarEstadoConsulta(estado);
   return (
@@ -326,6 +334,7 @@ export function ConsultasJuridicasForm() {
   const [idEditando, setIdEditando] = useState(null);
   const [form, setForm] = useState(VACIOS);
   const [guardando, setGuardando] = useState(false);
+  const [resultadoGuardado, setResultadoGuardado] = useState("");
 
   const [personas, setPersonas] = useState([]);
   const [sedes, setSedes] = useState([]);
@@ -794,6 +803,9 @@ export function ConsultasJuridicasForm() {
         partesIds: Array.isArray(data.partesIds) ? data.partesIds.map(Number) : [],
         contrapartesIds: Array.isArray(data.contrapartesIds) ? data.contrapartesIds.map(Number) : [],
       });
+
+      setResultadoGuardado(data.resultado ?? "");
+
       setIdEditando(id);
       setMostrarFormEdicion(true);
       cargarArchivosCaso(id);
@@ -886,6 +898,7 @@ export function ConsultasJuridicasForm() {
       }
 
       if (res.ok) {
+        setResultadoGuardado(form.resultado ?? "");
         toast.success("Consulta actualizada");
         setMostrarFormEdicion(false);
         cargarConsultas(searchText);
@@ -913,6 +926,18 @@ export function ConsultasJuridicasForm() {
     if (!estadoNormalizado || estadoNormalizado === "ARCHIVADO") {
       toast.error("Selecciona un estado operativo válido. Para archivar usa el botón Archivar.");
       return;
+    }
+
+    if (estadoNormalizado === "CERRADO") {
+      if (textoVacio(form.resultado)) {
+        toast.error("Antes de cerrar la consulta debes registrar un resultado o conclusión final.");
+        return;
+      }
+
+      if (textoNormalizado(form.resultado) !== textoNormalizado(resultadoGuardado)) {
+        toast.error("Guarda primero el resultado o conclusión final antes de cerrar la consulta.");
+        return;
+      }
     }
 
     try {
