@@ -16,6 +16,7 @@ import co.edu.ufps.legal_cases.business.model.perfil.Conciliador;
 import co.edu.ufps.legal_cases.business.model.perfil.Estudiante;
 import co.edu.ufps.legal_cases.business.repository.conciliacion.ConciliacionRepository;
 import co.edu.ufps.legal_cases.business.service.acceso.conciliacion.ConciliacionAccessService;
+import co.edu.ufps.legal_cases.business.service.conciliacion.reunion.notificacion.ReunionConciliacionNotificacionService;
 import co.edu.ufps.legal_cases.common.exception.BusinessException;
 import co.edu.ufps.legal_cases.security.model.account.UsuarioSistema;
 import co.edu.ufps.legal_cases.security.repository.account.UsuarioSistemaRepository;
@@ -34,6 +35,7 @@ public class ConciliacionCommandService {
     private final ConciliacionDocumentoService conciliacionDocumentoService;
     private final ConciliacionValidator conciliacionValidator;
     private final ConciliacionMapper conciliacionMapper;
+    private final ReunionConciliacionNotificacionService reunionConciliacionNotificacionService;
 
     @Transactional
     @Auditable(action = "CREAR_CONCILIACION", entityName = "Conciliacion")
@@ -156,6 +158,9 @@ public class ConciliacionCommandService {
         conciliacion.setActaPath(actaPath);
         conciliacion.setFechaFinalizacion(LocalDateTime.now());
 
+        // Al finalizar la conciliación ya no deben salir recordatorios de reunión pendientes.
+        reunionConciliacionNotificacionService.cancelarPendientesPorConciliacion(id);
+
         return conciliacionMapper.convertirAResponseDTO(
                 conciliacionRepository.save(conciliacion));
     }
@@ -187,6 +192,9 @@ public class ConciliacionCommandService {
 
         // Desactivación lógica. No representa finalización de la conciliación.
         conciliacion.setActivo(false);
+
+        // Una conciliación desactivada no debe conservar recordatorios pendientes.
+        reunionConciliacionNotificacionService.cancelarPendientesPorConciliacion(id);
 
         conciliacionRepository.save(conciliacion);
     }

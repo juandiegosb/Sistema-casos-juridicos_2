@@ -44,6 +44,18 @@ public class ReunionConciliacionNotificacionService {
         pendientes.forEach(reunionConciliacionEnvioNotificacionService::enviarNotificacionPendiente);
     }
 
+    @Transactional
+    public void cancelarPendientesPorConciliacion(Long conciliacionId) {
+        if (conciliacionId == null) {
+            return;
+        }
+
+        List<ReunionConciliacionNotificacion> pendientes = reunionConciliacionNotificacionRepository
+                .findByConciliacion_IdAndEnviadaFalseAndActivaTrue(conciliacionId);
+
+        pendientes.forEach(reunionConciliacionNotificacionEstadoService::desactivarSiEstaPendiente);
+    }
+
     private void crearNotificaciones(
             ReunionConciliacion reunion,
             MotivoNotificacionReunionConciliacion motivo,
@@ -54,7 +66,7 @@ public class ReunionConciliacionNotificacionService {
         }
 
         if (cancelarPendientesPrevias) {
-            cancelarPendientes(reunion.getConciliacionId());
+            cancelarPendientesPorConciliacion(reunion.getConciliacionId());
         }
 
         List<ReunionConciliacionNotificacion> inmediatas = crearNotificacionesInmediatas(reunion, motivo);
@@ -86,12 +98,5 @@ public class ReunionConciliacionNotificacionService {
                         MomentoNotificacionReunionConciliacion.INMEDIATA,
                         LocalDateTime.now()))
                 .toList();
-    }
-
-    private void cancelarPendientes(Long conciliacionId) {
-        List<ReunionConciliacionNotificacion> pendientes = reunionConciliacionNotificacionRepository
-                .findByConciliacion_IdAndEnviadaFalseAndActivaTrue(conciliacionId);
-
-        pendientes.forEach(reunionConciliacionNotificacionEstadoService::desactivarSiEstaPendiente);
     }
 }
