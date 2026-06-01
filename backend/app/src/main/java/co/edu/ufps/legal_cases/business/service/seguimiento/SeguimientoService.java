@@ -38,6 +38,10 @@ public class SeguimientoService {
         return seguimientoQueryService.listarPorAutor(autorId);
     }
 
+    public List<SeguimientoResponseDTO> listarParaCalendario() {
+        return seguimientoQueryService.listarParaCalendario();
+    }
+
     public List<SeguimientoResponseDTO> listarAlertasDisciplinarias() {
         return seguimientoQueryService.listarAlertasDisciplinarias();
     }

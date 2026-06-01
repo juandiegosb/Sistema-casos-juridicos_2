@@ -1,6 +1,7 @@
 package co.edu.ufps.legal_cases.business.service.seguimiento.seguimiento;
 
 import java.time.LocalDate;
+import java.util.Comparator;
 import java.util.List;
 
 import org.springframework.stereotype.Service;
@@ -32,6 +33,23 @@ public class SeguimientoQueryService {
         this.seguimientoAccessService = seguimientoAccessService;
         this.seguimientoMapper = seguimientoMapper;
         this.seguimientoValidator = seguimientoValidator;
+    }
+
+    @Transactional(readOnly = true)
+    public List<SeguimientoResponseDTO> listarParaCalendario() {
+        // Valida que el usuario tenga el permiso de ver seguimientos.
+        seguimientoAccessService.validarTienePermisoVerSeguimientos();
+
+        // Se buscan todos los seguimientos activos, se filtran por alcance
+        // con `puedeVerSeguimiento` y se ordenan por fecha de entrega.
+        return seguimientoRepository.findAll().stream()
+                .filter(s -> Boolean.TRUE.equals(s.getActivo()))
+                .filter(seguimientoAccessService::puedeVerSeguimiento)
+                .sorted(Comparator.comparing(
+                        // Ordenar por fechaEntrega, colocando nulos al final
+                        s -> s.getFechaEntrega(), Comparator.nullsLast(Comparator.naturalOrder())))
+                .map(seguimientoMapper::convertirAResponseDTO)
+                .toList();
     }
 
     // Lista seguimientos activos de una consulta después de validar alcance sobre esa consulta.
