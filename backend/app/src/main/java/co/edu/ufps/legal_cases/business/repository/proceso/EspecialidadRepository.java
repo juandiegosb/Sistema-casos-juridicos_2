@@ -29,4 +29,8 @@ public interface EspecialidadRepository extends JpaRepository<Especialidad, Long
     );
 
     boolean existsByOrganoControlIdAndActivoTrue(Long organoControlId);
+    
+    List<Especialidad> findAllByOrderByNombreAsc();
+
+    List<Especialidad> findByOrganoControlIdOrderByNombreAsc(Long organoControlId);
 }

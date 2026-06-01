@@ -50,9 +50,12 @@ public class SeguimientoRespuestaValidator {
 
         String observacion = normalizarTexto(dto.getObservacionRevision());
 
-        if (observacion != null && observacion.length() > 500) {
-            throw new BusinessException("La observación de revisión no puede superar 500 caracteres");
+        if (EstadoRespuestaSeguimiento.RECHAZADA.equals(dto.getEstado())
+                && (observacion == null || observacion.isBlank())) {
+            throw new BusinessException("La observación de revisión es obligatoria al rechazar una respuesta");
         }
+
+        validarLongitudObservacionRevision(observacion);
     }
 
     public String normalizarContenido(String contenido) {
@@ -71,12 +74,14 @@ public class SeguimientoRespuestaValidator {
 
     public String normalizarObservacionRevision(String observacionRevision) {
         String observacion = normalizarTexto(observacionRevision);
+        validarLongitudObservacionRevision(observacion);
+        return observacion;
+    }
 
+    private void validarLongitudObservacionRevision(String observacion) {
         if (observacion != null && observacion.length() > 500) {
             throw new BusinessException("La observación de revisión no puede superar 500 caracteres");
         }
-
-        return observacion;
     }
 
     private void validarDtoObligatorio(SeguimientoRespuestaRequestDTO dto) {

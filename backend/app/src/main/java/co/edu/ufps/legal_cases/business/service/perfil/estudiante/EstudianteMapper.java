@@ -18,8 +18,7 @@ public class EstudianteMapper {
         dto.setTipoDocumentoId(
                 estudiante.getTipoDocumento() != null
                         ? estudiante.getTipoDocumento().getId()
-                        : null
-        );
+                        : null);
 
         dto.setDocumento(estudiante.getDocumento());
         dto.setEmail(estudiante.getEmail());
@@ -29,20 +28,32 @@ public class EstudianteMapper {
         dto.setSedeId(
                 estudiante.getSede() != null
                         ? estudiante.getSede().getId()
-                        : null
-        );
+                        : null);
 
         dto.setCodigo(estudiante.getCodigo());
 
         dto.setAsesorId(
                 estudiante.getAsesor() != null
                         ? estudiante.getAsesor().getId()
-                        : null
-        );
+                        : null);
 
         dto.setActivo(estudiante.getActivo());
         dto.setConciliacion(estudiante.getConciliacion());
 
         return dto;
+    }
+
+    public void aplicarDatos(Estudiante estudiante, DatosEstudiante datos) {
+        estudiante.setNombre(datos.nombre());
+        estudiante.setTipoDocumento(datos.tipoDocumento());
+        estudiante.setDocumento(datos.documento());
+        estudiante.setEmail(datos.email());
+        estudiante.setTelefono(datos.telefono());
+        estudiante.setUsuario(datos.usuario());
+        estudiante.setSede(datos.sede());
+        estudiante.setCodigo(datos.codigo());
+        estudiante.setAsesor(datos.asesor());
+        estudiante.setActivo(datos.activo());
+        estudiante.setConciliacion(datos.conciliacion());
     }
 }

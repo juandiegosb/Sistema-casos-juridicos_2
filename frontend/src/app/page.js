@@ -45,14 +45,14 @@ export default function LoginPage() {
       <div className="hidden lg:flex w-1/2 flex-col justify-between p-12 bg-gradient-to-b from-blue-600 via-indigo-600 to-indigo-800 min-h-screen">
 
         <div className="flex items-center gap-3">
-          <Scale className="h-8 w-8" />
-          <span className="text-xl font-semibold">
+          <Scale className="h-8 w-8 text-white" />
+          <span className="text-xl font-semibold text-white">
             Consultorio Jurídico
           </span>
         </div>
 
         <div className="max-w-md space-y-4">
-          <h2 className="text-4xl font-bold leading-tight">
+          <h2 className="text-4xl font-bold leading-tight text-white">
             Gestión legal moderna y eficiente
           </h2>
 

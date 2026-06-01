@@ -41,7 +41,8 @@ public class PersonaController {
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     @PreAuthorize("hasAnyAuthority('" + CREAR_PERSONAS + "', '" + GESTIONAR_PERSONAS + "')")
-    // En el correo no se puede usar el "No informa" como estrategia porque en @Email no se admite (debe ser null o correcto)
+    // En el correo no se puede usar el "No informa" como estrategia porque en
+    // @Email no se admite (debe ser null o correcto)
     public PersonaDTO crear(@Valid @RequestBody PersonaDTO personaDTO) {
         return personaService.crear(personaDTO);
     }
@@ -67,6 +68,7 @@ public class PersonaController {
 
     @PatchMapping("/{id}/reactivar")
     @ResponseStatus(HttpStatus.NO_CONTENT)
+    @PreAuthorize("hasAnyAuthority('" + CAMBIAR_ESTADO_PERSONAS + "', '" + GESTIONAR_PERSONAS + "')")
     public void reactivar(@PathVariable Long id) {
         personaService.reactivar(id);
     }

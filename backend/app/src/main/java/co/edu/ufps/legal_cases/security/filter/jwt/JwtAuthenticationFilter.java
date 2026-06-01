@@ -13,7 +13,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
 import co.edu.ufps.legal_cases.security.model.access.Permiso;
 import co.edu.ufps.legal_cases.security.model.account.UsuarioSistema;
 import co.edu.ufps.legal_cases.security.repository.account.UsuarioSistemaRepository;
-import co.edu.ufps.legal_cases.security.service.account.PerfilUsuarioResolverService;
+import co.edu.ufps.legal_cases.security.service.account.perfil.PerfilUsuarioResolverService;
 import co.edu.ufps.legal_cases.security.service.jwt.JwtService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -21,13 +21,13 @@ import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
-// Este filtro revisa cada petición que llega al backend
-// y mira si esa petición trae una cookie con un JWT válido.
+// Filtro JWT ejecutado una vez por petición.
+// Lee el token desde la cookie de autenticación y, si es válido,
+// carga el usuario y sus permisos activos en el contexto de Spring Security.
 @Component
-//Aqui se especifica que se ejecuta una vez por peticion
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
-    private static final String COOKIE_NAME = "access_token";   //nombre que le dimos a la cookie en el AuthController
+    private static final String ACCESS_TOKEN_COOKIE = "access_token";
 
     private final JwtService jwtService;
     private final UsuarioSistemaRepository usuarioSistemaRepository;
@@ -46,9 +46,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     protected void doFilterInternal(
             HttpServletRequest request,
             HttpServletResponse response,
-            FilterChain filterChain) /**Para que la peticion siga despues de la revision */ throws ServletException, IOException {
+            FilterChain filterChain) throws ServletException, IOException {
 
-        String token = obtenerTokenDesdeCookie(request); // Busca la cookie con el JWT
+        String token = obtenerTokenDesdeCookie(request);
 
         if (token == null || SecurityContextHolder.getContext().getAuthentication() != null) {
             filterChain.doFilter(request, response);
@@ -56,44 +56,51 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         }
 
         try {
-            String username = jwtService.obtenerUsername(token);
-
-            UsuarioSistema usuario = usuarioSistemaRepository
-                    .findWithRolPermisosAndPerfilByUsername(username)
-                    .orElse(null);
-
-            if (usuario != null && usuarioPuedeAutenticarse(usuario)) {
-                UsernamePasswordAuthenticationToken authentication =
-                        new UsernamePasswordAuthenticationToken(
-                                usuario.getUsername(),
-                                null, // Como la contraseña se valido en el login aqui ya no es necesario
-                                obtenerAuthorities(usuario) // Trae los permisos en formato de Spring Security
-                        );
-
-                authentication.setDetails(
-                        new WebAuthenticationDetailsSource().buildDetails(request)
-                ); // Agrega detalles de la peticion como la ip del cliente, etc
-
-                SecurityContextHolder.getContext().setAuthentication(authentication);   // Aqui spring ya sabe quien es el usuario y sus permisos
-            }
-
+            autenticarDesdeToken(token, request);
         } catch (Exception ex) {
+            // Si el token es inválido o el usuario ya no puede autenticarse,
+            // se limpia el contexto y la cadena continúa sin autenticación.
             SecurityContextHolder.clearContext();
         }
 
-        filterChain.doFilter(request, response); //Deja que la peticion continue su camino
+        filterChain.doFilter(request, response);
+    }
+
+    private void autenticarDesdeToken(
+            String token,
+            HttpServletRequest request) {
+
+        String username = jwtService.obtenerUsername(token);
+
+        UsuarioSistema usuario = usuarioSistemaRepository
+                .findWithRolPermisosAndPerfilByUsername(username)
+                .orElse(null);
+
+        if (usuario == null || !usuarioPuedeAutenticarse(usuario)) {
+            return;
+        }
+
+        UsernamePasswordAuthenticationToken authentication =
+                new UsernamePasswordAuthenticationToken(
+                        usuario.getUsername(),
+                        null,
+                        obtenerAuthorities(usuario));
+
+        authentication.setDetails(
+                new WebAuthenticationDetailsSource().buildDetails(request));
+
+        SecurityContextHolder.getContext().setAuthentication(authentication);
     }
 
     private String obtenerTokenDesdeCookie(HttpServletRequest request) {
-        Cookie[] cookies = request.getCookies(); // Obtiene todas las cookies que mando el navegador en la peticion
+        Cookie[] cookies = request.getCookies();
 
         if (cookies == null) {
             return null;
         }
 
-        //Busca la que necesitamos para autenticar
         for (Cookie cookie : cookies) {
-            if (COOKIE_NAME.equals(cookie.getName())) {
+            if (ACCESS_TOKEN_COOKIE.equals(cookie.getName())) {
                 return cookie.getValue();
             }
         }
@@ -107,7 +114,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 && perfilActivo(usuario);
     }
 
-    //Metodos para ver que el usuario, su rol y su perfil esten activos sino no se puede autenticar
     private boolean usuarioActivo(UsuarioSistema usuario) {
         return Boolean.TRUE.equals(usuario.getActivo());
     }
@@ -118,14 +124,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     }
 
     private boolean perfilActivo(UsuarioSistema usuario) {
-        // Nueva validación normalizada.
-        // Ya no depende de asesor_id, estudiante_id, monitor_id, administrativo_id ni conciliador_id
-        // dentro de usuario_sistema, sino de tipo_perfil_actual y usuario_sistema_id en la tabla real.
         return perfilUsuarioResolverService.tienePerfilActivo(usuario);
     }
 
-    // Convierte los permisos activos del rol en permisos de Spring Security
-    // Para luego usarlos con anotaciones @PreAutorize en los controllers
     private List<SimpleGrantedAuthority> obtenerAuthorities(UsuarioSistema usuario) {
         return usuario.getRol().getPermisos()
                 .stream()

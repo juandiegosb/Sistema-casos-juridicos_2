@@ -5,6 +5,7 @@ import static co.edu.ufps.legal_cases.security.constant.PermisoNombre.CREAR_CONS
 import static co.edu.ufps.legal_cases.security.constant.PermisoNombre.EDITAR_CONSULTAS;
 import static co.edu.ufps.legal_cases.security.constant.PermisoNombre.GESTIONAR_CONSULTAS;
 import static co.edu.ufps.legal_cases.security.constant.PermisoNombre.VER_CONSULTAS;
+import static co.edu.ufps.legal_cases.security.constant.PermisoNombre.CAMBIAR_ESTADO_CONSULTAS;
 
 import java.util.List;
 
@@ -14,6 +15,7 @@ import org.springframework.web.bind.annotation.*;
 
 import co.edu.ufps.legal_cases.business.dto.consulta.ConsultaBusquedaDTO;
 import co.edu.ufps.legal_cases.business.dto.consulta.ConsultaDTO;
+import co.edu.ufps.legal_cases.business.model.consulta.EstadoConsulta;
 import co.edu.ufps.legal_cases.business.service.consulta.ConsultaService;
 import jakarta.validation.Valid;
 
@@ -29,7 +31,8 @@ public class ConsultaController {
 
     /**
      * Búsqueda de consultas jurídicas filtrada según el usuario autenticado.
-     * El frontend no debe filtrar consultas ajenas; el backend devuelve solo las permitidas.
+     * El frontend no debe filtrar consultas ajenas; el backend devuelve solo las
+     * permitidas.
      */
     @GetMapping
     @PreAuthorize("hasAnyAuthority('" + VER_CONSULTAS + "', '" + GESTIONAR_CONSULTAS + "')")
@@ -57,6 +60,15 @@ public class ConsultaController {
         return consultaService.actualizar(id, dto);
     }
 
+    @PatchMapping("/{id}/estado")
+    @PreAuthorize("hasAnyAuthority('" + CAMBIAR_ESTADO_CONSULTAS + "', '" + ARCHIVAR_CONSULTAS + "', '"
+            + GESTIONAR_CONSULTAS + "')")
+    public ConsultaDTO cambiarEstado(
+            @PathVariable Long id,
+            @RequestParam EstadoConsulta estado) {
+        return consultaService.cambiarEstado(id, estado);
+    }
+
     /**
      * Se conserva el endpoint DELETE por compatibilidad.
      * Internamente no elimina físicamente la consulta: la archiva.
@@ -75,7 +87,14 @@ public class ConsultaController {
     }
 
     @GetMapping("/archivadas")
+    @PreAuthorize("hasAuthority('" + ARCHIVAR_CONSULTAS + "')")
     public List<ConsultaBusquedaDTO> listarArchivadas() {
         return consultaService.listarArchivadas();
+    }
+
+    @PatchMapping("/{id}/desarchivar")
+    @PreAuthorize("hasAuthority('" + ARCHIVAR_CONSULTAS + "')")
+    public ConsultaDTO desarchivar(@PathVariable Long id) {
+        return consultaService.desarchivar(id);
     }
 }

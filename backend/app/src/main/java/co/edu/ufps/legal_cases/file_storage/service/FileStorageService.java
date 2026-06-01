@@ -80,6 +80,40 @@ public class FileStorageService {
         }
     }
 
+    public String storeFileAs(MultipartFile file, String subDir, String targetFileName) {
+        String fileName = StringUtils.cleanPath(Objects.requireNonNull(targetFileName));
+
+        try {
+            if (fileName.contains("..")) {
+                throw new FileStorageException("Lo sentimos, el nombre de archivo contiene una secuencia de ruta inválida " + fileName);
+            }
+
+            Path targetLocation = this.fileStoragePath;
+            if (subDir != null && !subDir.isEmpty()) {
+                if (subDir.contains("..")) {
+                    throw new FileStorageException("Lo sentimos, el directorio contiene una secuencia de ruta inválida " + subDir);
+                }
+
+                targetLocation = targetLocation.resolve(subDir).normalize();
+
+                if (!Files.exists(targetLocation)) {
+                    Files.createDirectories(targetLocation);
+                }
+            }
+
+            targetLocation = targetLocation.resolve(fileName);
+            Files.copy(file.getInputStream(), targetLocation, StandardCopyOption.REPLACE_EXISTING);
+
+            if (subDir != null && !subDir.isEmpty()) {
+                return subDir + "/" + fileName;
+            }
+
+            return fileName;
+        } catch (IOException ex) {
+            throw new FileStorageException("No se pudo guardar el archivo " + fileName + ". Por favor intente de nuevo.", ex);
+        }
+    }
+
     public Resource loadFileAsResource(String fileName) {
         if (fileName.contains("..")) {
             throw new FileStorageException("Lo sentimos, el nombre de archivo contiene una secuencia de ruta inválida " + fileName);

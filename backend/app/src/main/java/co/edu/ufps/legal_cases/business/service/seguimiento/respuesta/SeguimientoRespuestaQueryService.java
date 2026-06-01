@@ -7,14 +7,17 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import co.edu.ufps.legal_cases.business.dto.seguimiento.respuesta.SeguimientoRespuestaResponseDTO;
+import co.edu.ufps.legal_cases.business.model.consulta.EstadoConsulta;
 import co.edu.ufps.legal_cases.business.model.seguimiento.respuesta.EstadoRespuestaSeguimiento;
 import co.edu.ufps.legal_cases.business.model.seguimiento.respuesta.SeguimientoRespuesta;
 import co.edu.ufps.legal_cases.business.repository.seguimiento.respuesta.SeguimientoRespuestaRepository;
-import co.edu.ufps.legal_cases.business.service.acceso.SeguimientoRespuestaAccessService;
+import co.edu.ufps.legal_cases.business.service.acceso.seguimiento.SeguimientoRespuestaAccessService;
 import co.edu.ufps.legal_cases.common.exception.BusinessException;
 
 @Service
 public class SeguimientoRespuestaQueryService {
+
+    private static final EstadoConsulta ESTADO_ARCHIVADO = EstadoConsulta.ARCHIVADO;
 
     private final SeguimientoRespuestaRepository seguimientoRespuestaRepository;
     private final SeguimientoRespuestaAccessService seguimientoRespuestaAccessService;
@@ -44,7 +47,10 @@ public class SeguimientoRespuestaQueryService {
     public List<SeguimientoRespuestaResponseDTO> listarPorSeguimiento(Long seguimientoId) {
         seguimientoRespuestaAccessService.validarPuedeListarRespuestasDeSeguimiento(seguimientoId);
 
-        return seguimientoRespuestaRepository.findBySeguimiento_IdAndActivoTrueOrderByFechaCreacionDesc(seguimientoId)
+        return seguimientoRespuestaRepository
+                .findBySeguimiento_IdAndActivoTrueAndSeguimiento_ActivoTrueAndSeguimiento_Consulta_EstadoNotOrderByFechaCreacionDesc(
+                        seguimientoId,
+                        ESTADO_ARCHIVADO)
                 .stream()
                 .filter(seguimientoRespuestaAccessService::puedeVerRespuesta)
                 .map(seguimientoRespuestaMapper::convertirAResponseDTO)
@@ -55,8 +61,10 @@ public class SeguimientoRespuestaQueryService {
     public List<SeguimientoRespuestaResponseDTO> listarPendientes() {
         seguimientoRespuestaAccessService.validarPuedeListarRespuestasPendientes();
 
-        return seguimientoRespuestaRepository.findByEstadoAndActivoTrueOrderByFechaCreacionDesc(
-                        EstadoRespuestaSeguimiento.PENDIENTE)
+        return seguimientoRespuestaRepository
+                .findByEstadoAndActivoTrueAndSeguimiento_ActivoTrueAndSeguimiento_Consulta_EstadoNotOrderByFechaCreacionDesc(
+                        EstadoRespuestaSeguimiento.PENDIENTE,
+                        ESTADO_ARCHIVADO)
                 .stream()
                 .filter(seguimientoRespuestaAccessService::puedeRevisarRespuesta)
                 .map(seguimientoRespuestaMapper::convertirAResponseDTO)
@@ -68,7 +76,10 @@ public class SeguimientoRespuestaQueryService {
             throw new BusinessException("El id de la respuesta es obligatorio");
         }
 
-        return seguimientoRespuestaRepository.findByIdAndActivoTrue(id)
+        return seguimientoRespuestaRepository
+                .findByIdAndActivoTrueAndSeguimiento_ActivoTrueAndSeguimiento_Consulta_EstadoNot(
+                        id,
+                        ESTADO_ARCHIVADO)
                 .orElseThrow(() -> new BusinessException("Respuesta de seguimiento no encontrada con id: " + id));
     }
 }

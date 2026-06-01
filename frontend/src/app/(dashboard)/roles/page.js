@@ -1,6 +1,6 @@
 "use client"
 
-import { UsuarioSistemaForm } from "@/components/forms/UsuarioSistemaForm"
+import { UsuarioSistemaForm } from "@/components/forms/AdminUsuarios/UsuarioSistemaForm"
 
 export default function UsuarioSistemaPage() {
   return (

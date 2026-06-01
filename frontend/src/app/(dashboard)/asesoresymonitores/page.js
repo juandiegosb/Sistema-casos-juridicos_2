@@ -1,7 +1,7 @@
 "use client";
 
 import { Users } from "lucide-react";
-import { AsesoresYMonitoresForm } from "@/components/forms/AsesoresYMonitoresForm";
+import { AsesoresYMonitoresForm } from "@/components/forms/usuarios/AsesoresYMonitoresForm";
 
 export default function AsesoresYMonitoresPage() {
   return (

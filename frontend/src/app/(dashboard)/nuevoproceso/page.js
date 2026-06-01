@@ -1,6 +1,6 @@
 "use client"
 
-import { NuevoProcesoForm } from "@/components/forms/NuevoProcesosForm"
+import { NuevoProcesoForm } from "@/components/forms/procesos/NuevoProcesosForm"
 
 export default function NuevoProcesoPage() {
   return (

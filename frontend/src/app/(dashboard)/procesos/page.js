@@ -1,6 +1,6 @@
 "use client"
 
-import { ProcesosForm } from "@/components/forms/ProcesosForm"
+import { ProcesosForm } from "@/components/forms/procesos/ProcesosForm"
 
 export default function ProcesosPage() {
   return (

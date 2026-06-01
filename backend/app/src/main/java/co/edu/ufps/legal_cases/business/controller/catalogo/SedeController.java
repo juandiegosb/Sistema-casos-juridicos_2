@@ -23,10 +23,18 @@ public class SedeController {
         this.sedeService = sedeService;
     }
 
+    // Activas para formularios y selects del frontend.
     @GetMapping
     @PreAuthorize("hasAnyAuthority('" + VER_CATALOGOS + "', '" + GESTIONAR_CATALOGOS + "')")
     public List<SedeDTO> listar() {
         return sedeService.listar();
+    }
+
+    // Todas para administración del catálogo.
+    @GetMapping("/todos")
+    @PreAuthorize("hasAuthority('" + GESTIONAR_CATALOGOS + "')")
+    public List<SedeDTO> listarTodos() {
+        return sedeService.listarTodos();
     }
 
     @GetMapping("/{id}")
@@ -46,6 +54,14 @@ public class SedeController {
     @PreAuthorize("hasAuthority('" + GESTIONAR_CATALOGOS + "')")
     public SedeDTO actualizar(@PathVariable Long id, @Valid @RequestBody SedeDTO dto) {
         return sedeService.actualizar(id, dto);
+    }
+
+    @PatchMapping("/{id}/activo")
+    @PreAuthorize("hasAuthority('" + GESTIONAR_CATALOGOS + "')")
+    public SedeDTO cambiarEstado(
+            @PathVariable Long id,
+            @RequestParam Boolean activo) {
+        return sedeService.cambiarEstado(id, activo);
     }
 
     @DeleteMapping("/{id}")

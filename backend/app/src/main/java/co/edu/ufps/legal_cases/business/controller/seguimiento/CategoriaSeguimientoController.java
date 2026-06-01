@@ -37,7 +37,8 @@ public class CategoriaSeguimientoController {
     }
 
     @GetMapping("/activas")
-    @PreAuthorize("hasAnyAuthority('" + VER_SEGUIMIENTOS + "', '" + CREAR_SEGUIMIENTOS + "', '" + GESTIONAR_CATEGORIAS_SEGUIMIENTO + "')")
+    @PreAuthorize("hasAnyAuthority('" + VER_SEGUIMIENTOS + "', '" + CREAR_SEGUIMIENTOS + "', '"
+            + GESTIONAR_CATEGORIAS_SEGUIMIENTO + "')")
     public List<CategoriaSeguimientoDTO> listarActivas() {
         return categoriaSeguimientoService.listarActivas();
     }
@@ -62,9 +63,9 @@ public class CategoriaSeguimientoController {
         return categoriaSeguimientoService.actualizar(id, dto);
     }
 
-    @PatchMapping("/{id}/estado")
+    @PatchMapping("/{id}/activo")
     @PreAuthorize("hasAuthority('" + GESTIONAR_CATEGORIAS_SEGUIMIENTO + "')")
-    public CategoriaSeguimientoDTO cambiarEstado(
+    public CategoriaSeguimientoDTO cambiarActivo(
             @PathVariable Long id,
             @RequestParam Boolean activo) {
         return categoriaSeguimientoService.cambiarEstado(id, activo);

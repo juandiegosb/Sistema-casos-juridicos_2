@@ -9,7 +9,18 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 
-
+/**
+ * Selector múltiple para agregar y quitar opciones seleccionadas.
+ * @param {Object} props - Propiedades del componente.
+ * @param {string} props.label - Etiqueta principal del selector.
+ * @param {string} [props.placeholder] - Texto cuando no hay selección.
+ * @param {Array<{value:string,label:string}>} [props.selectedItems] - Items seleccionados.
+ * @param {Array<{value:string,label:string}>} [props.availableItems] - Items disponibles.
+ * @param {function} props.onSelectionChange - Callback cuando cambia la selección.
+ * @param {string} [props.itemLabel] - Etiqueta para la lista de seleccionados.
+ * @param {string} [props.addButtonText] - Texto del botón de agregar.
+ * @returns {JSX.Element} Componente de selección múltiple.
+ */
 export function FormMultiSelect({
   label,
   placeholder = "Selecciona una opción para agregar",

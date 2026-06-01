@@ -1,121 +1,105 @@
 package co.edu.ufps.legal_cases.business.service.catalogo;
 
-import static co.edu.ufps.legal_cases.common.util.NormalizacionUtils.normalizarTexto;
-
 import java.util.List;
 
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import co.edu.ufps.legal_cases.business.dto.catalogo.TipoDocumentoDTO;
 import co.edu.ufps.legal_cases.business.model.catalogo.TipoDocumento;
 import co.edu.ufps.legal_cases.business.repository.catalogo.TipoDocumentoRepository;
+import co.edu.ufps.legal_cases.business.service.catalogo.tipoDocumento.TipoDocumentoMapper;
+import co.edu.ufps.legal_cases.business.service.catalogo.tipoDocumento.TipoDocumentoValidator;
 import co.edu.ufps.legal_cases.common.exception.BusinessException;
 
 @Service
 public class TipoDocumentoService {
 
     private final TipoDocumentoRepository tipoDocumentoRepository;
+    private final TipoDocumentoMapper tipoDocumentoMapper;
+    private final TipoDocumentoValidator tipoDocumentoValidator;
 
-    public TipoDocumentoService(TipoDocumentoRepository tipoDocumentoRepository) {
+    public TipoDocumentoService(
+            TipoDocumentoRepository tipoDocumentoRepository,
+            TipoDocumentoMapper tipoDocumentoMapper,
+            TipoDocumentoValidator tipoDocumentoValidator) {
         this.tipoDocumentoRepository = tipoDocumentoRepository;
+        this.tipoDocumentoMapper = tipoDocumentoMapper;
+        this.tipoDocumentoValidator = tipoDocumentoValidator;
     }
 
+    // Lista todos los tipos de documento para administración del catálogo.
+    @Transactional(readOnly = true)
     public List<TipoDocumentoDTO> listar() {
-        return tipoDocumentoRepository.findAll()
+        return tipoDocumentoRepository.findAllByOrderByNombreAsc()
                 .stream()
-                .map(this::convertirADTO)
+                .map(tipoDocumentoMapper::convertirADTO)
                 .toList();
     }
 
+    // Lista solo tipos de documento activos para formularios.
+    @Transactional(readOnly = true)
     public List<TipoDocumentoDTO> listarActivos() {
-        return tipoDocumentoRepository.findByActivoTrue()
+        return tipoDocumentoRepository.findByActivoTrueOrderByNombreAsc()
                 .stream()
-                .map(this::convertirADTO)
+                .map(tipoDocumentoMapper::convertirADTO)
                 .toList();
     }
 
+    @Transactional(readOnly = true)
     public TipoDocumentoDTO obtenerPorId(Long id) {
-        TipoDocumento tipoDocumento = tipoDocumentoRepository.findById(id)
-                .orElseThrow(() -> new BusinessException("Tipo de documento no encontrado con id: " + id));
-
-        return convertirADTO(tipoDocumento);
+        TipoDocumento tipoDocumento = buscarPorId(id);
+        return tipoDocumentoMapper.convertirADTO(tipoDocumento);
     }
 
+    @Transactional
     public TipoDocumentoDTO crear(TipoDocumentoDTO dto) {
-        String displayName = normalizarTexto(dto.getDisplayName());
+        tipoDocumentoValidator.validarCreacion(dto);
 
-        if (displayName == null || displayName.isBlank()) {
-            throw new BusinessException("El nombre visible es obligatorio");
-        }
+        String nombre = tipoDocumentoValidator.normalizarNombre(dto);
 
-        if (tipoDocumentoRepository.existsByDisplayNameIgnoreCase(displayName)) {
-            throw new BusinessException("Ya existe un tipo de documento con ese nombre");
-        }
+        tipoDocumentoValidator.validarNombreDisponible(nombre);
 
-        TipoDocumento tipoDocumento = new TipoDocumento();
-        tipoDocumento.setDisplayName(displayName);
-        //Guarda por defecto como activo
-        tipoDocumento.setActivo(dto.getActivo() != null ? dto.getActivo() : true);
+        TipoDocumento tipoDocumento = tipoDocumentoMapper.crearEntidad(nombre);
 
-        return convertirADTO(tipoDocumentoRepository.save(tipoDocumento));
+        return tipoDocumentoMapper.convertirADTO(tipoDocumentoRepository.save(tipoDocumento));
     }
 
+    @Transactional
     public TipoDocumentoDTO actualizar(Long id, TipoDocumentoDTO dto) {
-        TipoDocumento documentoExistente = tipoDocumentoRepository.findById(id)
-                .orElseThrow(() -> new BusinessException("Tipo de documento no encontrado con id: " + id));
+        TipoDocumento tipoDocumento = buscarPorId(id);
 
-        String displayNameNuevo = normalizarTexto(dto.getDisplayName());
+        tipoDocumentoValidator.validarActualizacion(id, dto, tipoDocumento);
 
-        if (displayNameNuevo == null || displayNameNuevo.isBlank()) {
-            throw new BusinessException("El nombre visible es obligatorio");
-        }
+        String nombreNuevo = tipoDocumentoValidator.normalizarNombre(dto);
 
-        // El id no debe cambiarse desde el DTO
-        if (dto.getId() != null && !dto.getId().equals(documentoExistente.getId())) {
-            throw new BusinessException("No se permite cambiar el id del tipo de documento");
-        }
+        tipoDocumentoValidator.validarExistenCambios(tipoDocumento, nombreNuevo);
+        tipoDocumentoValidator.validarNombreDisponibleParaActualizacion(nombreNuevo, tipoDocumento.getId());
 
-        boolean mismoNombre = documentoExistente.getDisplayName().equalsIgnoreCase(displayNameNuevo);
-        boolean mismoEstado = dto.getActivo() == null || documentoExistente.getActivo().equals(dto.getActivo());
+        // Actualizar datos del catálogo no debe cambiar activo.
+        // Para eso existe cambiarEstado().
+        tipoDocumentoMapper.aplicarDatos(tipoDocumento, nombreNuevo);
 
-        if (mismoNombre && mismoEstado) {
-            throw new BusinessException("No hay cambios para actualizar");
-        }
-
-        if (tipoDocumentoRepository.existsByDisplayNameIgnoreCaseAndIdNot(displayNameNuevo, documentoExistente.getId())) {
-            throw new BusinessException("Ya existe un tipo de documento con ese nombre");
-        }
-
-        documentoExistente.setDisplayName(displayNameNuevo);
-
-        if (dto.getActivo() != null) {
-            documentoExistente.setActivo(dto.getActivo());
-        }
-
-        return convertirADTO(tipoDocumentoRepository.save(documentoExistente));
+        return tipoDocumentoMapper.convertirADTO(tipoDocumentoRepository.save(tipoDocumento));
     }
 
+    @Transactional
     public TipoDocumentoDTO cambiarEstado(Long id, Boolean activo) {
-        TipoDocumento documentoExistente = tipoDocumentoRepository.findById(id)
-                .orElseThrow(() -> new BusinessException("Tipo de documento no encontrado con id: " + id));
+        TipoDocumento tipoDocumento = buscarPorId(id);
 
-        if (activo == null) {
-            throw new BusinessException("El estado activo es obligatorio");
-        }
+        tipoDocumentoValidator.validarCambioEstado(tipoDocumento, activo);
 
-        if (documentoExistente.getActivo().equals(activo)) {
-            throw new BusinessException("El tipo de documento ya tiene ese estado");
-        }
+        tipoDocumento.setActivo(activo);
 
-        documentoExistente.setActivo(activo);
-        return convertirADTO(tipoDocumentoRepository.save(documentoExistente));
+        return tipoDocumentoMapper.convertirADTO(tipoDocumentoRepository.save(tipoDocumento));
     }
 
-    private TipoDocumentoDTO convertirADTO(TipoDocumento tipoDocumento) {
-        TipoDocumentoDTO dto = new TipoDocumentoDTO();
-        dto.setId(tipoDocumento.getId());
-        dto.setDisplayName(tipoDocumento.getDisplayName());
-        dto.setActivo(tipoDocumento.getActivo());
-        return dto;
+    private TipoDocumento buscarPorId(Long id) {
+        if (id == null) {
+            throw new BusinessException("El id del tipo de documento es obligatorio");
+        }
+
+        return tipoDocumentoRepository.findById(id)
+                .orElseThrow(() -> new BusinessException("Tipo de documento no encontrado con id: " + id));
     }
 }

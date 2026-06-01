@@ -11,7 +11,7 @@ import org.thymeleaf.context.Context;
 import co.edu.ufps.legal_cases.business.dto.seguimiento.notificacion.SeguimientoDestinatarioDTO;
 import co.edu.ufps.legal_cases.business.model.seguimiento.notificacion.MomentoNotificacionSeguimiento;
 import co.edu.ufps.legal_cases.business.model.seguimiento.notificacion.TipoNotificacionSeguimiento;
-import co.edu.ufps.legal_cases.common.service.EmailService;
+import co.edu.ufps.legal_cases.common.email.EmailService;
 import lombok.RequiredArgsConstructor;
 
 // Este servicio envia correos como notificacion de seguimientos

@@ -11,6 +11,10 @@ import {
 } from "@/components/ui/dialog"
 import Calendar from "@/components/Calendar"
 
+/**
+ * Muestra un botón que abre un modal con el calendario.
+ * @returns {JSX.Element} Modal de calendario.
+ */
 export function CalendarModal() {
   const [open, setOpen] = React.useState(false);
 

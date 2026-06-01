@@ -22,6 +22,10 @@ public class SeguimientoRespuestaDecisionDTO {
     // En revisión solo se permite aprobar o rechazar.
     @AssertTrue(message = "La decisión debe ser APROBADA o RECHAZADA")
     public boolean isDecisionValida() {
+        if (estado == null) {
+            return true;
+        }
+
         return estado == EstadoRespuestaSeguimiento.APROBADA
                 || estado == EstadoRespuestaSeguimiento.RECHAZADA;
     }

@@ -6,12 +6,12 @@ import org.springframework.stereotype.Service;
 
 import co.edu.ufps.legal_cases.business.dto.consulta.ConsultaBusquedaDTO;
 import co.edu.ufps.legal_cases.business.dto.consulta.ConsultaDTO;
+import co.edu.ufps.legal_cases.business.model.consulta.EstadoConsulta;
 import co.edu.ufps.legal_cases.business.service.consulta.consulta.ConsultaCommandService;
 import co.edu.ufps.legal_cases.business.service.consulta.consulta.ConsultaQueryService;
 
-
-// Funciona como fachada para manejar todas las operaciones de una consulta
-// porque está dividido en más servicios por responsabilidad
+// Fachada del módulo de consultas.
+// El controller entra por aquí, pero lectura y escritura quedan separadas por responsabilidad.
 @Service
 public class ConsultaService {
 
@@ -54,11 +54,19 @@ public class ConsultaService {
         return consultaCommandService.actualizar(id, dto);
     }
 
+    public ConsultaDTO cambiarEstado(Long id, EstadoConsulta estado) {
+        return consultaCommandService.cambiarEstado(id, estado);
+    }
+
     public void eliminar(Long id) {
         consultaCommandService.eliminar(id);
     }
 
     public ConsultaDTO archivar(Long id) {
         return consultaCommandService.archivar(id);
+    }
+
+    public ConsultaDTO desarchivar(Long id) {
+        return consultaCommandService.desarchivar(id);
     }
 }

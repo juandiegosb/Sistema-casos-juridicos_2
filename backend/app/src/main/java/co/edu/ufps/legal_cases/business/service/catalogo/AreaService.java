@@ -1,101 +1,122 @@
 package co.edu.ufps.legal_cases.business.service.catalogo;
 
+import java.util.List;
+
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import co.edu.ufps.legal_cases.business.dto.catalogo.AreaDTO;
 import co.edu.ufps.legal_cases.business.model.catalogo.Area;
 import co.edu.ufps.legal_cases.business.repository.catalogo.AreaRepository;
+import co.edu.ufps.legal_cases.business.service.catalogo.area.AreaMapper;
+import co.edu.ufps.legal_cases.business.service.catalogo.area.AreaValidator;
 import co.edu.ufps.legal_cases.common.exception.BusinessException;
-
-import org.springframework.stereotype.Service;
-
-import static co.edu.ufps.legal_cases.common.util.NormalizacionUtils.normalizarTexto;
-
-import java.util.List;
 
 @Service
 public class AreaService {
 
     private final AreaRepository areaRepository;
+    private final AreaMapper areaMapper;
+    private final AreaValidator areaValidator;
 
-    public AreaService(AreaRepository areaRepository) {
+    public AreaService(
+            AreaRepository areaRepository,
+            AreaMapper areaMapper,
+            AreaValidator areaValidator) {
         this.areaRepository = areaRepository;
+        this.areaMapper = areaMapper;
+        this.areaValidator = areaValidator;
     }
 
+    // Lista áreas activas para formularios, selects y uso normal del sistema.
+    @Transactional(readOnly = true)
     public List<AreaDTO> listar() {
-        // Obtiene todas las áreas y las convierte a DTO
-        return areaRepository.findAll()
+        return areaRepository.findByActivoTrueOrderByNombreAsc()
                 .stream()
-                .map(area -> convertirADTO(area))
+                .map(areaMapper::convertirADTO)
                 .toList();
     }
 
-    public List<AreaDTO> listarActivos() {
-        return areaRepository.findAll()
+    // Lista todas las áreas para administración del catálogo.
+    @Transactional(readOnly = true)
+    public List<AreaDTO> listarTodos() {
+        return areaRepository.findAllByOrderByNombreAsc()
                 .stream()
-                .filter(a -> Boolean.TRUE.equals(a.getActivo()))
-                .map(this::convertirADTO)
+                .map(areaMapper::convertirADTO)
                 .toList();
     }
 
+    @Transactional(readOnly = true)
     public AreaDTO obtenerPorId(Long id) {
-        Area area = areaRepository.findById(id)
-                .orElseThrow(() -> new BusinessException("Área no encontrada con id: " + id));
-
-        return convertirADTO(area);
+        Area area = buscarPorIdActivo(id);
+        return areaMapper.convertirADTO(area);
     }
 
-    public AreaDTO crear(AreaDTO areaDTO) {
-        String nombre = normalizarTexto(areaDTO.getNombre());
+    @Transactional
+    public AreaDTO crear(AreaDTO dto) {
+        areaValidator.validarCreacion(dto);
 
-        if (nombre == null || nombre.isBlank()) {
-            throw new BusinessException("El nombre del área es obligatorio");
-        }
+        String nombre = areaValidator.normalizarNombre(dto.getNombre());
 
-        if (areaRepository.existsByNombreIgnoreCase(nombre)) {
-            throw new BusinessException("Ya existe un área con ese nombre");
-        }
+        areaValidator.validarNombreDisponible(nombre);
 
-        Area area = new Area();
-        area.setNombre(nombre);
+        Area area = areaMapper.crearEntidad(nombre);
 
-        Area areaGuardada = areaRepository.save(area);
-        return convertirADTO(areaGuardada);
+        return areaMapper.convertirADTO(areaRepository.save(area));
     }
 
-    public AreaDTO actualizar(Long id, AreaDTO areaDTO) {
+    @Transactional
+    public AreaDTO actualizar(Long id, AreaDTO dto) {
+        Area area = buscarPorId(id);
 
-        Area area = areaRepository.findById(id)
-                .orElseThrow(() -> new BusinessException("Área no encontrada con id: " + id));
+        areaValidator.validarActualizacion(id, dto);
 
-        String nuevoNombre = normalizarTexto(areaDTO.getNombre());
+        String nombreNuevo = areaValidator.normalizarNombre(dto.getNombre());
 
-        if (nuevoNombre == null || nuevoNombre.isBlank()) {
-            throw new BusinessException("El nombre del área es obligatorio");
-        }
+        areaValidator.validarNombreDisponibleParaActualizacion(nombreNuevo, area.getId());
+        areaValidator.validarExistenCambios(area, nombreNuevo);
 
-        //VALIDAR SI ES EL MISMO
-        if (area.getNombre().equalsIgnoreCase(nuevoNombre)) {
-            throw new BusinessException("El nombre es el mismo, no hay cambios");
-        }
+        areaMapper.aplicarDatos(area, nombreNuevo);
 
-        //VALIDAR DUPLICADO
-        if (areaRepository.existsByNombreIgnoreCase(nuevoNombre)) {
-            throw new BusinessException("Ya existe un área con ese nombre");
-        }
-
-        area.setNombre(nuevoNombre);
-        Area areaActualizada = areaRepository.save(area);
-
-        return convertirADTO(areaActualizada);
+        return areaMapper.convertirADTO(areaRepository.save(area));
     }
 
-    public void desactivar(Long id) {
-        Area area = areaRepository.findById(id)
-                .orElseThrow(() -> new BusinessException("Área no encontrada con id: " + id));
+    @Transactional
+    public AreaDTO cambiarEstado(Long id, Boolean activo) {
+        Area area = buscarPorId(id);
+
+        areaValidator.validarCambioEstado(area, activo);
+
+        area.setActivo(activo);
+
+        return areaMapper.convertirADTO(areaRepository.save(area));
+    }
+
+    @Transactional
+    public void eliminar(Long id) {
+        Area area = buscarPorIdActivo(id);
+
+        // Desactivación lógica: se conserva porque puede estar asociada a temas y consultas.
         area.setActivo(false);
+
         areaRepository.save(area);
     }
 
-private AreaDTO convertirADTO(Area area) {
-    return new AreaDTO(area.getId(), area.getNombre(), area.getActivo());
-}
+    private Area buscarPorId(Long id) {
+        if (id == null) {
+            throw new BusinessException("El id del área es obligatorio");
+        }
+
+        return areaRepository.findById(id)
+                .orElseThrow(() -> new BusinessException("Área no encontrada con id: " + id));
+    }
+
+    private Area buscarPorIdActivo(Long id) {
+        if (id == null) {
+            throw new BusinessException("El id del área es obligatorio");
+        }
+
+        return areaRepository.findByIdAndActivoTrue(id)
+                .orElseThrow(() -> new BusinessException("Área no encontrada o inactiva con id: " + id));
+    }
 }

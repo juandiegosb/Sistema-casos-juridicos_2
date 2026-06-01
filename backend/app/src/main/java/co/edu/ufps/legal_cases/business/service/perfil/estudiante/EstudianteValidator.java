@@ -1,13 +1,19 @@
 package co.edu.ufps.legal_cases.business.service.perfil.estudiante;
 
+import static co.edu.ufps.legal_cases.common.util.ComparacionUtils.equalsIgnoreCase;
+import static co.edu.ufps.legal_cases.common.util.ComparacionUtils.mismoId;
+
 import java.util.Objects;
 
 import org.springframework.stereotype.Component;
 
+import co.edu.ufps.legal_cases.business.model.catalogo.Sede;
+import co.edu.ufps.legal_cases.business.model.catalogo.TipoDocumento;
+import co.edu.ufps.legal_cases.business.model.perfil.Asesor;
+import co.edu.ufps.legal_cases.business.model.perfil.Estudiante;
 import co.edu.ufps.legal_cases.business.repository.perfil.EstudianteRepository;
 import co.edu.ufps.legal_cases.common.exception.BusinessException;
 
-// Valida reglas de negocio para la entidad Estudiante
 @Component
 public class EstudianteValidator {
 
@@ -117,5 +123,45 @@ public class EstudianteValidator {
         if (estudianteRepository.existsByCodigoIgnoreCaseAndIdNot(codigo, id)) {
             throw new BusinessException("Ya existe un estudiante con ese código");
         }
+    }
+
+    public void validarExistenCambios(Estudiante estudiante, DatosEstudiante datos) {
+        if (sinCambios(estudiante, datos)) {
+            throw new BusinessException("No hay cambios para actualizar");
+        }
+    }
+
+    public void validarCambioEstado(Estudiante estudiante, Boolean activo) {
+        if (activo == null) {
+            throw new BusinessException("El estado activo es obligatorio");
+        }
+
+        if (Objects.equals(estudiante.getActivo(), activo)) {
+            throw new BusinessException("El estudiante ya tiene ese estado");
+        }
+    }
+
+    public void validarCambioConciliacion(Estudiante estudiante, Boolean conciliacion) {
+        if (conciliacion == null) {
+            throw new BusinessException("El estado de conciliación es obligatorio");
+        }
+
+        if (Objects.equals(estudiante.getConciliacion(), conciliacion)) {
+            throw new BusinessException("El estudiante ya tiene ese estado de conciliación");
+        }
+    }
+
+    private boolean sinCambios(Estudiante estudiante, DatosEstudiante datos) {
+        return equalsIgnoreCase(estudiante.getNombre(), datos.nombre())
+                && mismoId(estudiante.getTipoDocumento(), datos.tipoDocumento(), TipoDocumento::getId)
+                && Objects.equals(estudiante.getDocumento(), datos.documento())
+                && equalsIgnoreCase(estudiante.getEmail(), datos.email())
+                && Objects.equals(estudiante.getTelefono(), datos.telefono())
+                && equalsIgnoreCase(estudiante.getUsuario(), datos.usuario())
+                && mismoId(estudiante.getSede(), datos.sede(), Sede::getId)
+                && equalsIgnoreCase(estudiante.getCodigo(), datos.codigo())
+                && mismoId(estudiante.getAsesor(), datos.asesor(), Asesor::getId)
+                && Objects.equals(estudiante.getActivo(), datos.activo())
+                && Objects.equals(estudiante.getConciliacion(), datos.conciliacion());
     }
 }
