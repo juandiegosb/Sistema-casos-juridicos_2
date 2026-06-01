@@ -3,7 +3,8 @@ package co.edu.ufps.legal_cases.security.dto.account.cambio;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 
-// Para guardar ya los datos comunes entre perfiles definitivos que se van mas adelanta a escribir en la bd
+// Datos comunes ya normalizados para crear, actualizar o reactivar un perfil.
+// Se usan internamente después de limpiar textos, documento, teléfono, usuario y código.
 @Getter
 @AllArgsConstructor
 public class DatosPerfilCambioNormalizados {

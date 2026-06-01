@@ -6,12 +6,17 @@ import static co.edu.ufps.legal_cases.security.constant.PermisoNombre.EDITAR_USU
 import static co.edu.ufps.legal_cases.security.constant.PermisoNombre.GESTIONAR_USUARIOS;
 import static co.edu.ufps.legal_cases.security.constant.PermisoNombre.VER_ESTUDIANTES;
 import static co.edu.ufps.legal_cases.security.constant.PermisoNombre.VER_PERFILES_AUXILIARES;
+import co.edu.ufps.legal_cases.business.dto.perfil.ImportacionEstudiantesDTO;
+import co.edu.ufps.legal_cases.business.service.perfil.estudiante.EstudianteExcelService;
 
 import java.util.List;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.multipart.MultipartFile;
+import org.springframework.http.ResponseEntity;
 
 import co.edu.ufps.legal_cases.business.dto.perfil.EstudianteDTO;
 import co.edu.ufps.legal_cases.business.service.perfil.EstudianteService;
@@ -22,9 +27,13 @@ import jakarta.validation.Valid;
 public class EstudianteController {
 
     private final EstudianteService estudianteService;
+    private final EstudianteExcelService estudianteExcelService;
 
-    public EstudianteController(EstudianteService estudianteService) {
+    public EstudianteController(EstudianteService estudianteService, EstudianteExcelService estudianteExcelService) {
+
         this.estudianteService = estudianteService;
+        this.estudianteExcelService = estudianteExcelService;
+
     }
 
     // Listado con alcance:
@@ -101,5 +110,33 @@ public class EstudianteController {
     @PreAuthorize("hasAuthority('" + GESTIONAR_USUARIOS + "')")
     public void eliminar(@PathVariable Long id) {
         estudianteService.eliminar(id);
+    }
+
+    @PostMapping("/importar")
+    @PreAuthorize(
+            "hasAuthority('" + GESTIONAR_USUARIOS + "')"
+    )
+    public ResponseEntity<?> importar(@RequestParam MultipartFile archivo) {
+
+        try {
+
+            ImportacionEstudiantesDTO resultado =
+                    estudianteExcelService.importar(archivo);
+
+            return ResponseEntity.ok(resultado);
+
+        } catch (IllegalArgumentException e) {
+
+            return ResponseEntity
+                    .badRequest()
+                    .body(e.getMessage());
+
+        } catch (RuntimeException e) {
+
+            return ResponseEntity
+                    .status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Error interno: " + e.getMessage());
+
+        }
     }
 }

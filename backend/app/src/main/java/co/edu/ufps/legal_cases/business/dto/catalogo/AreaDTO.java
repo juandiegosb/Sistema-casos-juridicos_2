@@ -18,10 +18,7 @@ public class AreaDTO {
     @NotBlank(message = "El nombre del área es obligatorio")
     @Size(max = 50, message = "El nombre no puede superar los 50 caracteres")
     private String nombre;
+    
     private Boolean activo;
 
-    @Override
-    public String toString() {
-        return "AreaDTO [id=" + id + ", nombre=" + nombre + "]";
-    }
 }

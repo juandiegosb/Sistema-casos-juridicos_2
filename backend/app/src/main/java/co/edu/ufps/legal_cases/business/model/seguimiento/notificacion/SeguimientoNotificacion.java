@@ -81,7 +81,7 @@ public class SeguimientoNotificacion {
     private LocalDateTime fechaActualizacion;
 
     @Column(name = "activa", nullable = false)
-    private Boolean activa = true;
+    private Boolean activo = true;
 
     @Column(name = "fecha_cancelacion")
     private LocalDateTime fechaCancelacion;
@@ -107,8 +107,8 @@ public class SeguimientoNotificacion {
             enviada = false;
         }
 
-        if (activa == null) {
-            activa = true;
+        if (activo == null) {
+            activo = true;
         }
 
         if (intentos == null) {

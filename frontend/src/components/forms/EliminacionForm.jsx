@@ -1,9 +1,23 @@
-"use client";
+"use client"
+
+/**
+ * Formulario de eliminación y reactivación de registros.
+ *
+ * Permite cambiar el estado activo/inactivo de personas, usuarios,
+ * estudiantes y consultas. Requiere los permisos correspondientes
+ * según el tipo de recurso.
+ *
+ * @module components/forms/EliminacionForm
+ */
+;
 
 import React, { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { ConfirmActionDialog } from "@/components/ui/ConfirmActionDialog";
+import Pagination from "@/components/ui/Pagination";
 import { API_URL_BASE } from "@/lib/config";
+import { DEFAULT_PAGE_SIZE_OPTIONS, getTotalPages, paginateItems, sortByIdAsc } from "@/lib/list-utils";
 import { RotateCcw, RefreshCw } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { PERMISOS } from "@/lib/permission";
@@ -68,22 +82,40 @@ const SECCIONES = [
   },
 ];
 
+/**
+ * Normaliza un valor a texto para comparaciones internas.
+ * @param {any} value - Valor a normalizar.
+ * @returns {string} Cadena normalizada.
+ */
 function normalizar(value) {
   return String(value || "").trim().toUpperCase();
 }
 
+/**
+ * Determina si un registro está inactivo.
+ * @param {Object} item - Registro de persona o perfil.
+ * @returns {boolean} True si el registro se considera inactivo.
+ */
 function estaInactivo(item) {
   return item?.activo === false || normalizar(item?.estado) === "INACTIVO";
 }
 
+/**
+ * Determina si una consulta está archivada.
+ * @param {Object} item - Registro de consulta.
+ * @returns {boolean} True si la consulta está archivada.
+ */
 function estaArchivadaConsulta(item) {
-  return (
-    normalizar(item?.estado) === "ARCHIVADO" ||
-    normalizar(item?.estado) === "ARCHIVADA" ||
-    item?.activo === false
-  );
+  const estado = normalizar(item?.estado);
+
+  return estado === "ARCHIVADO" || estado === "ARCHIVADA";
 }
 
+/**
+ * Devuelve el nombre visible de un registro.
+ * @param {Object} item - Registro de persona o consulta.
+ * @returns {string} Nombre mostrado.
+ */
 function nombrePersona(item) {
   return (
     item?.nombre ||
@@ -95,10 +127,20 @@ function nombrePersona(item) {
   );
 }
 
+/**
+ * Obtiene el documento o identificador de una persona.
+ * @param {Object} item - Registro de persona.
+ * @returns {string} Documento o identificador.
+ */
 function documentoPersona(item) {
   return item?.documento || item?.numeroDocumento || item?.cedula || "N/A";
 }
 
+/**
+ * Genera un texto descriptivo para una consulta.
+ * @param {Object} item - Registro de consulta.
+ * @returns {string} Texto descriptivo.
+ */
 function textoConsulta(item) {
   return (
     item?.consulta ||
@@ -109,6 +151,12 @@ function textoConsulta(item) {
   );
 }
 
+/**
+ * Obtiene un detalle adicional según el tipo de registro.
+ * @param {Object} item - Registro actual.
+ * @param {string} tipo - Tipo de registro.
+ * @returns {string} Detalle adicional.
+ */
 function detalleItem(item, tipo) {
   if (tipo === "consulta") {
     return item?.fecha || item?.estado || "Consulta archivada";
@@ -125,6 +173,11 @@ function detalleItem(item, tipo) {
   return item?.codigo || item?.usuario || item?.telefono || "Perfil desactivado";
 }
 
+/**
+ * Lee la respuesta de la API y devuelve JSON o mensaje simple.
+ * @param {Response} response - Respuesta HTTP recibida.
+ * @returns {Promise<any>} Resultado parseado.
+ */
 async function leerRespuesta(response) {
   const text = await response.text();
 
@@ -137,12 +190,20 @@ async function leerRespuesta(response) {
   }
 }
 
+/**
+ * Componente que muestra registros desactivados y permite reactivarlos.
+ * @returns {JSX.Element} Formulario de eliminación.
+ */
 export function EliminacionForm() {
   const [seccionActiva, setSeccionActiva] = useState("personas");
   const [data, setData] = useState({});
   const [loading, setLoading] = useState(true);
   const [reactivando, setReactivando] = useState("");
   const [busqueda, setBusqueda] = useState("");
+  const [confirmDialogAbierto, setConfirmDialogAbierto] = useState(false);
+  const [itemAReactivar, setItemAReactivar] = useState(null);
+  const [paginaActual, setPaginaActual] = useState(1);
+  const [registrosPorPagina, setRegistrosPorPagina] = useState(10);
   const router = useRouter();
 
   const seccion = useMemo(() => {
@@ -161,9 +222,9 @@ export function EliminacionForm() {
       return estaInactivo(item);
     });
 
-    if (!q) return filtradosPorEstado;
-
-    return filtradosPorEstado.filter((item) =>
+    const filtrados = !q
+      ? filtradosPorEstado
+      : filtradosPorEstado.filter((item) =>
       [
         item?.id,
         nombrePersona(item),
@@ -177,6 +238,8 @@ export function EliminacionForm() {
         .toLowerCase()
         .includes(q)
     );
+
+    return sortByIdAsc(filtrados);
   }, [data, seccionActiva, busqueda, seccion]);
 
   useEffect(() => {
@@ -270,31 +333,40 @@ export function EliminacionForm() {
     }
   }
 
-  async function reactivarItem(item) {
-    if (!seccion) return;
+  function abrirConfirmReactivar(item) {
+    setItemAReactivar(item);
+    setConfirmDialogAbierto(true);
+  }
 
-    const confirmar = window.confirm(
-      `¿Seguro que deseas reactivar "${nombrePersona(item)}"?`
-    );
+  function cerrarConfirmDialog() {
+    setConfirmDialogAbierto(false);
+    setItemAReactivar(null);
+  }
 
-    if (!confirmar) return;
+  async function confirmarReactivarItem() {
+    if (!seccion || !itemAReactivar) return;
 
     try {
-      setReactivando(`${seccion.id}-${item.id}`);
+      setReactivando(`${seccion.id}-${itemAReactivar.id}`);
 
       if (seccion.reactivar === "consulta") {
-        await reactivarConsulta(item);
+        await reactivarConsulta(itemAReactivar);
       } else {
-        await reactivarActivo(seccion.endpoint, item.id);
+        await reactivarActivo(seccion.endpoint, itemAReactivar.id);
       }
 
-      toast.success("Registro reactivado correctamente");
+      toast.success(
+        seccion.reactivar === "consulta"
+          ? "Consulta desarchivada correctamente"
+          : "Registro reactivado correctamente"
+      );
       await cargarTodo();
     } catch (error) {
       console.error(error);
       toast.error(error.message || "No se pudo reactivar el registro");
     } finally {
       setReactivando("");
+      cerrarConfirmDialog();
     }
   }
 
@@ -318,54 +390,36 @@ export function EliminacionForm() {
   }
 
   async function reactivarConsulta(item) {
-    const detalleRes = await fetch(`${API_URL_BASE}/consultas/${item.id}`, {
+    const res = await fetch(`${API_URL_BASE}/consultas/${item.id}/desarchivar`, {
+      method: "PATCH",
       credentials: "include",
-    });
-
-    const detalle = await leerRespuesta(detalleRes);
-
-    if (!detalleRes.ok) {
-      throw new Error(
-        detalle?.mensaje || detalle?.message || "No se pudo cargar la consulta"
-      );
-    }
-
-    const payload = {
-      ...detalle,
-      estado: "Activo",
-      personaId: detalle.personaId ? Number(detalle.personaId) : null,
-      sedeId: detalle.sedeId ? Number(detalle.sedeId) : null,
-      areaId: detalle.areaId ? Number(detalle.areaId) : null,
-      temaId: detalle.temaId ? Number(detalle.temaId) : null,
-      tipoId: detalle.tipoId ? Number(detalle.tipoId) : null,
-      asesorId: detalle.asesorId ? Number(detalle.asesorId) : null,
-      monitorId: detalle.monitorId ? Number(detalle.monitorId) : null,
-      estudianteId: detalle.estudianteId ? Number(detalle.estudianteId) : null,
-      partesIds: Array.isArray(detalle.partesIds) ? detalle.partesIds : [],
-      contrapartesIds: Array.isArray(detalle.contrapartesIds)
-        ? detalle.contrapartesIds
-        : [],
-    };
-
-    const res = await fetch(`${API_URL_BASE}/consultas/${item.id}`, {
-      method: "PUT",
-      credentials: "include",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(payload),
     });
 
     const data = await leerRespuesta(res);
 
     if (!res.ok) {
       throw new Error(
-        data?.mensaje || data?.message || "No se pudo reactivar la consulta"
+        data?.mensaje || data?.message || "No se pudo desarchivar la consulta"
       );
     }
   }
 
   const totalSeccion = itemsActuales.length;
+  const totalPaginas = getTotalPages(totalSeccion, registrosPorPagina);
+  const itemsPaginados = useMemo(
+    () => paginateItems(itemsActuales, paginaActual, registrosPorPagina),
+    [itemsActuales, paginaActual, registrosPorPagina]
+  );
+
+  useEffect(() => {
+    setPaginaActual(1);
+  }, [seccionActiva, busqueda, registrosPorPagina]);
+
+  useEffect(() => {
+    if (paginaActual > totalPaginas) {
+      setPaginaActual(totalPaginas);
+    }
+  }, [paginaActual, totalPaginas]);
 
   return (
     <div className="space-y-5">
@@ -468,7 +522,7 @@ export function EliminacionForm() {
                     </td>
                   </tr>
                 ) : (
-                  itemsActuales.map((item) => {
+                  itemsPaginados.map((item) => {
                     const key = `${seccion.id}-${item.id}`;
                     const isLoading = reactivando === key;
 
@@ -505,7 +559,7 @@ export function EliminacionForm() {
                             <Button
                               type="button"
                               size="sm"
-                              onClick={() => reactivarItem(item)}
+                              onClick={() => abrirConfirmReactivar(item)}
                               disabled={isLoading}
                             >
                               <RotateCcw className="mr-1 size-4" />
@@ -521,7 +575,32 @@ export function EliminacionForm() {
             </table>
           </div>
         </div>
+
+        <Pagination
+          currentPage={paginaActual}
+          totalPages={totalPaginas}
+          onPageChange={setPaginaActual}
+          pageSize={registrosPorPagina}
+          onPageSizeChange={(value) => {
+            setRegistrosPorPagina(value);
+            setPaginaActual(1);
+          }}
+          pageSizeOptions={DEFAULT_PAGE_SIZE_OPTIONS}
+          totalItems={totalSeccion}
+        />
       </div>
+
+      <ConfirmActionDialog
+        open={confirmDialogAbierto}
+        title="Reactivar registro"
+        description={`¿Seguro que deseas reactivar "${itemAReactivar ? nombrePersona(itemAReactivar) : ""}"?`}
+        confirmText="Reactivar"
+        cancelText="Cancelar"
+        loading={Boolean(reactivando)}
+        variant="default"
+        onConfirm={confirmarReactivarItem}
+        onClose={cerrarConfirmDialog}
+      />
     </div>
   );
 }

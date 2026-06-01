@@ -22,5 +22,6 @@ public class TipoDTO {
 
     @NotNull(message = "El tema es obligatorio")
     private Long temaId;
+    
     private Boolean activo;
 }

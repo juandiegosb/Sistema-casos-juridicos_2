@@ -1,7 +1,5 @@
 package co.edu.ufps.legal_cases.business.service.perfil.estudiante;
 
-import static co.edu.ufps.legal_cases.common.util.ComparacionUtils.equalsIgnoreCase;
-import static co.edu.ufps.legal_cases.common.util.ComparacionUtils.mismoId;
 import static co.edu.ufps.legal_cases.common.util.NormalizacionUtils.normalizarCodigo;
 import static co.edu.ufps.legal_cases.common.util.NormalizacionUtils.normalizarEmail;
 import static co.edu.ufps.legal_cases.common.util.NormalizacionUtils.normalizarNumeroDocumento;
@@ -9,10 +7,10 @@ import static co.edu.ufps.legal_cases.common.util.NormalizacionUtils.normalizarT
 import static co.edu.ufps.legal_cases.common.util.NormalizacionUtils.normalizarTexto;
 import static co.edu.ufps.legal_cases.common.util.NormalizacionUtils.normalizarUsuario;
 
-import java.util.Objects;
-
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import co.edu.ufps.legal_cases.audit.aop.log.Auditable;
 
 import co.edu.ufps.legal_cases.business.dto.perfil.EstudianteDTO;
 import co.edu.ufps.legal_cases.business.model.catalogo.Sede;
@@ -23,16 +21,14 @@ import co.edu.ufps.legal_cases.business.repository.catalogo.SedeRepository;
 import co.edu.ufps.legal_cases.business.repository.catalogo.TipoDocumentoRepository;
 import co.edu.ufps.legal_cases.business.repository.perfil.AsesorRepository;
 import co.edu.ufps.legal_cases.business.repository.perfil.EstudianteRepository;
-import co.edu.ufps.legal_cases.business.service.acceso.EstudianteAccessService;
+import co.edu.ufps.legal_cases.business.service.acceso.perfil.EstudianteAccessService;
+import co.edu.ufps.legal_cases.business.service.consulta.consulta.ConsultaResponsableOperacionService;
 import co.edu.ufps.legal_cases.common.exception.BusinessException;
 import co.edu.ufps.legal_cases.security.model.account.UsuarioSistema;
-import co.edu.ufps.legal_cases.security.service.account.UsuarioSistemaRegistroService;
-import lombok.AllArgsConstructor;
+import co.edu.ufps.legal_cases.security.service.account.usuario.UsuarioSistemaPerfilEstadoService;
+import co.edu.ufps.legal_cases.security.service.account.usuario.UsuarioSistemaRegistroService;
 
-// Este servicio maneja cambios del Estudiante en la bd
-// a diferencia del query service que solo lee
 @Service
-@AllArgsConstructor
 public class EstudianteCommandService {
 
     private final EstudianteRepository estudianteRepository;
@@ -40,16 +36,42 @@ public class EstudianteCommandService {
     private final SedeRepository sedeRepository;
     private final AsesorRepository asesorRepository;
     private final UsuarioSistemaRegistroService usuarioSistemaRegistroService;
+    private final UsuarioSistemaPerfilEstadoService usuarioSistemaPerfilEstadoService;
     private final EstudianteAccessService estudianteAccessService;
     private final EstudianteValidator estudianteValidator;
     private final EstudianteMapper estudianteMapper;
+    private final ConsultaResponsableOperacionService consultaResponsableOperacionService;
+
+    public EstudianteCommandService(
+            EstudianteRepository estudianteRepository,
+            TipoDocumentoRepository tipoDocumentoRepository,
+            SedeRepository sedeRepository,
+            AsesorRepository asesorRepository,
+            UsuarioSistemaRegistroService usuarioSistemaRegistroService,
+            UsuarioSistemaPerfilEstadoService usuarioSistemaPerfilEstadoService,
+            EstudianteAccessService estudianteAccessService,
+            EstudianteValidator estudianteValidator,
+            EstudianteMapper estudianteMapper,
+            ConsultaResponsableOperacionService consultaResponsableOperacionService) {
+        this.estudianteRepository = estudianteRepository;
+        this.tipoDocumentoRepository = tipoDocumentoRepository;
+        this.sedeRepository = sedeRepository;
+        this.asesorRepository = asesorRepository;
+        this.usuarioSistemaRegistroService = usuarioSistemaRegistroService;
+        this.usuarioSistemaPerfilEstadoService = usuarioSistemaPerfilEstadoService;
+        this.estudianteAccessService = estudianteAccessService;
+        this.estudianteValidator = estudianteValidator;
+        this.estudianteMapper = estudianteMapper;
+        this.consultaResponsableOperacionService = consultaResponsableOperacionService;
+    }
 
     @Transactional
+    @Auditable(action = "CREAR_PERFIL", entityName = "Estudiante")
     public EstudianteDTO crear(EstudianteDTO dto) {
         estudianteAccessService.validarPuedeGestionarEstudiantes();
         estudianteValidator.validarIdNoEnviadoEnCreacion(dto.getId());
 
-        DatosEstudiante datos = prepararDatos(dto);
+        DatosEstudiante datos = prepararDatos(dto, true, false);
 
         estudianteValidator.validarDuplicadosCreacion(
                 datos.documento(),
@@ -59,26 +81,34 @@ public class EstudianteCommandService {
                 datos.codigo());
 
         Estudiante estudiante = new Estudiante();
-        aplicarDatos(estudiante, datos);
+        estudianteMapper.aplicarDatos(estudiante, datos);
 
         Estudiante estudianteGuardado = estudianteRepository.save(estudiante);
 
+        // El perfil se guarda primero porque el usuario del sistema se crea con datos
+        // del estudiante persistido.
         UsuarioSistema usuarioSistema = usuarioSistemaRegistroService.crearParaEstudiante(estudianteGuardado);
 
         estudianteGuardado.setUsuarioSistema(usuarioSistema);
 
-        Estudiante estudianteActualizado = estudianteRepository.save(estudianteGuardado);
-
-        return estudianteMapper.convertirADTO(estudianteActualizado);
+        return estudianteMapper.convertirADTO(estudianteRepository.save(estudianteGuardado));
     }
 
     @Transactional
+    @Auditable(action = "ACTUALIZAR_PERFIL", entityName = "Estudiante")
     public EstudianteDTO actualizar(Long id, EstudianteDTO dto) {
         estudianteAccessService.validarPuedeGestionarEstudiantes();
-        estudianteValidator.validarIdNoCambiado(id, dto.getId());
 
         Estudiante existente = buscarPorId(id);
-        DatosEstudiante datos = prepararDatos(dto);
+
+        estudianteValidator.validarIdNoCambiado(id, dto.getId());
+
+        // Actualizar datos del perfil no debe cambiar activo ni conciliación.
+        // Para esos campos existen cambiarEstado() y cambiarConciliacion().
+        DatosEstudiante datos = prepararDatos(
+                dto,
+                existente.getActivo(),
+                existente.getConciliacion());
 
         estudianteValidator.validarDuplicadosActualizacion(
                 id,
@@ -88,47 +118,47 @@ public class EstudianteCommandService {
                 datos.usuario(),
                 datos.codigo());
 
-        if (sinCambios(existente, datos)) {
-            throw new BusinessException("No hay cambios para actualizar");
-        }
+        estudianteValidator.validarExistenCambios(existente, datos);
 
-        aplicarDatos(existente, datos);
+        estudianteMapper.aplicarDatos(existente, datos);
 
         return estudianteMapper.convertirADTO(estudianteRepository.save(existente));
     }
 
     @Transactional
+    @Auditable(action = "DESACTIVAR/REACTIVAR_PERFIL", entityName = "Estudiante")
     public EstudianteDTO cambiarEstado(Long id, Boolean activo) {
         estudianteAccessService.validarPuedeCambiarEstadoEstudiante();
 
         Estudiante estudiante = buscarPorId(id);
 
-        if (activo == null) {
-            throw new BusinessException("El estado activo es obligatorio");
-        }
+        estudianteValidator.validarCambioEstado(estudiante, activo);
 
-        if (Objects.equals(estudiante.getActivo(), activo)) {
-            throw new BusinessException("El estudiante ya tiene ese estado");
+        if (Boolean.FALSE.equals(activo)) {
+            consultaResponsableOperacionService.validarEstudianteSinConsultasOperativas(id);
         }
 
         estudiante.setActivo(activo);
 
-        return estudianteMapper.convertirADTO(estudianteRepository.save(estudiante));
+        Estudiante guardado = estudianteRepository.save(estudiante);
+
+        // El estado operativo del perfil y del usuario de acceso deben permanecer
+        // sincronizados.
+        usuarioSistemaPerfilEstadoService.sincronizarEstadoSiExiste(
+                guardado.getUsuarioSistema(),
+                activo);
+
+        return estudianteMapper.convertirADTO(guardado);
     }
 
     @Transactional
+    @Auditable(action = "HABILITAR_CONCILIACION", entityName = "Estudiante")
     public EstudianteDTO cambiarConciliacion(Long id, Boolean conciliacion) {
         estudianteAccessService.validarPuedeGestionarEstudiantes();
 
         Estudiante estudiante = buscarPorId(id);
 
-        if (conciliacion == null) {
-            throw new BusinessException("El estado de conciliación es obligatorio");
-        }
-
-        if (Objects.equals(estudiante.getConciliacion(), conciliacion)) {
-            throw new BusinessException("El estudiante ya tiene ese estado de conciliación");
-        }
+        estudianteValidator.validarCambioConciliacion(estudiante, conciliacion);
 
         estudiante.setConciliacion(conciliacion);
 
@@ -136,15 +166,30 @@ public class EstudianteCommandService {
     }
 
     @Transactional
+    @Auditable(action = "ELIMINAR_PERFIL", entityName = "Estudiante")
     public void eliminar(Long id) {
         estudianteAccessService.validarPuedeGestionarEstudiantes();
 
         Estudiante estudiante = buscarPorId(id);
 
-        estudianteRepository.delete(estudiante);
+        // Se conserva el perfil y se desactiva porque puede estar asociado a consultas
+        // y seguimientos.
+        estudianteValidator.validarCambioEstado(estudiante, false);
+        consultaResponsableOperacionService.validarEstudianteSinConsultasOperativas(id);
+
+        estudiante.setActivo(false);
+
+        Estudiante guardado = estudianteRepository.save(estudiante);
+
+        usuarioSistemaPerfilEstadoService.sincronizarEstadoSiExiste(
+                guardado.getUsuarioSistema(),
+                false);
     }
 
-    private DatosEstudiante prepararDatos(EstudianteDTO dto) {
+    private DatosEstudiante prepararDatos(
+            EstudianteDTO dto,
+            Boolean activo,
+            Boolean conciliacion) {
         String nombre = normalizarTexto(dto.getNombre());
         String documento = normalizarNumeroDocumento(dto.getDocumento());
         String email = normalizarEmail(dto.getEmail());
@@ -164,9 +209,6 @@ public class EstudianteCommandService {
         Sede sede = obtenerSede(dto.getSedeId());
         Asesor asesor = obtenerAsesor(dto.getAsesorId());
 
-        Boolean activo = dto.getActivo() != null ? dto.getActivo() : true;
-        Boolean conciliacion = dto.getConciliacion() != null ? dto.getConciliacion() : false;
-
         return new DatosEstudiante(
                 nombre,
                 documento,
@@ -181,35 +223,11 @@ public class EstudianteCommandService {
                 conciliacion);
     }
 
-    private void aplicarDatos(Estudiante estudiante, DatosEstudiante datos) {
-        estudiante.setNombre(datos.nombre());
-        estudiante.setTipoDocumento(datos.tipoDocumento());
-        estudiante.setDocumento(datos.documento());
-        estudiante.setEmail(datos.email());
-        estudiante.setTelefono(datos.telefono());
-        estudiante.setUsuario(datos.usuario());
-        estudiante.setSede(datos.sede());
-        estudiante.setCodigo(datos.codigo());
-        estudiante.setAsesor(datos.asesor());
-        estudiante.setActivo(datos.activo());
-        estudiante.setConciliacion(datos.conciliacion());
-    }
-
-    private boolean sinCambios(Estudiante estudiante, DatosEstudiante datos) {
-        return equalsIgnoreCase(estudiante.getNombre(), datos.nombre())
-                && mismoId(estudiante.getTipoDocumento(), datos.tipoDocumento(), TipoDocumento::getId)
-                && Objects.equals(estudiante.getDocumento(), datos.documento())
-                && equalsIgnoreCase(estudiante.getEmail(), datos.email())
-                && Objects.equals(estudiante.getTelefono(), datos.telefono())
-                && equalsIgnoreCase(estudiante.getUsuario(), datos.usuario())
-                && mismoId(estudiante.getSede(), datos.sede(), Sede::getId)
-                && equalsIgnoreCase(estudiante.getCodigo(), datos.codigo())
-                && mismoId(estudiante.getAsesor(), datos.asesor(), Asesor::getId)
-                && Objects.equals(estudiante.getActivo(), datos.activo())
-                && Objects.equals(estudiante.getConciliacion(), datos.conciliacion());
-    }
-
     private Estudiante buscarPorId(Long id) {
+        if (id == null) {
+            throw new BusinessException("El id del estudiante es obligatorio");
+        }
+
         return estudianteRepository.findById(id)
                 .orElseThrow(() -> new BusinessException("Estudiante no encontrado con id: " + id));
     }
@@ -219,9 +237,9 @@ public class EstudianteCommandService {
             throw new BusinessException("El tipo de documento es obligatorio");
         }
 
-        return tipoDocumentoRepository.findById(tipoDocumentoId)
+        return tipoDocumentoRepository.findByIdAndActivoTrue(tipoDocumentoId)
                 .orElseThrow(() -> new BusinessException(
-                        "Tipo de documento no encontrado con id: " + tipoDocumentoId));
+                        "Tipo de documento no encontrado o inactivo con id: " + tipoDocumentoId));
     }
 
     private Sede obtenerSede(Long sedeId) {
@@ -229,8 +247,8 @@ public class EstudianteCommandService {
             throw new BusinessException("La sede es obligatoria");
         }
 
-        return sedeRepository.findById(sedeId)
-                .orElseThrow(() -> new BusinessException("Sede no encontrada con id: " + sedeId));
+        return sedeRepository.findByIdAndActivoTrue(sedeId)
+                .orElseThrow(() -> new BusinessException("Sede no encontrada o inactiva con id: " + sedeId));
     }
 
     private Asesor obtenerAsesor(Long asesorId) {
@@ -240,19 +258,5 @@ public class EstudianteCommandService {
 
         return asesorRepository.findByIdAndActivoTrue(asesorId)
                 .orElseThrow(() -> new BusinessException("Asesor no encontrado o inactivo con id: " + asesorId));
-    }
-
-    private record DatosEstudiante(
-            String nombre,
-            String documento,
-            String email,
-            String telefono,
-            String usuario,
-            String codigo,
-            TipoDocumento tipoDocumento,
-            Sede sede,
-            Asesor asesor,
-            Boolean activo,
-            Boolean conciliacion) {
     }
 }

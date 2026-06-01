@@ -26,6 +26,10 @@ public final class PermisoNombre {
     public static final String ACCEDER_ROLES = "Acceder roles";
     public static final String ACCEDER_ESTUDIANTES = "Acceder estudiantes";
     public static final String ACCEDER_ASESORES_MONITORES = "Acceder asesores y monitores";
+    public static final String ACCEDER_PERSONAS = "Acceder personas";
+    public static final String ACCEDER_ELIMINACION = "Acceder eliminación";
+    public static final String ACCEDER_CONCILIACIONES = "Acceder conciliaciones";
+    public static final String ACCEDER_PROCESOS = "Acceder procesos";
 
     // Catálogos y datos auxiliares.
     public static final String VER_CATALOGOS = "Ver catálogos";
@@ -44,7 +48,8 @@ public final class PermisoNombre {
     public static final String ASIGNAR_RESPONSABLES_CONSULTA = "Asignar responsables consulta";
 
     // Seguimientos / tareas.
-    // Tareas es una interfaz de seguimientos; por eso las acciones reales quedan aquí.
+    // Tareas es una interfaz de seguimientos; por eso las acciones reales quedan
+    // aquí.
     public static final String VER_SEGUIMIENTOS = "Ver seguimientos";
     public static final String CREAR_SEGUIMIENTOS = "Crear seguimientos";
     public static final String EDITAR_SEGUIMIENTOS = "Editar seguimientos";

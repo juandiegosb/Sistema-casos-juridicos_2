@@ -7,6 +7,8 @@ import java.time.LocalDateTime;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import co.edu.ufps.legal_cases.audit.aop.log.Auditable;
+
 import co.edu.ufps.legal_cases.business.dto.seguimiento.respuesta.SeguimientoRespuestaDecisionDTO;
 import co.edu.ufps.legal_cases.business.dto.seguimiento.respuesta.SeguimientoRespuestaRequestDTO;
 import co.edu.ufps.legal_cases.business.dto.seguimiento.respuesta.SeguimientoRespuestaResponseDTO;
@@ -17,7 +19,8 @@ import co.edu.ufps.legal_cases.business.model.seguimiento.respuesta.SeguimientoR
 import co.edu.ufps.legal_cases.business.repository.perfil.EstudianteRepository;
 import co.edu.ufps.legal_cases.business.repository.seguimiento.SeguimientoRepository;
 import co.edu.ufps.legal_cases.business.repository.seguimiento.respuesta.SeguimientoRespuestaRepository;
-import co.edu.ufps.legal_cases.business.service.acceso.SeguimientoRespuestaAccessService;
+import co.edu.ufps.legal_cases.business.service.acceso.seguimiento.SeguimientoRespuestaAccessService;
+import co.edu.ufps.legal_cases.business.service.seguimiento.seguimiento.SeguimientoEstadoService;
 import co.edu.ufps.legal_cases.common.exception.BusinessException;
 import co.edu.ufps.legal_cases.security.model.account.UsuarioSistema;
 import co.edu.ufps.legal_cases.security.repository.account.UsuarioSistemaRepository;
@@ -32,6 +35,7 @@ public class SeguimientoRespuestaCommandService {
     private final SeguimientoRespuestaAccessService seguimientoRespuestaAccessService;
     private final SeguimientoRespuestaValidator seguimientoRespuestaValidator;
     private final SeguimientoRespuestaMapper seguimientoRespuestaMapper;
+    private final SeguimientoEstadoService seguimientoEstadoService;
 
     public SeguimientoRespuestaCommandService(
             SeguimientoRespuestaRepository seguimientoRespuestaRepository,
@@ -40,7 +44,8 @@ public class SeguimientoRespuestaCommandService {
             UsuarioSistemaRepository usuarioSistemaRepository,
             SeguimientoRespuestaAccessService seguimientoRespuestaAccessService,
             SeguimientoRespuestaValidator seguimientoRespuestaValidator,
-            SeguimientoRespuestaMapper seguimientoRespuestaMapper) {
+            SeguimientoRespuestaMapper seguimientoRespuestaMapper,
+            SeguimientoEstadoService seguimientoEstadoService) {
         this.seguimientoRespuestaRepository = seguimientoRespuestaRepository;
         this.seguimientoRepository = seguimientoRepository;
         this.estudianteRepository = estudianteRepository;
@@ -48,9 +53,11 @@ public class SeguimientoRespuestaCommandService {
         this.seguimientoRespuestaAccessService = seguimientoRespuestaAccessService;
         this.seguimientoRespuestaValidator = seguimientoRespuestaValidator;
         this.seguimientoRespuestaMapper = seguimientoRespuestaMapper;
+        this.seguimientoEstadoService = seguimientoEstadoService;
     }
 
     @Transactional
+    @Auditable(action = "CREAR_RESPUESTA_SEGUIMIENTO", entityName = "SeguimientoRespuesta")
     public SeguimientoRespuestaResponseDTO crear(Long seguimientoId, SeguimientoRespuestaRequestDTO dto) {
         seguimientoRespuestaAccessService.validarPuedeResponderSeguimiento(seguimientoId);
         seguimientoRespuestaValidator.validarCreacion(dto);
@@ -58,6 +65,7 @@ public class SeguimientoRespuestaCommandService {
         Long estudianteActualId = seguimientoRespuestaAccessService.obtenerEstudianteActualId();
 
         Seguimiento seguimiento = obtenerSeguimientoActivo(seguimientoId);
+        seguimientoEstadoService.validarPermiteRespuesta(seguimiento);
         validarPuedeCrearNuevoIntento(seguimientoId, estudianteActualId);
 
         Estudiante estudiante = obtenerEstudianteActivo(estudianteActualId);
@@ -74,16 +82,17 @@ public class SeguimientoRespuestaCommandService {
         respuesta.setActivo(true);
 
         return seguimientoRespuestaMapper.convertirAResponseDTO(
-                seguimientoRespuestaRepository.save(respuesta)
-        );
+                seguimientoRespuestaRepository.save(respuesta));
     }
 
     @Transactional
+    @Auditable(action = "ACTUALIZAR_RESPUESTA_SEGUIMIENTO", entityName = "SeguimientoRespuesta")
     public SeguimientoRespuestaResponseDTO actualizar(Long id, SeguimientoRespuestaRequestDTO dto) {
         seguimientoRespuestaAccessService.validarPuedeEditarRespuesta(id);
         seguimientoRespuestaValidator.validarActualizacion(id, dto);
 
         SeguimientoRespuesta respuesta = obtenerRespuestaActiva(id);
+        seguimientoEstadoService.validarPermiteRespuesta(respuesta.getSeguimiento());
         String contenido = seguimientoRespuestaValidator.normalizarContenido(dto.getContenido());
 
         if (equalsIgnoreCase(respuesta.getContenido(), contenido)) {
@@ -96,32 +105,36 @@ public class SeguimientoRespuestaCommandService {
         // Si ya estaba marcada, se conserva.
         respuesta.setFueraPlazo(
                 Boolean.TRUE.equals(respuesta.getFueraPlazo())
-                        || estaFueraDePlazo(respuesta.getSeguimiento())
-        );
+                        || estaFueraDePlazo(respuesta.getSeguimiento()));
 
         return seguimientoRespuestaMapper.convertirAResponseDTO(
-                seguimientoRespuestaRepository.save(respuesta)
-        );
+                seguimientoRespuestaRepository.save(respuesta));
     }
 
     @Transactional
+    @Auditable(action = "APROBAR/RECHAZAR_RESPUESTA", entityName = "SeguimientoRespuesta")
     public SeguimientoRespuestaResponseDTO decidir(Long id, SeguimientoRespuestaDecisionDTO dto) {
         seguimientoRespuestaAccessService.validarPuedeRevisarRespuesta(id);
         seguimientoRespuestaValidator.validarDecision(dto);
 
         SeguimientoRespuesta respuesta = obtenerRespuestaActiva(id);
+        seguimientoEstadoService.validarPermiteRespuesta(respuesta.getSeguimiento());
+
         UsuarioSistema revisor = obtenerUsuarioActual();
 
         respuesta.setEstado(dto.getEstado());
         respuesta.setObservacionRevision(
-                seguimientoRespuestaValidator.normalizarObservacionRevision(dto.getObservacionRevision())
-        );
+                seguimientoRespuestaValidator.normalizarObservacionRevision(dto.getObservacionRevision()));
         respuesta.setRevisadoPor(revisor);
         respuesta.setFechaDecision(LocalDateTime.now());
 
-        return seguimientoRespuestaMapper.convertirAResponseDTO(
-                seguimientoRespuestaRepository.save(respuesta)
-        );
+        SeguimientoRespuesta respuestaGuardada = seguimientoRespuestaRepository.save(respuesta);
+
+        if (EstadoRespuestaSeguimiento.APROBADA.equals(respuestaGuardada.getEstado())) {
+            seguimientoEstadoService.completarPorRespuestaAprobada(respuestaGuardada);
+        }
+
+        return seguimientoRespuestaMapper.convertirAResponseDTO(respuestaGuardada);
     }
 
     private void validarPuedeCrearNuevoIntento(Long seguimientoId, Long estudianteId) {
@@ -178,14 +191,9 @@ public class SeguimientoRespuestaCommandService {
             throw new BusinessException("El id del estudiante es obligatorio");
         }
 
-        Estudiante estudiante = estudianteRepository.findById(estudianteId)
-                .orElseThrow(() -> new BusinessException("Estudiante no encontrado con id: " + estudianteId));
-
-        if (!Boolean.TRUE.equals(estudiante.getActivo())) {
-            throw new BusinessException("El estudiante se encuentra inactivo");
-        }
-
-        return estudiante;
+        return estudianteRepository.findByIdAndActivoTrue(estudianteId)
+                .orElseThrow(() -> new BusinessException(
+                        "Estudiante no encontrado o inactivo con id: " + estudianteId));
     }
 
     private UsuarioSistema obtenerUsuarioActual() {

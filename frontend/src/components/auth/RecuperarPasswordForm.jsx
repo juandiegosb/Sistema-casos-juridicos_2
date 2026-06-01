@@ -7,11 +7,18 @@ import { FormInput } from "../forms/parts/FormInput"
 import { Button } from "@/components/ui/button"
 import { Scale } from "lucide-react"
 import { API_URL_BASE } from "@/lib/config"
+import { getApiErrorTitle, readResponseBody } from "@/lib/api"
+import { requiredEmailRule } from "@/lib/form-validation"
 
+/**
+ * Formulario para solicitar recuperación de contraseña.
+ * @returns {JSX.Element} Formulario de recuperación.
+ */
 export function RecuperarPasswordForm() {
   const router = useRouter()
   const [message, setMessage] = useState("")
   const [error, setError] = useState("")
+  const [loading, setLoading] = useState(false)
 
   const {
     register,
@@ -21,9 +28,16 @@ export function RecuperarPasswordForm() {
 
   const REQUIRED = "Campo obligatorio"
 
+  /**
+   * Envía la solicitud de recuperación al backend.
+   * @param {Object} data - Datos del formulario.
+   * @param {string} data.correo - Correo electrónico del usuario.
+   * @returns {Promise<void>} Promesa de envío.
+   */
   const onSubmit = async (data) => {
     setError("")
     setMessage("")
+    setLoading(true)
 
     try {
       const res = await fetch(`${API_URL_BASE}/auth/solicitar-recuperacion`, {
@@ -36,10 +50,10 @@ export function RecuperarPasswordForm() {
         })
       })
 
-      const result = await res.json()
+      const result = await readResponseBody(res)
 
       if (!res.ok) {
-        throw new Error(result?.mensaje || "Error al enviar solicitud")
+        throw new Error(getApiErrorTitle(result, "Error al enviar solicitud"))
       }
 
       setMessage(result?.mensaje || "Revisa tu correo")
@@ -51,6 +65,8 @@ export function RecuperarPasswordForm() {
 
     } catch (err) {
       setError(err.message)
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -79,7 +95,7 @@ export function RecuperarPasswordForm() {
             label="Correo electrónico"
             register={register}
             errors={errors}
-            rules={{ required: REQUIRED }}
+            rules={requiredEmailRule()}
           />
 
           {error && (
@@ -88,8 +104,8 @@ export function RecuperarPasswordForm() {
             </div>
           )}
 
-          <Button type="submit" className="w-full">
-            Enviar instrucciones
+          <Button type="submit" className="w-full" disabled={loading}>
+            {loading ? "Enviando..." : "Enviar instrucciones"}
           </Button>
 
           <Button

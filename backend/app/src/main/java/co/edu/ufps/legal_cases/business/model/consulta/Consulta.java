@@ -14,6 +14,8 @@ import co.edu.ufps.legal_cases.business.model.perfil.Monitor;
 import co.edu.ufps.legal_cases.business.model.persona.Persona;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -22,6 +24,8 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.JoinTable;
 import jakarta.persistence.ManyToMany;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.PrePersist;
+import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
 import lombok.Getter;
 import lombok.Setter;
@@ -60,11 +64,18 @@ public class Consulta {
     @Column(name = "tipo_violencia", length = 100)
     private String tipoViolencia;
 
+    @Enumerated(EnumType.STRING)
     @Column(name = "estado", nullable = false, length = 50)
-    private String estado;
+    private EstadoConsulta estado;
 
     @Column(name = "resultado", length = 100)
     private String resultado;
+
+    // Fecha de última actualización del registro.
+    // Se usa para filtrar consultas por semestre en estadísticas.
+    // Se llena automáticamente al crear y actualizar.
+    @Column(name = "last_updated_at", nullable = false)
+    private LocalDate lastUpdatedAt;
 
     // Relación simple: persona principal (parte solicitante)
     @ManyToOne(fetch = FetchType.LAZY)
@@ -73,20 +84,12 @@ public class Consulta {
 
     // Relación ManyToMany: partes (pueden ser varias personas)
     @ManyToMany(fetch = FetchType.LAZY)
-    @JoinTable(
-        name = "consulta_parte",
-        joinColumns = @JoinColumn(name = "consulta_id"),
-        inverseJoinColumns = @JoinColumn(name = "persona_id")
-    )
+    @JoinTable(name = "consulta_parte", joinColumns = @JoinColumn(name = "consulta_id"), inverseJoinColumns = @JoinColumn(name = "persona_id"))
     private List<Persona> partes = new ArrayList<>();
 
     // Relación ManyToMany: contrapartes
     @ManyToMany(fetch = FetchType.LAZY)
-    @JoinTable(
-        name = "consulta_contraparte",
-        joinColumns = @JoinColumn(name = "consulta_id"),
-        inverseJoinColumns = @JoinColumn(name = "persona_id")
-    )
+    @JoinTable(name = "consulta_contraparte", joinColumns = @JoinColumn(name = "consulta_id"), inverseJoinColumns = @JoinColumn(name = "persona_id"))
     private List<Persona> contrapartes = new ArrayList<>();
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -116,4 +119,10 @@ public class Consulta {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "estudiante_id")
     private Estudiante estudiante;
+
+    @PrePersist
+    @PreUpdate
+    private void actualizarFecha() {
+        this.lastUpdatedAt = LocalDate.now();
+    }
 }

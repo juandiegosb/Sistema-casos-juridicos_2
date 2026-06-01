@@ -4,6 +4,7 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
+import co.edu.ufps.legal_cases.business.model.consulta.EstadoConsulta;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
@@ -41,9 +42,7 @@ public class ConsultaDTO {
     @Size(max = 100, message = "El tipo de violencia no puede superar los 100 caracteres")
     private String tipoViolencia;
 
-    @NotBlank(message = "El estado es obligatorio")
-    @Size(max = 50, message = "El estado no puede superar los 50 caracteres")
-    private String estado;
+    private EstadoConsulta estado;
 
     @Size(max = 100, message = "El resultado no puede superar los 100 caracteres")
     private String resultado;

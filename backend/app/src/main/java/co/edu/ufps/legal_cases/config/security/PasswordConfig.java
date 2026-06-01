@@ -5,7 +5,8 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
-// Lo uso en servicios para encriptar las contraseñas antes de guardarlas en la base de datos y para verificar las contraseñas durante el proceso de autenticación. 
+// Configura el encoder usado para guardar y validar contraseñas.
+// BCrypt genera hashes seguros con salt interno y es el estándar recomendado en Spring Security.
 @Configuration
 public class PasswordConfig {
 

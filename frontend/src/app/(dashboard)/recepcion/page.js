@@ -1,8 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { PersonaForm } from "@/components/forms/PersonaForm"
-
+import { PersonaForm } from "@/components/forms/persona/PersonaForm"
 export default function Home() {
   return (
     <div className="p-6 lg:p-10">

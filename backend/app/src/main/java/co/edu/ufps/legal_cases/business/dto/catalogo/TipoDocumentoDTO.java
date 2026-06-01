@@ -11,9 +11,9 @@ public class TipoDocumentoDTO {
 
     private Long id;
 
-    @NotBlank(message = "El nombre visible es obligatorio")
-    @Size(max = 100, message = "El nombre visible no puede superar los 100 caracteres")
-    private String displayName;
+    @NotBlank(message = "El nombre es obligatorio")
+    @Size(max = 100, message = "El nombre no puede superar los 100 caracteres")
+    private String nombre;
 
     private Boolean activo;
 }

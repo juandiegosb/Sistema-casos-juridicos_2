@@ -4,13 +4,20 @@ import { useForm } from "react-hook-form"
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { API_URL_BASE } from "@/lib/config"
+import { getApiErrorTitle, readResponseBody } from "@/lib/api"
 import { useRouter } from "next/navigation" 
 import { useEffect } from "react"
 
+/**
+ * Formulario para restablecer la contraseña con token.
+ * @param {{token:string}} props - Props del formulario.
+ * @returns {JSX.Element} Formulario de restablecimiento.
+ */
 export function RestablecerPasswordForm({ token }) {
   const {
     register,
     handleSubmit,
+    watch,
     formState: { errors },
   } = useForm()
 
@@ -19,6 +26,13 @@ export function RestablecerPasswordForm({ token }) {
   const [loading, setLoading] = useState(false)
   const router = useRouter()
 
+  /**
+   * Envía la nueva contraseña al backend.
+   * @param {Object} data - Datos del formulario.
+   * @param {string} data.passwordNueva - Nueva contraseña.
+   * @param {string} data.confirmarPassword - Confirmación de contraseña.
+   * @returns {Promise<void>} Promesa de envío.
+   */
   const onSubmit = async (data) => {
     setError("")
     setSuccess("")
@@ -37,10 +51,10 @@ export function RestablecerPasswordForm({ token }) {
         }),
       })
 
-      const result = await res.json()
+      const result = await readResponseBody(res)
 
       if (!res.ok) {
-        throw new Error(result?.mensaje || "Error al restablecer contraseña")
+        throw new Error(getApiErrorTitle(result, "Error al restablecer contraseña"))
       }
 
       setSuccess("La contraseña se restableció correctamente")
@@ -91,6 +105,8 @@ export function RestablecerPasswordForm({ token }) {
         placeholder="Confirmar contraseña"
         {...register("confirmarPassword", {
           required: "Debe confirmar la contraseña",
+          validate: (value) =>
+            value === watch("passwordNueva") || "Las contraseñas no coinciden",
         })}
         className="w-full border rounded-lg p-2"
       />

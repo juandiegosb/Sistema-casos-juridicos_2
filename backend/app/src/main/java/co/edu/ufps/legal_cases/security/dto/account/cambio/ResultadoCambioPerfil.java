@@ -4,7 +4,8 @@ import co.edu.ufps.legal_cases.security.model.account.TipoPerfilUsuario;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 
-// Esto se va a usar para que en service por medio de este objeto se diga que perfil quedo activo
+// Resultado interno del handler de cambio de perfil.
+// Permite que el orquestador sepa qué perfil quedó activo después del cambio.
 @Getter
 @AllArgsConstructor
 public class ResultadoCambioPerfil {

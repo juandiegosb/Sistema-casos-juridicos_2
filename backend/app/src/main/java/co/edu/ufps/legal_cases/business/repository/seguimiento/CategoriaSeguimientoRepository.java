@@ -15,7 +15,7 @@ public interface CategoriaSeguimientoRepository extends JpaRepository<CategoriaS
 
     boolean existsByNombreIgnoreCaseAndIdNot(String nombre, Long id);
 
-    List<CategoriaSeguimiento> findByActivoTrue();
+    List<CategoriaSeguimiento> findByActivoTrueOrderByNombreAsc();
 
     Optional<CategoriaSeguimiento> findByIdAndActivoTrue(Long id);
 }

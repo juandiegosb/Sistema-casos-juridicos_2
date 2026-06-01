@@ -1,99 +1,122 @@
 package co.edu.ufps.legal_cases.business.service.catalogo;
 
-import static co.edu.ufps.legal_cases.common.util.NormalizacionUtils.normalizarTexto;
-
 import java.util.List;
 
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import co.edu.ufps.legal_cases.business.dto.catalogo.SedeDTO;
 import co.edu.ufps.legal_cases.business.model.catalogo.Sede;
 import co.edu.ufps.legal_cases.business.repository.catalogo.SedeRepository;
+import co.edu.ufps.legal_cases.business.service.catalogo.sede.SedeMapper;
+import co.edu.ufps.legal_cases.business.service.catalogo.sede.SedeValidator;
 import co.edu.ufps.legal_cases.common.exception.BusinessException;
 
 @Service
 public class SedeService {
 
     private final SedeRepository sedeRepository;
+    private final SedeMapper sedeMapper;
+    private final SedeValidator sedeValidator;
 
-    public SedeService(SedeRepository sedeRepository) {
+    public SedeService(
+            SedeRepository sedeRepository,
+            SedeMapper sedeMapper,
+            SedeValidator sedeValidator) {
         this.sedeRepository = sedeRepository;
+        this.sedeMapper = sedeMapper;
+        this.sedeValidator = sedeValidator;
     }
 
+    // Lista sedes activas para formularios y selects del frontend.
+    @Transactional(readOnly = true)
     public List<SedeDTO> listar() {
-        return sedeRepository.findAll()
+        return sedeRepository.findByActivoTrueOrderByNombreAsc()
                 .stream()
-                .map(this::convertirADTO)
+                .map(sedeMapper::convertirADTO)
                 .toList();
     }
 
+    // Lista todas las sedes para administración del catálogo.
+    @Transactional(readOnly = true)
+    public List<SedeDTO> listarTodos() {
+        return sedeRepository.findAllByOrderByNombreAsc()
+                .stream()
+                .map(sedeMapper::convertirADTO)
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
     public SedeDTO obtenerPorId(Long id) {
-        Sede sede = sedeRepository.findById(id)
-                .orElseThrow(() -> new BusinessException("Sede no encontrada con id: " + id));
-
-        return convertirADTO(sede);
+        Sede sede = buscarPorIdActivo(id);
+        return sedeMapper.convertirADTO(sede);
     }
 
+    @Transactional
     public SedeDTO crear(SedeDTO dto) {
-        String nombre = normalizarTexto(dto.getNombre());
+        sedeValidator.validarCreacion(dto);
 
-        if (nombre == null || nombre.isBlank()) {
-            throw new BusinessException("El nombre de la sede es obligatorio");
-        }
+        String nombre = sedeValidator.normalizarNombre(dto.getNombre());
 
-        if (sedeRepository.existsByNombreIgnoreCase(nombre)) {
-            throw new BusinessException("Ya existe una sede con ese nombre");
-        }
+        sedeValidator.validarNombreDisponible(nombre);
 
-        Sede sede = new Sede();
-        sede.setNombre(nombre);
+        Sede sede = sedeMapper.crearEntidad(nombre);
 
-        return convertirADTO(sedeRepository.save(sede));
+        return sedeMapper.convertirADTO(sedeRepository.save(sede));
     }
 
+    @Transactional
     public SedeDTO actualizar(Long id, SedeDTO dto) {
-        Sede sedeExistente = sedeRepository.findById(id)
-                .orElseThrow(() -> new BusinessException("Sede no encontrada con id: " + id));
+        Sede sede = buscarPorId(id);
 
-        String nombreNuevo = normalizarTexto(dto.getNombre());
+        sedeValidator.validarActualizacion(id, dto);
 
-        if (nombreNuevo == null || nombreNuevo.isBlank()) {
-            throw new BusinessException("El nombre de la sede es obligatorio");
-        }
+        String nombreNuevo = sedeValidator.normalizarNombre(dto.getNombre());
 
-        // El id no debe cambiarse desde el DTO
-        if (dto.getId() != null && !dto.getId().equals(sedeExistente.getId())) {
-            throw new BusinessException("No se permite cambiar el id de la sede");
-        }
+        sedeValidator.validarNombreDisponibleParaActualizacion(nombreNuevo, sede.getId());
+        sedeValidator.validarExistenCambios(sede, nombreNuevo);
 
-        boolean mismoNombre = sedeExistente.getNombre().equalsIgnoreCase(nombreNuevo);
+        sedeMapper.aplicarDatos(sede, nombreNuevo);
 
-        if (mismoNombre) {
-            throw new BusinessException("No hay cambios para actualizar");
-        }
-
-        if (sedeRepository.existsByNombreIgnoreCaseAndIdNot(nombreNuevo, sedeExistente.getId())) {
-            throw new BusinessException("Ya existe una sede con ese nombre");
-        }
-
-        sedeExistente.setNombre(nombreNuevo);
-
-        return convertirADTO(sedeRepository.save(sedeExistente));
+        return sedeMapper.convertirADTO(sedeRepository.save(sede));
     }
 
+    @Transactional
     public void eliminar(Long id) {
-        Sede sede = sedeRepository.findById(id)
-                .orElseThrow(() -> new BusinessException("Sede no encontrada con id: " + id));
+        Sede sede = buscarPorIdActivo(id);
 
-        // A futuro aquí hay validar si la sede está siendo usada por:
-        // asesor, estudiante, monitor, administrativo, consulta, conciliador, etc.
-        sedeRepository.delete(sede);
+        // Desactivación lógica: se conserva porque puede estar asociada a usuarios o consultas.
+        sede.setActivo(false);
+
+        sedeRepository.save(sede);
     }
 
-    private SedeDTO convertirADTO(Sede sede) {
-        SedeDTO dto = new SedeDTO();
-        dto.setId(sede.getId());
-        dto.setNombre(sede.getNombre());
-        return dto;
+    @Transactional
+    public SedeDTO cambiarEstado(Long id, Boolean activo) {
+        Sede sede = buscarPorId(id);
+
+        sedeValidator.validarCambioEstado(sede, activo);
+
+        sede.setActivo(activo);
+
+        return sedeMapper.convertirADTO(sedeRepository.save(sede));
+    }
+
+    private Sede buscarPorId(Long id) {
+        if (id == null) {
+            throw new BusinessException("El id de la sede es obligatorio");
+        }
+
+        return sedeRepository.findById(id)
+                .orElseThrow(() -> new BusinessException("Sede no encontrada con id: " + id));
+    }
+
+    private Sede buscarPorIdActivo(Long id) {
+        if (id == null) {
+            throw new BusinessException("El id de la sede es obligatorio");
+        }
+
+        return sedeRepository.findByIdAndActivoTrue(id)
+                .orElseThrow(() -> new BusinessException("Sede no encontrada o inactiva con id: " + id));
     }
 }

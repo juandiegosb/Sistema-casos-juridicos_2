@@ -14,7 +14,8 @@ import co.edu.ufps.legal_cases.business.repository.seguimiento.notificacion.Segu
 import co.edu.ufps.legal_cases.common.exception.BusinessException;
 import lombok.RequiredArgsConstructor;
 
-// Este servicio sirve para crear, actualizar, reactivar o cancelar recordatorios programados.
+// Envía notificaciones pendientes y registra el resultado del intento.
+// No decide si la notificación aplica; eso ya viene resuelto por los servicios de sincronización.
 @Service
 @RequiredArgsConstructor
 public class SeguimientoEnvioNotificacionService {
@@ -29,7 +30,7 @@ public class SeguimientoEnvioNotificacionService {
     @Transactional
     public void enviarNotificacionPendiente(SeguimientoNotificacion notificacion) {
         // Si no existe o esta inactiva, no se intenta enviar.
-        if (notificacion == null || !Boolean.TRUE.equals(notificacion.getActiva())) {
+        if (notificacion == null || !Boolean.TRUE.equals(notificacion.getActivo())) {
             return;
         }
 
@@ -83,7 +84,7 @@ public class SeguimientoEnvioNotificacionService {
         notificacion.setEnviada(true);
 
         // Queda activa porque es un registro valido dentro del historial.
-        notificacion.setActiva(true);
+        notificacion.setActivo(true);
 
         // Guarda la fecha real del envio.
         notificacion.setFechaEnvio(LocalDateTime.now());

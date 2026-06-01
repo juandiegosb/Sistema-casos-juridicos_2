@@ -37,10 +37,10 @@ public class Monitor {
     private String nombre;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "tipo_documento")
+    @JoinColumn(name = "tipo_documento", nullable = false)
     private TipoDocumento tipoDocumento;
 
-    @Column(name = "documento", unique = true, length = 30)
+    @Column(name = "documento", nullable = false, unique = true, length = 30)
     private String documento;
 
     @Column(name = "email", nullable = false, unique = true, length = 120)
@@ -56,7 +56,7 @@ public class Monitor {
     private String codigo;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "sede")
+    @JoinColumn(name = "sede", nullable = false)
     private Sede sede;
 
     @Column(name = "activo", nullable = false)

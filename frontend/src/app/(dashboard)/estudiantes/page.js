@@ -1,7 +1,7 @@
 "use client";
 
 import { Users } from "lucide-react";
-import { EstudiantesForm } from "@/components/forms/EstudiantesForm";
+import { EstudiantesForm } from "@/components/forms/usuarios/EstudiantesForm";
 
 export default function EstudiantesPage() {
   return (

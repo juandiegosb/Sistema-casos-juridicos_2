@@ -13,6 +13,7 @@ import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -23,6 +24,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import co.edu.ufps.legal_cases.business.dto.seguimiento.SeguimientoRequestDTO;
 import co.edu.ufps.legal_cases.business.dto.seguimiento.SeguimientoResponseDTO;
+import co.edu.ufps.legal_cases.business.model.seguimiento.EstadoSeguimiento;
 import co.edu.ufps.legal_cases.business.service.seguimiento.SeguimientoService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -75,9 +77,7 @@ public class SeguimientoController {
     @GetMapping("/fecha-entrega")
     @PreAuthorize("hasAuthority('" + VER_SEGUIMIENTOS + "')")
     public List<SeguimientoResponseDTO> listarPorFechaEntrega(
-            @RequestParam
-            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
-            LocalDate fechaEntrega) {
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fechaEntrega) {
         return seguimientoService.listarPorFechaEntrega(fechaEntrega);
     }
 
@@ -99,6 +99,14 @@ public class SeguimientoController {
             @PathVariable Long id,
             @Valid @RequestBody SeguimientoRequestDTO dto) {
         return seguimientoService.actualizar(id, dto);
+    }
+
+    @PatchMapping("/{id}/estado")
+    @PreAuthorize("hasAuthority('" + EDITAR_SEGUIMIENTOS + "')")
+    public SeguimientoResponseDTO cambiarEstadoSeguimiento(
+            @PathVariable Long id,
+            @RequestParam EstadoSeguimiento estado) {
+        return seguimientoService.cambiarEstadoSeguimiento(id, estado);
     }
 
     @DeleteMapping("/{id}")

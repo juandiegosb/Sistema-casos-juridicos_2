@@ -2,6 +2,7 @@ package co.edu.ufps.legal_cases.business.dto.consulta;
 
 import java.time.LocalDate;
 
+import co.edu.ufps.legal_cases.business.model.consulta.EstadoConsulta;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -32,5 +33,5 @@ public class ConsultaBusquedaDTO {
     /** Número de documento de la persona (campo "cedula" en el frontend). */
     private String cedula;
 
-    private String estado;
+    private EstadoConsulta estado;
 }

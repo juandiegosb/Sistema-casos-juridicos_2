@@ -3,6 +3,7 @@ package co.edu.ufps.legal_cases.business.dto.seguimiento;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
+import co.edu.ufps.legal_cases.business.model.seguimiento.EstadoSeguimiento;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -24,6 +25,8 @@ public class SeguimientoResponseDTO {
     private Boolean notificarEstudiante;
 
     private Boolean alertaDisciplinaria;
+
+    private EstadoSeguimiento estado;
 
     private Long categoriaSeguimientoId;
 

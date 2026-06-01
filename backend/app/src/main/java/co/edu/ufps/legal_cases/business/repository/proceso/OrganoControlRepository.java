@@ -18,4 +18,6 @@ public interface OrganoControlRepository extends JpaRepository<OrganoControl, Lo
     boolean existsByNombreIgnoreCase(String nombre);
 
     boolean existsByNombreIgnoreCaseAndIdNot(String nombre, Long id);
+
+    List<OrganoControl> findAllByOrderByNombreAsc();
 }

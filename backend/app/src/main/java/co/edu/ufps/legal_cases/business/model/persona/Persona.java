@@ -2,11 +2,16 @@ package co.edu.ufps.legal_cases.business.model.persona;
 
 import java.time.LocalDate;
 
+import co.edu.ufps.legal_cases.business.model.catalogo.Barrio;
+import co.edu.ufps.legal_cases.business.model.catalogo.Municipio;
+import co.edu.ufps.legal_cases.business.model.catalogo.Nacionalidad;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -26,8 +31,9 @@ public class Persona {
     private Long id;
 
     // Informacion basica
-    @Column(name = "tipo_usuario", nullable = false, length = 20)
-    private String tipoUsuario;
+    @ManyToOne
+    @JoinColumn(name = "tipo_persona_id", nullable = false)
+    private TipoPersona tipoPersona;
 
     @Column(name = "tipo_documento", nullable = false, length = 10)
     private String tipoDocumento;
@@ -71,8 +77,9 @@ public class Persona {
     @Column(name = "correo", length = 120)
     private String correo;
 
-    @Column(name = "nacionalidad", nullable = false, length = 50)
-    private String nacionalidad;
+    @ManyToOne
+    @JoinColumn(name = "nacionalidad_id", nullable = false)
+    private Nacionalidad nacionalidad;
 
     @Column(name = "estado_civil", nullable = false, length = 30)
     private String estadoCivil;
@@ -83,8 +90,9 @@ public class Persona {
     @Column(name = "grupo_etnico", nullable = false, length = 100)
     private String grupoEtnico;
 
-    @Column(name = "condicion_actual", nullable = false, length = 100)
-    private String condicionActual;
+    @ManyToOne
+    @JoinColumn(name = "condicion_actual_id", nullable = false)
+    private Condicion condicionActual;
 
     @Column(name = "sabe_leer_escribir", nullable = false)
     private Boolean sabeLeerEscribir;
@@ -99,14 +107,13 @@ public class Persona {
     private Boolean necesitaAjustePcd;
 
     // Informacion de vivienda
-    @Column(name = "departamento", nullable = false, length = 100)
-    private String departamento;
+    @ManyToOne
+    @JoinColumn(name = "municipio_id", nullable = false)
+    private Municipio municipio;
 
-    @Column(name = "municipio", nullable = false, length = 100)
-    private String municipio;
-
-    @Column(name = "barrio", nullable = false, length = 100)
-    private String barrio;
+    @ManyToOne
+    @JoinColumn(name = "barrio_id", nullable = false)
+    private Barrio barrio;
 
     @Column(name = "direccion", nullable = false, length = 150)
     private String direccion;
@@ -145,11 +152,13 @@ public class Persona {
     private Boolean alcantarillado;
 
     // Aspectos economicos
-    @Column(name = "ocupacion", nullable = false, length = 100)
-    private String ocupacion;
+    @ManyToOne
+    @JoinColumn(name = "ocupacion_id", nullable = false)
+    private Ocupacion ocupacion;
 
-    @Column(name = "empresa", nullable = false, length = 150)
-    private String empresa;
+    @ManyToOne
+    @JoinColumn(name = "empresa_id", nullable = false)
+    private Empresa empresa;
 
     @Column(name = "salario", nullable = false)
     private Integer salario;
