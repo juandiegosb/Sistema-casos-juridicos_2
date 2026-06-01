@@ -22,6 +22,7 @@ import co.edu.ufps.legal_cases.business.repository.perfil.AdministrativoReposito
 import co.edu.ufps.legal_cases.business.service.acceso.perfil.AdministrativoAccessService;
 import co.edu.ufps.legal_cases.common.exception.BusinessException;
 import co.edu.ufps.legal_cases.security.model.account.UsuarioSistema;
+import co.edu.ufps.legal_cases.security.service.account.usuario.UsuarioSistemaPerfilEstadoService;
 import co.edu.ufps.legal_cases.security.service.account.usuario.UsuarioSistemaRegistroService;
 
 @Service
@@ -31,6 +32,7 @@ public class AdministrativoCommandService {
     private final TipoDocumentoRepository tipoDocumentoRepository;
     private final SedeRepository sedeRepository;
     private final UsuarioSistemaRegistroService usuarioSistemaRegistroService;
+    private final UsuarioSistemaPerfilEstadoService usuarioSistemaPerfilEstadoService;
     private final AdministrativoAccessService administrativoAccessService;
     private final AdministrativoValidator administrativoValidator;
     private final AdministrativoMapper administrativoMapper;
@@ -40,6 +42,7 @@ public class AdministrativoCommandService {
             TipoDocumentoRepository tipoDocumentoRepository,
             SedeRepository sedeRepository,
             UsuarioSistemaRegistroService usuarioSistemaRegistroService,
+            UsuarioSistemaPerfilEstadoService usuarioSistemaPerfilEstadoService,
             AdministrativoAccessService administrativoAccessService,
             AdministrativoValidator administrativoValidator,
             AdministrativoMapper administrativoMapper) {
@@ -47,6 +50,7 @@ public class AdministrativoCommandService {
         this.tipoDocumentoRepository = tipoDocumentoRepository;
         this.sedeRepository = sedeRepository;
         this.usuarioSistemaRegistroService = usuarioSistemaRegistroService;
+        this.usuarioSistemaPerfilEstadoService = usuarioSistemaPerfilEstadoService;
         this.administrativoAccessService = administrativoAccessService;
         this.administrativoValidator = administrativoValidator;
         this.administrativoMapper = administrativoMapper;
@@ -126,7 +130,15 @@ public class AdministrativoCommandService {
 
         administrativo.setActivo(activo);
 
-        return administrativoMapper.convertirADTO(administrativoRepository.save(administrativo));
+        Administrativo guardado = administrativoRepository.save(administrativo);
+
+        // El estado operativo del perfil y del usuario de acceso deben permanecer
+        // sincronizados.
+        usuarioSistemaPerfilEstadoService.sincronizarEstadoSiExiste(
+                guardado.getUsuarioSistema(),
+                activo);
+
+        return administrativoMapper.convertirADTO(guardado);
     }
 
     @Transactional
@@ -156,7 +168,11 @@ public class AdministrativoCommandService {
 
         administrativo.setActivo(false);
 
-        administrativoRepository.save(administrativo);
+        Administrativo guardado = administrativoRepository.save(administrativo);
+
+        usuarioSistemaPerfilEstadoService.sincronizarEstadoSiExiste(
+                guardado.getUsuarioSistema(),
+                false);
     }
 
     private DatosAdministrativo prepararDatos(
@@ -213,5 +229,4 @@ public class AdministrativoCommandService {
         return sedeRepository.findByIdAndActivoTrue(sedeId)
                 .orElseThrow(() -> new BusinessException("Sede no encontrada o inactiva con id: " + sedeId));
     }
-
 }

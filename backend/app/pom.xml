@@ -95,6 +95,13 @@
             <artifactId>spring-boot-starter-mail</artifactId>
         </dependency>
 
+        <!-- Pruebas unitarias e integración con JUnit 5, Mockito y utilidades de Spring Boot -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+
         <!-- Generación de PDF con iText 7 -->
         <dependency>
             <groupId>com.itextpdf</groupId>

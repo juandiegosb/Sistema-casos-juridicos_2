@@ -28,6 +28,8 @@ public interface ProcesoRepository extends JpaRepository<Proceso, Long> {
 
     boolean existsByNumeroRadicado(String numeroRadicado);
 
+    boolean existsByConsulta_IdAndActivoTrue(Long consultaId);
+
     boolean existsByNumeroRadicadoAndIdNot(String numeroRadicado, Long id);
 
     boolean existsByConsulta_IdAndActivoTrueAndEstado(Long consultaId, EstadoProceso estado);
