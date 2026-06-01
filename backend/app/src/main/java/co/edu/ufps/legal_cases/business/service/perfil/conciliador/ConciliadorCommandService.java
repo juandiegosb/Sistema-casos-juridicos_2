@@ -22,6 +22,7 @@ import co.edu.ufps.legal_cases.business.repository.perfil.ConciliadorRepository;
 import co.edu.ufps.legal_cases.business.service.acceso.perfil.ConciliadorAccessService;
 import co.edu.ufps.legal_cases.common.exception.BusinessException;
 import co.edu.ufps.legal_cases.security.model.account.UsuarioSistema;
+import co.edu.ufps.legal_cases.security.service.account.usuario.UsuarioSistemaPerfilEstadoService;
 import co.edu.ufps.legal_cases.security.service.account.usuario.UsuarioSistemaRegistroService;
 
 @Service
@@ -31,6 +32,7 @@ public class ConciliadorCommandService {
     private final TipoDocumentoRepository tipoDocumentoRepository;
     private final SedeRepository sedeRepository;
     private final UsuarioSistemaRegistroService usuarioSistemaRegistroService;
+    private final UsuarioSistemaPerfilEstadoService usuarioSistemaPerfilEstadoService;
     private final ConciliadorAccessService conciliadorAccessService;
     private final ConciliadorValidator conciliadorValidator;
     private final ConciliadorMapper conciliadorMapper;
@@ -40,6 +42,7 @@ public class ConciliadorCommandService {
             TipoDocumentoRepository tipoDocumentoRepository,
             SedeRepository sedeRepository,
             UsuarioSistemaRegistroService usuarioSistemaRegistroService,
+            UsuarioSistemaPerfilEstadoService usuarioSistemaPerfilEstadoService,
             ConciliadorAccessService conciliadorAccessService,
             ConciliadorValidator conciliadorValidator,
             ConciliadorMapper conciliadorMapper) {
@@ -47,6 +50,7 @@ public class ConciliadorCommandService {
         this.tipoDocumentoRepository = tipoDocumentoRepository;
         this.sedeRepository = sedeRepository;
         this.usuarioSistemaRegistroService = usuarioSistemaRegistroService;
+        this.usuarioSistemaPerfilEstadoService = usuarioSistemaPerfilEstadoService;
         this.conciliadorAccessService = conciliadorAccessService;
         this.conciliadorValidator = conciliadorValidator;
         this.conciliadorMapper = conciliadorMapper;
@@ -123,7 +127,15 @@ public class ConciliadorCommandService {
 
         conciliador.setActivo(activo);
 
-        return conciliadorMapper.convertirADTO(conciliadorRepository.save(conciliador));
+        Conciliador guardado = conciliadorRepository.save(conciliador);
+
+        // El estado operativo del perfil y del usuario de acceso deben permanecer
+        // sincronizados.
+        usuarioSistemaPerfilEstadoService.sincronizarEstadoSiExiste(
+                guardado.getUsuarioSistema(),
+                activo);
+
+        return conciliadorMapper.convertirADTO(guardado);
     }
 
     @Transactional
@@ -139,7 +151,11 @@ public class ConciliadorCommandService {
 
         conciliador.setActivo(false);
 
-        conciliadorRepository.save(conciliador);
+        Conciliador guardado = conciliadorRepository.save(conciliador);
+
+        usuarioSistemaPerfilEstadoService.sincronizarEstadoSiExiste(
+                guardado.getUsuarioSistema(),
+                false);
     }
 
     private DatosConciliador prepararDatos(ConciliadorDTO dto, Boolean activo) {

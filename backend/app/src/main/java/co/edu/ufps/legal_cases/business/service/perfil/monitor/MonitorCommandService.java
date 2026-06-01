@@ -23,6 +23,7 @@ import co.edu.ufps.legal_cases.business.service.acceso.perfil.AsesorMonitorAcces
 import co.edu.ufps.legal_cases.business.service.consulta.consulta.ConsultaResponsableOperacionService;
 import co.edu.ufps.legal_cases.common.exception.BusinessException;
 import co.edu.ufps.legal_cases.security.model.account.UsuarioSistema;
+import co.edu.ufps.legal_cases.security.service.account.usuario.UsuarioSistemaPerfilEstadoService;
 import co.edu.ufps.legal_cases.security.service.account.usuario.UsuarioSistemaRegistroService;
 
 @Service
@@ -32,6 +33,7 @@ public class MonitorCommandService {
     private final TipoDocumentoRepository tipoDocumentoRepository;
     private final SedeRepository sedeRepository;
     private final UsuarioSistemaRegistroService usuarioSistemaRegistroService;
+    private final UsuarioSistemaPerfilEstadoService usuarioSistemaPerfilEstadoService;
     private final AsesorMonitorAccessService asesorMonitorAccessService;
     private final MonitorValidator monitorValidator;
     private final MonitorMapper monitorMapper;
@@ -42,6 +44,7 @@ public class MonitorCommandService {
             TipoDocumentoRepository tipoDocumentoRepository,
             SedeRepository sedeRepository,
             UsuarioSistemaRegistroService usuarioSistemaRegistroService,
+            UsuarioSistemaPerfilEstadoService usuarioSistemaPerfilEstadoService,
             AsesorMonitorAccessService asesorMonitorAccessService,
             MonitorValidator monitorValidator,
             MonitorMapper monitorMapper,
@@ -50,6 +53,7 @@ public class MonitorCommandService {
         this.tipoDocumentoRepository = tipoDocumentoRepository;
         this.sedeRepository = sedeRepository;
         this.usuarioSistemaRegistroService = usuarioSistemaRegistroService;
+        this.usuarioSistemaPerfilEstadoService = usuarioSistemaPerfilEstadoService;
         this.asesorMonitorAccessService = asesorMonitorAccessService;
         this.monitorValidator = monitorValidator;
         this.monitorMapper = monitorMapper;
@@ -129,7 +133,15 @@ public class MonitorCommandService {
 
         monitor.setActivo(activo);
 
-        return monitorMapper.convertirADTO(monitorRepository.save(monitor));
+        Monitor guardado = monitorRepository.save(monitor);
+
+        // El estado operativo del perfil y del usuario de acceso deben permanecer
+        // sincronizados.
+        usuarioSistemaPerfilEstadoService.sincronizarEstadoSiExiste(
+                guardado.getUsuarioSistema(),
+                activo);
+
+        return monitorMapper.convertirADTO(guardado);
     }
 
     @Transactional
@@ -146,7 +158,11 @@ public class MonitorCommandService {
 
         monitor.setActivo(false);
 
-        monitorRepository.save(monitor);
+        Monitor guardado = monitorRepository.save(monitor);
+
+        usuarioSistemaPerfilEstadoService.sincronizarEstadoSiExiste(
+                guardado.getUsuarioSistema(),
+                false);
     }
 
     private DatosMonitor prepararDatos(MonitorDTO dto, Boolean activo) {

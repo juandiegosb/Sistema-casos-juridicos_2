@@ -24,6 +24,7 @@ import co.edu.ufps.legal_cases.business.service.acceso.perfil.AsesorMonitorAcces
 import co.edu.ufps.legal_cases.business.service.consulta.consulta.ConsultaResponsableOperacionService;
 import co.edu.ufps.legal_cases.common.exception.BusinessException;
 import co.edu.ufps.legal_cases.security.model.account.UsuarioSistema;
+import co.edu.ufps.legal_cases.security.service.account.usuario.UsuarioSistemaPerfilEstadoService;
 import co.edu.ufps.legal_cases.security.service.account.usuario.UsuarioSistemaRegistroService;
 
 @Service
@@ -34,6 +35,7 @@ public class AsesorCommandService {
     private final SedeRepository sedeRepository;
     private final AreaRepository areaRepository;
     private final UsuarioSistemaRegistroService usuarioSistemaRegistroService;
+    private final UsuarioSistemaPerfilEstadoService usuarioSistemaPerfilEstadoService;
     private final AsesorMonitorAccessService asesorMonitorAccessService;
     private final AsesorValidator asesorValidator;
     private final AsesorMapper asesorMapper;
@@ -45,6 +47,7 @@ public class AsesorCommandService {
             SedeRepository sedeRepository,
             AreaRepository areaRepository,
             UsuarioSistemaRegistroService usuarioSistemaRegistroService,
+            UsuarioSistemaPerfilEstadoService usuarioSistemaPerfilEstadoService,
             AsesorMonitorAccessService asesorMonitorAccessService,
             AsesorValidator asesorValidator,
             AsesorMapper asesorMapper,
@@ -54,6 +57,7 @@ public class AsesorCommandService {
         this.sedeRepository = sedeRepository;
         this.areaRepository = areaRepository;
         this.usuarioSistemaRegistroService = usuarioSistemaRegistroService;
+        this.usuarioSistemaPerfilEstadoService = usuarioSistemaPerfilEstadoService;
         this.asesorMonitorAccessService = asesorMonitorAccessService;
         this.asesorValidator = asesorValidator;
         this.asesorMapper = asesorMapper;
@@ -133,7 +137,15 @@ public class AsesorCommandService {
 
         asesor.setActivo(activo);
 
-        return asesorMapper.convertirADTO(asesorRepository.save(asesor));
+        Asesor guardado = asesorRepository.save(asesor);
+
+        // El estado operativo del perfil y del usuario de acceso deben permanecer
+        // sincronizados.
+        usuarioSistemaPerfilEstadoService.sincronizarEstadoSiExiste(
+                guardado.getUsuarioSistema(),
+                activo);
+
+        return asesorMapper.convertirADTO(guardado);
     }
 
     @Transactional
@@ -150,7 +162,11 @@ public class AsesorCommandService {
 
         asesor.setActivo(false);
 
-        asesorRepository.save(asesor);
+        Asesor guardado = asesorRepository.save(asesor);
+
+        usuarioSistemaPerfilEstadoService.sincronizarEstadoSiExiste(
+                guardado.getUsuarioSistema(),
+                false);
     }
 
     private DatosAsesor prepararDatos(AsesorDTO dto, Boolean activo) {

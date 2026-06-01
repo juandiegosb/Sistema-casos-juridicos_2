@@ -25,6 +25,7 @@ import co.edu.ufps.legal_cases.business.service.acceso.perfil.EstudianteAccessSe
 import co.edu.ufps.legal_cases.business.service.consulta.consulta.ConsultaResponsableOperacionService;
 import co.edu.ufps.legal_cases.common.exception.BusinessException;
 import co.edu.ufps.legal_cases.security.model.account.UsuarioSistema;
+import co.edu.ufps.legal_cases.security.service.account.usuario.UsuarioSistemaPerfilEstadoService;
 import co.edu.ufps.legal_cases.security.service.account.usuario.UsuarioSistemaRegistroService;
 
 @Service
@@ -35,6 +36,7 @@ public class EstudianteCommandService {
     private final SedeRepository sedeRepository;
     private final AsesorRepository asesorRepository;
     private final UsuarioSistemaRegistroService usuarioSistemaRegistroService;
+    private final UsuarioSistemaPerfilEstadoService usuarioSistemaPerfilEstadoService;
     private final EstudianteAccessService estudianteAccessService;
     private final EstudianteValidator estudianteValidator;
     private final EstudianteMapper estudianteMapper;
@@ -46,6 +48,7 @@ public class EstudianteCommandService {
             SedeRepository sedeRepository,
             AsesorRepository asesorRepository,
             UsuarioSistemaRegistroService usuarioSistemaRegistroService,
+            UsuarioSistemaPerfilEstadoService usuarioSistemaPerfilEstadoService,
             EstudianteAccessService estudianteAccessService,
             EstudianteValidator estudianteValidator,
             EstudianteMapper estudianteMapper,
@@ -55,6 +58,7 @@ public class EstudianteCommandService {
         this.sedeRepository = sedeRepository;
         this.asesorRepository = asesorRepository;
         this.usuarioSistemaRegistroService = usuarioSistemaRegistroService;
+        this.usuarioSistemaPerfilEstadoService = usuarioSistemaPerfilEstadoService;
         this.estudianteAccessService = estudianteAccessService;
         this.estudianteValidator = estudianteValidator;
         this.estudianteMapper = estudianteMapper;
@@ -136,7 +140,15 @@ public class EstudianteCommandService {
 
         estudiante.setActivo(activo);
 
-        return estudianteMapper.convertirADTO(estudianteRepository.save(estudiante));
+        Estudiante guardado = estudianteRepository.save(estudiante);
+
+        // El estado operativo del perfil y del usuario de acceso deben permanecer
+        // sincronizados.
+        usuarioSistemaPerfilEstadoService.sincronizarEstadoSiExiste(
+                guardado.getUsuarioSistema(),
+                activo);
+
+        return estudianteMapper.convertirADTO(guardado);
     }
 
     @Transactional
@@ -167,7 +179,11 @@ public class EstudianteCommandService {
 
         estudiante.setActivo(false);
 
-        estudianteRepository.save(estudiante);
+        Estudiante guardado = estudianteRepository.save(estudiante);
+
+        usuarioSistemaPerfilEstadoService.sincronizarEstadoSiExiste(
+                guardado.getUsuarioSistema(),
+                false);
     }
 
     private DatosEstudiante prepararDatos(
