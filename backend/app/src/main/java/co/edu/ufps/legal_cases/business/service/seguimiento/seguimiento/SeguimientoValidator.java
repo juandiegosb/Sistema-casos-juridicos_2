@@ -109,6 +109,29 @@ public class SeguimientoValidator {
         }
     }
 
+    public void validarNotificarEstudianteConConsulta(
+            Boolean notificarEstudiante,
+            Consulta consulta) {
+
+        if (!Boolean.TRUE.equals(notificarEstudiante)) {
+            return;
+        }
+
+        if (consulta == null) {
+            throw new BusinessException("No se puede notificar al estudiante porque la consulta es obligatoria");
+        }
+
+        if (consulta.getEstudiante() == null) {
+            throw new BusinessException(
+                    "No se puede notificar al estudiante porque la consulta no tiene estudiante asignado");
+        }
+
+        if (!Boolean.TRUE.equals(consulta.getEstudiante().getActivo())) {
+            throw new BusinessException(
+                    "No se puede notificar al estudiante porque el estudiante asignado está inactivo");
+        }
+    }
+
     private void validarDtoObligatorio(SeguimientoRequestDTO dto) {
         if (dto == null) {
             throw new BusinessException("Los datos del seguimiento son obligatorios");

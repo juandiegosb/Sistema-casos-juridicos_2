@@ -20,6 +20,7 @@ import co.edu.ufps.legal_cases.business.repository.catalogo.SedeRepository;
 import co.edu.ufps.legal_cases.business.repository.catalogo.TipoDocumentoRepository;
 import co.edu.ufps.legal_cases.business.repository.perfil.MonitorRepository;
 import co.edu.ufps.legal_cases.business.service.acceso.perfil.AsesorMonitorAccessService;
+import co.edu.ufps.legal_cases.business.service.consulta.consulta.ConsultaResponsableOperacionService;
 import co.edu.ufps.legal_cases.common.exception.BusinessException;
 import co.edu.ufps.legal_cases.security.model.account.UsuarioSistema;
 import co.edu.ufps.legal_cases.security.service.account.usuario.UsuarioSistemaRegistroService;
@@ -34,6 +35,7 @@ public class MonitorCommandService {
     private final AsesorMonitorAccessService asesorMonitorAccessService;
     private final MonitorValidator monitorValidator;
     private final MonitorMapper monitorMapper;
+    private final ConsultaResponsableOperacionService consultaResponsableOperacionService;
 
     public MonitorCommandService(
             MonitorRepository monitorRepository,
@@ -42,7 +44,8 @@ public class MonitorCommandService {
             UsuarioSistemaRegistroService usuarioSistemaRegistroService,
             AsesorMonitorAccessService asesorMonitorAccessService,
             MonitorValidator monitorValidator,
-            MonitorMapper monitorMapper) {
+            MonitorMapper monitorMapper,
+            ConsultaResponsableOperacionService consultaResponsableOperacionService) {
         this.monitorRepository = monitorRepository;
         this.tipoDocumentoRepository = tipoDocumentoRepository;
         this.sedeRepository = sedeRepository;
@@ -50,6 +53,7 @@ public class MonitorCommandService {
         this.asesorMonitorAccessService = asesorMonitorAccessService;
         this.monitorValidator = monitorValidator;
         this.monitorMapper = monitorMapper;
+        this.consultaResponsableOperacionService = consultaResponsableOperacionService;
     }
 
     @Transactional
@@ -119,6 +123,10 @@ public class MonitorCommandService {
 
         monitorValidator.validarCambioEstado(monitor, activo);
 
+        if (Boolean.FALSE.equals(activo)) {
+            consultaResponsableOperacionService.validarMonitorSinConsultasOperativas(id);
+        }
+
         monitor.setActivo(activo);
 
         return monitorMapper.convertirADTO(monitorRepository.save(monitor));
@@ -134,6 +142,7 @@ public class MonitorCommandService {
         // Se conserva el perfil y se desactiva porque puede estar asociado a consultas
         // o seguimientos.
         monitorValidator.validarCambioEstado(monitor, false);
+        consultaResponsableOperacionService.validarMonitorSinConsultasOperativas(id);
 
         monitor.setActivo(false);
 

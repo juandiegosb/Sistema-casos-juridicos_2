@@ -22,6 +22,7 @@ import co.edu.ufps.legal_cases.business.repository.catalogo.TipoDocumentoReposit
 import co.edu.ufps.legal_cases.business.repository.perfil.AsesorRepository;
 import co.edu.ufps.legal_cases.business.repository.perfil.EstudianteRepository;
 import co.edu.ufps.legal_cases.business.service.acceso.perfil.EstudianteAccessService;
+import co.edu.ufps.legal_cases.business.service.consulta.consulta.ConsultaResponsableOperacionService;
 import co.edu.ufps.legal_cases.common.exception.BusinessException;
 import co.edu.ufps.legal_cases.security.model.account.UsuarioSistema;
 import co.edu.ufps.legal_cases.security.service.account.usuario.UsuarioSistemaRegistroService;
@@ -37,6 +38,7 @@ public class EstudianteCommandService {
     private final EstudianteAccessService estudianteAccessService;
     private final EstudianteValidator estudianteValidator;
     private final EstudianteMapper estudianteMapper;
+    private final ConsultaResponsableOperacionService consultaResponsableOperacionService;
 
     public EstudianteCommandService(
             EstudianteRepository estudianteRepository,
@@ -46,7 +48,8 @@ public class EstudianteCommandService {
             UsuarioSistemaRegistroService usuarioSistemaRegistroService,
             EstudianteAccessService estudianteAccessService,
             EstudianteValidator estudianteValidator,
-            EstudianteMapper estudianteMapper) {
+            EstudianteMapper estudianteMapper,
+            ConsultaResponsableOperacionService consultaResponsableOperacionService) {
         this.estudianteRepository = estudianteRepository;
         this.tipoDocumentoRepository = tipoDocumentoRepository;
         this.sedeRepository = sedeRepository;
@@ -55,6 +58,7 @@ public class EstudianteCommandService {
         this.estudianteAccessService = estudianteAccessService;
         this.estudianteValidator = estudianteValidator;
         this.estudianteMapper = estudianteMapper;
+        this.consultaResponsableOperacionService = consultaResponsableOperacionService;
     }
 
     @Transactional
@@ -126,6 +130,10 @@ public class EstudianteCommandService {
 
         estudianteValidator.validarCambioEstado(estudiante, activo);
 
+        if (Boolean.FALSE.equals(activo)) {
+            consultaResponsableOperacionService.validarEstudianteSinConsultasOperativas(id);
+        }
+
         estudiante.setActivo(activo);
 
         return estudianteMapper.convertirADTO(estudianteRepository.save(estudiante));
@@ -155,6 +163,7 @@ public class EstudianteCommandService {
         // Se conserva el perfil y se desactiva porque puede estar asociado a consultas
         // y seguimientos.
         estudianteValidator.validarCambioEstado(estudiante, false);
+        consultaResponsableOperacionService.validarEstudianteSinConsultasOperativas(id);
 
         estudiante.setActivo(false);
 

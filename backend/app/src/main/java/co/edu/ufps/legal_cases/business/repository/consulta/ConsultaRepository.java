@@ -16,6 +16,14 @@ import co.edu.ufps.legal_cases.business.model.consulta.EstadoConsulta;
 @Repository
 public interface ConsultaRepository extends JpaRepository<Consulta, Long> {
 
+    boolean existsByAsesor_IdAndEstadoIn(Long asesorId, List<EstadoConsulta> estados);
+
+    boolean existsByEstudiante_Asesor_IdAndEstadoIn(Long asesorId, List<EstadoConsulta> estados);
+
+    boolean existsByEstudiante_IdAndEstadoIn(Long estudianteId, List<EstadoConsulta> estados);
+
+    boolean existsByMonitor_IdAndEstadoIn(Long monitorId, List<EstadoConsulta> estados);
+    
     // Hibernate no permite hacer JOIN FETCH de dos colecciones al mismo tiempo.
     // Por eso partes y contrapartes se cargan en consultas separadas.
     @Query("""

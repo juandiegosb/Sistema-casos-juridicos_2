@@ -14,7 +14,7 @@ import co.edu.ufps.legal_cases.common.exception.BusinessException;
 import lombok.AllArgsConstructor;
 
 // Este servicio maneja los cambios de Consulta en la BD
-// a diferencia del QueryService que solo lee
+// a diferencia del QueryService que solo lee.
 @Service
 @AllArgsConstructor
 public class ConsultaCommandService {
@@ -27,6 +27,8 @@ public class ConsultaCommandService {
     private final ConsultaMapper consultaMapper;
     private final ConsultaEstadoService consultaEstadoService;
     private final ConsultaConstruccionService consultaConstruccionService;
+    private final ConsultaActividadService consultaActividadService;
+    private final ConsultaCambioEstructuralValidator consultaCambioEstructuralValidator;
 
     @Transactional
     @Auditable(action = "CREAR_CONSULTA", entityName = "Consulta")
@@ -77,6 +79,16 @@ public class ConsultaCommandService {
         consultaAccessService.validarPuedeAsignarResponsablesConsultaSiAplica(solicitaCambioResponsables);
 
         boolean puedeAsignarResponsables = consultaAccessService.usuarioPuedeAsignarResponsables();
+
+        boolean tieneActividadAsociada = consultaActividadService.tieneActividadAsociada(id);
+
+        // Si la consulta ya tiene actividad, solo se permiten cambios narrativos o
+        // complementarios. Los datos estructurales requieren un flujo formal aparte.
+        consultaCambioEstructuralValidator.validarSiTieneActividad(
+                existente,
+                dto,
+                tieneActividadAsociada,
+                puedeAsignarResponsables);
 
         consultaConstruccionService.aplicarDatos(
                 existente,

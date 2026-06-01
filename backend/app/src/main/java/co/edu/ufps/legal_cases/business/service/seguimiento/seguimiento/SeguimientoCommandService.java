@@ -130,13 +130,21 @@ public class SeguimientoCommandService {
         CategoriaSeguimiento categoria = obtenerCategoriaActiva(dto.getCategoriaSeguimientoId());
         Consulta consulta = obtenerConsulta(dto.getConsultaId());
 
+        Boolean notificarPartes = valorBooleano(dto.getNotificarPartes());
+        Boolean notificarEstudiante = valorBooleano(dto.getNotificarEstudiante());
+        Boolean alertaDisciplinaria = valorBooleano(dto.getAlertaDisciplinaria());
+
+        seguimientoValidator.validarNotificarEstudianteConConsulta(
+                notificarEstudiante,
+                consulta);
+
         return new DatosSeguimiento(
                 descripcion,
                 dto.getFechaEntrega(),
                 dto.getDiasNotificacion(),
-                valorBooleano(dto.getNotificarPartes()),
-                valorBooleano(dto.getNotificarEstudiante()),
-                valorBooleano(dto.getAlertaDisciplinaria()),
+                notificarPartes,
+                notificarEstudiante,
+                alertaDisciplinaria,
                 categoria,
                 consulta);
     }
